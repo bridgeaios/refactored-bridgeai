@@ -1,0 +1,14 @@
+name = "bridge-edge"
+main = "worker.js"
+compatibility_date = "2024-01-01"
+
+[env.production]
+vars = { ENVIRONMENT = "production" }
+
+[[unsafe.bindings]]
+name = "BACKEND_URL"
+type = "plain_text"
+value = "http://backend:8000"
+
+[observability]
+enabled = true

@@ -3,11 +3,22 @@ services:
   backend:
     build: ./backend
     ports:
-      - "8080:8000"
+      - "127.0.0.1:8000:8000"
+    environment:
+      - EDGE_MODE=required
+    networks:
+      - bridge-net
 
   frontend:
     build: ./frontend
     ports:
-      - "8082:80"
+      - "127.0.0.1:8082:80"
     depends_on:
       - backend
+    networks:
+      - bridge-net
+
+networks:
+  bridge-net:
+    driver: bridge
+    internal: false
