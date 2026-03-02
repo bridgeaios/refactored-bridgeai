@@ -22,12 +22,35 @@ export default {
       const url = new URL(request.url);
       const path = url.pathname;
 
-      // BLOCK: Direct access to backend endpoints without worker
-      if (path.startsWith("/run-task") && !request.headers.get("x-edge-authorized")) {
-        log(401, { blocked: "unauthorized_origin" });
-        return new Response(JSON.stringify({ error: "Unauthorized: Must pass through edge" }), {
-          status: 401,
-          headers: { "Content-Type": "application/json" },
+      // UNKNOWN ROUTES → 404 (not 500)
+      const allowedRoutes = [
+        '/health',
+        '/edge/health',
+        '/run-task',
+        '/api/distribution/run',
+        '/api/execution/',
+        '/api/me',
+        '/internal/treasury/summary',
+      ];
+      
+      const isAllowed = allowedRoutes.some(route => {
+        if (route.endsWith('/')) return path.startsWith(route);
+        return path === route || path.startsWith(route + '/');
+      });
+      
+      if (!isAllowed && path !== '/') {
+        log(404, { blocked: "unknown_route", path });
+        return new Response(JSON.stringify({ 
+          error: "Not Found",
+          detail: `Route ${path} not recognized`,
+          requestId 
+        }), {
+          status: 404,
+          headers: { 
+            "Content-Type": "application/json",
+            "X-Request-ID": requestId,
+            "X-Edge-Ray": ray,
+          },
         });
       }
 
@@ -39,23 +62,40 @@ export default {
           requestId,
           timestamp: new Date().toISOString(),
         }), {
-          headers: { "Content-Type": "application/json" },
+          headers: { 
+            "Content-Type": "application/json",
+            "X-Request-ID": requestId,
+            "X-Edge-Ray": ray,
+          },
         });
       }
 
       // AUTH GATE: Validate JWT (placeholder - replace with real validation)
       const authHeader = request.headers.get("Authorization");
-      if (!authHeader && path.startsWith("/api/")) {
-        log(401, { blocked: "missing_auth" });
-        return new Response(JSON.stringify({ error: "Authorization required" }), {
-          status: 401,
-          headers: { "Content-Type": "application/json" },
-        });
+      
+      // Public routes that don't require auth
+      const publicRoutes = ['/health', '/edge/health'];
+      if (!publicRoutes.includes(path) && path !== '/') {
+        if (!authHeader) {
+          log(401, { blocked: "missing_auth", path });
+          return new Response(JSON.stringify({ 
+            error: "Unauthorized",
+            detail: "Authorization required",
+            requestId 
+          }), {
+            status: 401,
+            headers: { 
+              "Content-Type": "application/json",
+              "X-Request-ID": requestId,
+              "X-Edge-Ray": ray,
+            },
+          });
+        }
       }
 
       // FORWARD TO BACKEND
       const backendUrl = env.BACKEND_URL || "http://backend:8000";
-      const forwardUrl = `${backendUrl}${path}`;
+      const forwardUrl = `${backendUrl}${path}${url.search}`;
 
       const forwardHeaders = new Headers(request.headers);
       forwardHeaders.set("X-Edge-Authorized", "true");
@@ -67,16 +107,37 @@ export default {
         method: request.method,
         headers: forwardHeaders,
         body: request.body,
+        redirect: "manual",
       });
 
-      log(response.status);
-      return response;
+      log(response.status, { path });
+      
+      const responseBody = await response.text();
+      const responseHeaders = new Headers();
+      responseHeaders.set("Content-Type", "application/json");
+      responseHeaders.set("X-Request-ID", requestId);
+      responseHeaders.set("X-Edge-Ray", ray);
+      responseHeaders.set("Server", "cloudflare");
+
+      return new Response(responseBody, {
+        status: response.status,
+        headers: responseHeaders,
+      });
 
     } catch (err) {
-      log(500, { error: err.message });
-      return new Response(JSON.stringify({ error: "Edge error", detail: err.message }), {
+      log(500, { error: err.message, stack: err.stack });
+      return new Response(JSON.stringify({ 
+        error: "Edge Error",
+        detail: err.message,
+        requestId 
+      }), {
         status: 500,
-        headers: { "Content-Type": "application/json" },
+        headers: { 
+          "Content-Type": "application/json",
+          "X-Request-ID": requestId,
+          "X-Edge-Ray": ray,
+          "Server": "cloudflare",
+        },
       });
     }
   },
