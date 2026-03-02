@@ -2,19 +2,24 @@ version: "3.9"
 services:
   backend:
     build: ./backend
-    ports:
-      - "127.0.0.1:8000:8000"
+    expose:
+      - "8000"
     environment:
       - EDGE_MODE=required
     volumes:
       - ./data:/data
     networks:
       - bridge-net
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:8000/health"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
 
   frontend:
     build: ./frontend
-    ports:
-      - "127.0.0.1:8082:80"
+    expose:
+      - "80"
     depends_on:
       - backend
     networks:
@@ -23,3 +28,4 @@ services:
 networks:
   bridge-net:
     driver: bridge
+    internal: true

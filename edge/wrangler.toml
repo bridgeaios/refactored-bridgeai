@@ -5,6 +5,14 @@ compatibility_date = "2024-01-01"
 [env.production]
 vars = { ENVIRONMENT = "production" }
 
+[[env.production.secrets]]
+name = "JWT_SECRET"
+id = "jwt_secret"
+
+[[env.production.secrets]]
+name = "JWT_PUBLIC_KEY"
+id = "jwt_public_key"
+
 [env.staging]
 vars = { ENVIRONMENT = "staging" }
 
@@ -17,7 +25,6 @@ value = "http://backend:8000"
 enabled = true
 log_level = "info"
 
-# Routes
 [[routes]]
 pattern = "supaco.io/*"
 zone_name = "supaco.io"

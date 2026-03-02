@@ -1,5 +1,5 @@
 export default {
-  async fetch(request, env, env) {
+  async fetch(request, env, ctx) {
     const start = Date.now();
     const requestId = crypto.randomUUID();
     const ray = request.headers.get("cf-ray") || "unknown";
@@ -28,7 +28,13 @@ export default {
       },
     });
 
-    const verifyJWT = (token) => {
+    const base64UrlDecode = (str) => {
+      str = str.replace(/-/g, '+').replace(/_/g, '/');
+      while (str.length % 4) str += '=';
+      return atob(str);
+    };
+
+    const verifyJWT = async (token) => {
       if (!token || !token.startsWith("Bearer ")) {
         return { valid: false, error: "Missing or invalid token format" };
       }
@@ -41,11 +47,66 @@ export default {
           return { valid: false, error: "Invalid token structure" };
         }
 
-        const payload = JSON.parse(atob(parts[1]));
-        
+        const [headerB64, payloadB64, signatureB64] = parts;
+
+        const header = JSON.parse(base64UrlDecode(headerB64));
+        const payload = JSON.parse(base64UrlDecode(payloadB64));
+
+        const signingInput = `${headerB64}.${payloadB64}`;
+        const signature = base64UrlDecode(signatureB64);
+
+        const secret = env.JWT_SECRET;
+        const algorithm = header.alg;
+
+        let signatureValid = false;
+
+        if (algorithm === 'HS256') {
+          const encoder = new TextEncoder();
+          const keyData = await crypto.subtle.importKey(
+            "raw",
+            encoder.encode(secret),
+            { name: "HMAC", hash: "SHA-256" },
+            false,
+            ["verify"]
+          );
+          signatureValid = await crypto.subtle.verify(
+            "HMAC",
+            keyData,
+            signature,
+            encoder.encode(signingInput)
+          );
+        } else if (algorithm === 'RS256' || algorithm === 'ES256') {
+          const publicKeyPem = env.JWT_PUBLIC_KEY;
+          if (!publicKeyPem) {
+            return { valid: false, error: "Public key not configured" };
+          }
+          
+          const algorithmName = algorithm === 'RS256' ? 'RSA-SHA256' : 'ECDSA';
+          const keyData = await crypto.subtle.importKey(
+            "spki",
+            base64UrlDecode(publicKeyPem),
+            { name: algorithmName, hash: "SHA-256" },
+            false,
+            ["verify"]
+          );
+          signatureValid = await crypto.subtle.verify(
+            algorithmName,
+            keyData,
+            signature,
+            encoder.encode(signingInput)
+          );
+        } else {
+          return { valid: false, error: `Unsupported algorithm: ${algorithm}` };
+        }
+
+        if (!signatureValid) {
+          log(401, { event: "invalid_signature", user_id: payload.sub });
+          return { valid: false, error: "Invalid signature" };
+        }
+
         if (payload.exp && Date.now() > payload.exp * 1000) {
           log(401, { event: "expired_token", user_id: payload.sub });
-          return { valid: false, error: "Token expired", user: payload.sub };
+          return { valid: false, error: "Token expired" };
         }
 
         return {
@@ -55,7 +116,7 @@ export default {
           org: payload.org,
         };
       } catch (err) {
-        return { valid: false, error: "Invalid token payload" };
+        return { valid: false, error: `Token validation failed: ${err.message}` };
       }
     };
 
@@ -63,11 +124,7 @@ export default {
       const url = new URL(request.url);
       const path = url.pathname;
 
-      const allowedRoutes = [
-        '/health',
-        '/edge/health',
-      ];
-      
+      const allowedRoutes = ['/health', '/edge/health'];
       const isAllowed = allowedRoutes.includes(path) || path === '/';
       
       if (!isAllowed && path !== '/') {
@@ -115,7 +172,7 @@ export default {
           }, 401);
         }
 
-        const jwt = verifyJWT(authHeader);
+        const jwt = await verifyJWT(authHeader);
         
         if (!jwt.valid) {
           log(401, { blocked: "invalid_token", error: jwt.error, path });
