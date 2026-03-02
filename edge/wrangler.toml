@@ -3,7 +3,10 @@ main = "worker.js"
 compatibility_date = "2024-01-01"
 
 [env.production]
-vars = { ENVIRONMENT = "production" }
+vars = { 
+  ENVIRONMENT = "production",
+  PRIMARY_DOMAIN = "supaco.ai"
+}
 
 [[env.production.secrets]]
 name = "JWT_SECRET"
@@ -25,13 +28,39 @@ value = "http://backend:8000"
 enabled = true
 log_level = "info"
 
-# BRIDGE-AI-OS.COM (Main Economic Platform)
+# PRIMARY - supaco.ai (API + Command)
 [[routes]]
-pattern = "bridge-ai-os.com/*"
-zone_name = "bridge-ai-os.com"
+pattern = "supaco.ai/*"
+zone_name = "supaco.ai"
 
 [[routes]]
-pattern = "www.bridge-ai-os.com/*"
+pattern = "www.supaco.ai/*"
+zone_name = "supaco.ai"
+
+# SUPACO VARIANTS
+[[routes]]
+pattern = "supaco.io/*"
+zone_name = "supaco.ai"
+
+[[routes]]
+pattern = "supaco.co.za/*"
+zone_name = "supaco.ai"
+
+[[routes]]
+pattern = "supaco.team/*"
+zone_name = "supaco.ai"
+
+[[routes]]
+pattern = "supaco.tech/*"
+zone_name = "supaco.ai"
+
+[[routes]]
+pattern = "supaco.xyz/*"
+zone_name = "supaco.ai"
+
+# BRIDGE-AI-OS (Economic Platform)
+[[routes]]
+pattern = "bridge-ai-os.com/*"
 zone_name = "bridge-ai-os.com"
 
 [[routes]]
@@ -49,35 +78,6 @@ zone_name = "bridge-ai-os.com"
 [[routes]]
 pattern = "bridge-ai-os.xyz/*"
 zone_name = "bridge-ai-os.com"
-
-# SUPACO.IO (Command Layer)
-[[routes]]
-pattern = "supaco.io/*"
-zone_name = "supaco.io"
-
-[[routes]]
-pattern = "www.supaco.io/*"
-zone_name = "supaco.io"
-
-[[routes]]
-pattern = "supaco.ai/*"
-zone_name = "supaco.io"
-
-[[routes]]
-pattern = "supaco.co.za/*"
-zone_name = "supaco.io"
-
-[[routes]]
-pattern = "supaco.team/*"
-zone_name = "supaco.io"
-
-[[routes]]
-pattern = "supaco.tech/*"
-zone_name = "supaco.io"
-
-[[routes]]
-pattern = "supaco.xyz/*"
-zone_name = "supaco.io"
 
 # AI-OS.CO.ZA (Treasury - Zero Trust)
 [[routes]]
