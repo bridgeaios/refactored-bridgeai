@@ -4,7 +4,7 @@ from datetime import datetime
 from fastapi import FastAPI, HTTPException, Request, Header, Depends
 from fastapi.middleware.cors import CORSMiddleware
 from pydantic import BaseModel
-from typing import Optional, List
+from typing import Optional
 import os
 import uuid
 import hashlib
@@ -16,13 +16,6 @@ class DistributionRequest(BaseModel):
     user_id: str
     amount: float
     idempotency_key: str
-
-
-class ExecutionResponse(BaseModel):
-    success: bool
-    execution_id: Optional[str] = None
-    data: Optional[dict] = None
-    error: Optional[str] = None
 
 
 def init_db():
@@ -106,17 +99,32 @@ async def health_check():
     }
 
 
+@app.post("/run-task")
+async def run_task(
+    data: dict,
+    request: Request,
+    x_edge_authorized: Optional[str] = Header(None),
+):
+    verify_edge_access(x_edge_authorized)
+    return {
+        "status": "success",
+        "data": data,
+    }
+
+
 @app.post("/api/distribution/run")
 async def run_distribution(
     req: DistributionRequest,
     request: Request,
     x_edge_authorized: Optional[str] = Header(None),
-    authorization: Optional[str] = Header(None),
+    x_user_id: Optional[str] = Header(None, alias="X-User-ID"),
+    x_user_role: Optional[str] = Header(None, alias="X-User-Role"),
+    x_user_org: Optional[str] = Header(None, alias="X-User-Org"),
 ):
     verify_edge_access(x_edge_authorized)
 
-    if not authorization:
-        raise HTTPException(status_code=401, detail="Authorization required")
+    if not x_user_id:
+        raise HTTPException(status_code=401, detail="User identity required")
 
     conn = get_db()
     c = conn.cursor()
@@ -190,8 +198,12 @@ async def run_distribution(
 async def get_execution(
     execution_id: str,
     x_edge_authorized: Optional[str] = Header(None),
+    x_user_id: Optional[str] = Header(None, alias="X-User-ID"),
 ):
     verify_edge_access(x_edge_authorized)
+
+    if not x_user_id:
+        raise HTTPException(status_code=401, detail="User identity required")
 
     conn = get_db()
     c = conn.cursor()
@@ -208,12 +220,12 @@ async def get_execution(
 @app.get("/internal/treasury/summary")
 async def treasury_summary(
     x_edge_authorized: Optional[str] = Header(None),
-    authorization: Optional[str] = Header(None),
+    x_user_role: Optional[str] = Header(None, alias="X-User-Role"),
 ):
     verify_edge_access(x_edge_authorized)
 
-    if not authorization or not authorization.startswith("Bearer "):
-        raise HTTPException(status_code=401, detail="Admin authorization required")
+    if x_user_role != "admin":
+        raise HTTPException(status_code=403, detail="Admin access required")
 
     conn = get_db()
     c = conn.cursor()
@@ -236,15 +248,17 @@ async def treasury_summary(
 @app.get("/api/me")
 async def get_current_user(
     x_edge_authorized: Optional[str] = Header(None),
-    authorization: Optional[str] = Header(None),
+    x_user_id: Optional[str] = Header(None, alias="X-User-ID"),
+    x_user_role: Optional[str] = Header(None, alias="X-User-Role"),
+    x_user_org: Optional[str] = Header(None, alias="X-User-Org"),
 ):
     verify_edge_access(x_edge_authorized)
 
-    if not authorization:
-        raise HTTPException(status_code=401, detail="Authorization required")
+    if not x_user_id:
+        raise HTTPException(status_code=401, detail="User identity required")
 
     return {
         "success": True,
-        "data": {"user_id": "user_001", "org_id": "org_001", "role": "admin"},
+        "data": {"user_id": x_user_id, "org_id": x_user_org, "role": x_user_role},
         "error": None,
     }

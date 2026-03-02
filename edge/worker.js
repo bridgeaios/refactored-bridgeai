@@ -1,5 +1,5 @@
 export default {
-  async fetch(request, env, ctx) {
+  async fetch(request, env, env) {
     const start = Date.now();
     const requestId = crypto.randomUUID();
     const ray = request.headers.get("cf-ray") || "unknown";
@@ -18,82 +18,128 @@ export default {
       console.log(JSON.stringify(entry));
     };
 
+    const jsonResponse = (data, status = 200) => new Response(JSON.stringify(data), {
+      status,
+      headers: {
+        "Content-Type": "application/json",
+        "X-Request-ID": requestId,
+        "X-Edge-Ray": ray,
+        "Server": "cloudflare",
+      },
+    });
+
+    const verifyJWT = (token) => {
+      if (!token || !token.startsWith("Bearer ")) {
+        return { valid: false, error: "Missing or invalid token format" };
+      }
+
+      const tokenValue = token.slice(7);
+
+      try {
+        const parts = tokenValue.split(".");
+        if (parts.length !== 3) {
+          return { valid: false, error: "Invalid token structure" };
+        }
+
+        const payload = JSON.parse(atob(parts[1]));
+        
+        if (payload.exp && Date.now() > payload.exp * 1000) {
+          log(401, { event: "expired_token", user_id: payload.sub });
+          return { valid: false, error: "Token expired", user: payload.sub };
+        }
+
+        return {
+          valid: true,
+          user: payload.sub,
+          role: payload.role || "user",
+          org: payload.org,
+        };
+      } catch (err) {
+        return { valid: false, error: "Invalid token payload" };
+      }
+    };
+
     try {
       const url = new URL(request.url);
       const path = url.pathname;
 
-      // UNKNOWN ROUTES → 404 (not 500)
       const allowedRoutes = [
         '/health',
         '/edge/health',
-        '/run-task',
-        '/api/distribution/run',
-        '/api/execution/',
-        '/api/me',
-        '/internal/treasury/summary',
       ];
       
-      const isAllowed = allowedRoutes.some(route => {
-        if (route.endsWith('/')) return path.startsWith(route);
-        return path === route || path.startsWith(route + '/');
-      });
+      const isAllowed = allowedRoutes.includes(path) || path === '/';
       
       if (!isAllowed && path !== '/') {
-        log(404, { blocked: "unknown_route", path });
-        return new Response(JSON.stringify({ 
-          error: "Not Found",
-          detail: `Route ${path} not recognized`,
-          requestId 
-        }), {
-          status: 404,
-          headers: { 
-            "Content-Type": "application/json",
-            "X-Request-ID": requestId,
-            "X-Edge-Ray": ray,
-          },
-        });
+        const knownApiRoutes = [
+          '/run-task',
+          '/api/distribution/run',
+          '/api/execution/',
+          '/api/me',
+          '/internal/treasury/summary',
+        ];
+        
+        const isKnownRoute = knownApiRoutes.some(route => 
+          path === route || path.startsWith(route)
+        );
+        
+        if (!isKnownRoute) {
+          log(404, { blocked: "unknown_route", path });
+          return jsonResponse({ 
+            error: "Not Found",
+            detail: `Route ${path} not recognized`,
+            requestId 
+          }, 404);
+        }
       }
 
-      // HEALTH CHECK
       if (path === "/health" || path === "/edge/health") {
-        return new Response(JSON.stringify({
+        return jsonResponse({
           status: "healthy",
           worker: "bridge-edge",
           requestId,
           timestamp: new Date().toISOString(),
-        }), {
-          headers: { 
-            "Content-Type": "application/json",
-            "X-Request-ID": requestId,
-            "X-Edge-Ray": ray,
-          },
         });
       }
 
-      // AUTH GATE: Validate JWT (placeholder - replace with real validation)
       const authHeader = request.headers.get("Authorization");
+      const publicRoutes = ['/health', '/edge/health', '/run-task'];
       
-      // Public routes that don't require auth
-      const publicRoutes = ['/health', '/edge/health'];
       if (!publicRoutes.includes(path) && path !== '/') {
         if (!authHeader) {
           log(401, { blocked: "missing_auth", path });
-          return new Response(JSON.stringify({ 
+          return jsonResponse({ 
             error: "Unauthorized",
             detail: "Authorization required",
             requestId 
-          }), {
-            status: 401,
-            headers: { 
-              "Content-Type": "application/json",
-              "X-Request-ID": requestId,
-              "X-Edge-Ray": ray,
-            },
-          });
+          }, 401);
         }
+
+        const jwt = verifyJWT(authHeader);
+        
+        if (!jwt.valid) {
+          log(401, { blocked: "invalid_token", error: jwt.error, path });
+          return jsonResponse({ 
+            error: "Unauthorized",
+            detail: jwt.error,
+            requestId 
+          }, 401);
+        }
+
+        if (path.startsWith('/internal/') && jwt.role !== 'admin') {
+          log(403, { blocked: "non_admin", path, role: jwt.role });
+          return jsonResponse({ 
+            error: "Forbidden",
+            detail: "Admin access required",
+            requestId 
+          }, 403);
+        }
+
+        request.headers.set("X-User-ID", jwt.user);
+        request.headers.set("X-User-Role", jwt.role);
+        request.headers.set("X-User-Org", jwt.org || "");
       }
 
-      // FORWARD TO BACKEND
       const backendUrl = env.BACKEND_URL || "http://backend:8000";
       const forwardUrl = `${backendUrl}${path}${url.search}`;
 
@@ -113,32 +159,24 @@ export default {
       log(response.status, { path });
       
       const responseBody = await response.text();
-      const responseHeaders = new Headers();
-      responseHeaders.set("Content-Type", "application/json");
-      responseHeaders.set("X-Request-ID", requestId);
-      responseHeaders.set("X-Edge-Ray", ray);
-      responseHeaders.set("Server", "cloudflare");
 
       return new Response(responseBody, {
         status: response.status,
-        headers: responseHeaders,
-      });
-
-    } catch (err) {
-      log(500, { error: err.message, stack: err.stack });
-      return new Response(JSON.stringify({ 
-        error: "Edge Error",
-        detail: err.message,
-        requestId 
-      }), {
-        status: 500,
-        headers: { 
+        headers: {
           "Content-Type": "application/json",
           "X-Request-ID": requestId,
           "X-Edge-Ray": ray,
           "Server": "cloudflare",
         },
       });
+
+    } catch (err) {
+      log(500, { error: err.message });
+      return jsonResponse({ 
+        error: "Edge Error",
+        detail: err.message,
+        requestId 
+      }, 500);
     }
   },
 };
