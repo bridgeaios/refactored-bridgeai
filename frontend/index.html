@@ -1,0 +1,999 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Bridge OS | Sovereign Intelligence Platform</title>
+    
+    <!-- Fonts -->
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;500;600&family=Outfit:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+    
+    <style>
+        :root {
+            --z-bg: 0;
+            --z-pixi: 1;
+            --z-p5: 2;
+            --z-babylon: 3;
+            --z-ui: 10;
+            --z-overlay: 20;
+            
+            --color-bg: #0a0a0f;
+            --color-surface: rgba(15, 15, 25, 0.7);
+            --color-border: rgba(100, 255, 218, 0.15);
+            --color-primary: #64ffda;
+            --color-primary-dim: rgba(100, 255, 218, 0.1);
+            --color-accent: #7b61ff;
+            --color-accent-2: #ff6b9d;
+            --color-text: #e8e8e8;
+            --color-text-dim: rgba(232, 232, 232, 0.6);
+            
+            --font-display: 'Outfit', sans-serif;
+            --font-mono: 'JetBrains Mono', monospace;
+            
+            --glow-primary: 0 0 30px rgba(100, 255, 218, 0.4);
+            --glow-accent: 0 0 30px rgba(123, 97, 255, 0.4);
+        }
+        
+        *, *::before, *::after {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+        
+        html {
+            font-size: 16px;
+            scroll-behavior: smooth;
+        }
+        
+        body {
+            font-family: var(--font-display);
+            background: var(--color-bg);
+            color: var(--color-text);
+            min-height: 100vh;
+            overflow-x: hidden;
+            line-height: 1.6;
+        }
+        
+        /* Canvas Layers */
+        #three-canvas {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            z-index: var(--z-bg);
+            pointer-events: none;
+        }
+        
+        #pixi-canvas {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            z-index: var(--z-pixi);
+            pointer-events: none;
+        }
+        
+        #p5-canvas {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            z-index: var(--z-p5);
+            pointer-events: none;
+            mix-blend-mode: overlay;
+            opacity: 0.3;
+        }
+        
+        #babylon-canvas {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            z-index: var(--z-babylon);
+            pointer-events: none;
+        }
+        
+        /* UI Layer */
+        .ui-layer {
+            position: relative;
+            z-index: var(--z-ui);
+        }
+        
+        /* Navigation */
+        nav {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            padding: 1.5rem 4rem;
+            position: fixed;
+            top: 0;
+            left: 0;
+            right: 0;
+            z-index: var(--z-overlay);
+            background: linear-gradient(180deg, rgba(10,10,15,0.9) 0%, transparent 100%);
+            backdrop-filter: blur(10px);
+        }
+        
+        .logo {
+            display: flex;
+            align-items: center;
+            gap: 0.75rem;
+            font-family: var(--font-mono);
+            font-size: 1.25rem;
+            font-weight: 600;
+            color: var(--color-primary);
+            text-decoration: none;
+        }
+        
+        .logo svg {
+            width: 32px;
+            height: 32px;
+            filter: drop-shadow(0 0 10px var(--color-primary));
+        }
+        
+        .nav-links {
+            display: flex;
+            gap: 2rem;
+            list-style: none;
+        }
+        
+        .nav-links a {
+            color: var(--color-text-dim);
+            text-decoration: none;
+            font-size: 0.9rem;
+            font-weight: 500;
+            transition: color 0.3s ease;
+            position: relative;
+        }
+        
+        .nav-links a::after {
+            content: '';
+            position: absolute;
+            bottom: -4px;
+            left: 0;
+            width: 0;
+            height: 2px;
+            background: var(--color-primary);
+            transition: width 0.3s ease;
+        }
+        
+        .nav-links a:hover {
+            color: var(--color-primary);
+        }
+        
+        .nav-links a:hover::after {
+            width: 100%;
+        }
+        
+        /* Hero Section */
+        .hero {
+            min-height: 100vh;
+            display: flex;
+            flex-direction: column;
+            justify-content: center;
+            align-items: center;
+            text-align: center;
+            padding: 6rem 2rem 4rem;
+            position: relative;
+        }
+        
+        .hero::before {
+            content: '';
+            position: absolute;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            width: 600px;
+            height: 600px;
+            background: radial-gradient(circle, var(--color-primary-dim) 0%, transparent 70%);
+            pointer-events: none;
+            animation: pulse 4s ease-in-out infinite;
+        }
+        
+        @keyframes pulse {
+            0%, 100% { opacity: 0.3; transform: translate(-50%, -50%) scale(1); }
+            50% { opacity: 0.5; transform: translate(-50%, -50%) scale(1.1); }
+        }
+        
+        .hero-badge {
+            display: inline-flex;
+            align-items: center;
+            gap: 0.5rem;
+            padding: 0.5rem 1rem;
+            background: var(--color-surface);
+            border: 1px solid var(--color-border);
+            border-radius: 100px;
+            font-size: 0.8rem;
+            font-family: var(--font-mono);
+            color: var(--color-primary);
+            margin-bottom: 2rem;
+            backdrop-filter: blur(10px);
+            animation: fadeInDown 0.8s ease forwards;
+            opacity: 0;
+        }
+        
+        @keyframes fadeInDown {
+            from { opacity: 0; transform: translateY(-20px); }
+            to { opacity: 1; transform: translateY(0); }
+        }
+        
+        .hero-title {
+            font-size: clamp(3rem, 8vw, 6rem);
+            font-weight: 700;
+            line-height: 1.1;
+            margin-bottom: 1.5rem;
+            background: linear-gradient(135deg, var(--color-text) 0%, var(--color-primary) 50%, var(--color-accent) 100%);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            background-clip: text;
+            animation: fadeInUp 0.8s ease 0.2s forwards;
+            opacity: 0;
+        }
+        
+        @keyframes fadeInUp {
+            from { opacity: 0; transform: translateY(20px); }
+            to { opacity: 1; transform: translateY(0); }
+        }
+        
+        .hero-subtitle {
+            font-size: clamp(1.1rem, 2vw, 1.4rem);
+            color: var(--color-text-dim);
+            max-width: 600px;
+            margin-bottom: 3rem;
+            animation: fadeInUp 0.8s ease 0.4s forwards;
+            opacity: 0;
+        }
+        
+        .hero-cta {
+            display: flex;
+            gap: 1rem;
+            animation: fadeInUp 0.8s ease 0.6s forwards;
+            opacity: 0;
+        }
+        
+        .btn {
+            display: inline-flex;
+            align-items: center;
+            gap: 0.5rem;
+            padding: 1rem 2rem;
+            border-radius: 8px;
+            font-family: var(--font-display);
+            font-size: 1rem;
+            font-weight: 600;
+            text-decoration: none;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            border: none;
+        }
+        
+        .btn-primary {
+            background: var(--color-primary);
+            color: var(--color-bg);
+            box-shadow: var(--glow-primary);
+        }
+        
+        .btn-primary:hover {
+            transform: translateY(-2px) scale(1.02);
+            box-shadow: 0 0 50px rgba(100, 255, 218, 0.6);
+        }
+        
+        .btn-secondary {
+            background: transparent;
+            color: var(--color-text);
+            border: 1px solid var(--color-border);
+        }
+        
+        .btn-secondary:hover {
+            background: var(--color-surface);
+            border-color: var(--color-primary);
+        }
+        
+        /* Stats Section */
+        .stats-section {
+            padding: 4rem 2rem;
+            position: relative;
+        }
+        
+        .stats-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+            gap: 1.5rem;
+            max-width: 900px;
+            margin: 0 auto;
+        }
+        
+        .stat-card {
+            background: var(--color-surface);
+            border: 1px solid var(--color-border);
+            border-radius: 16px;
+            padding: 2rem;
+            text-align: center;
+            backdrop-filter: blur(20px);
+            transition: all 0.4s ease;
+            position: relative;
+            overflow: hidden;
+        }
+        
+        .stat-card::before {
+            content: '';
+            position: absolute;
+            top: 0;
+            left: 0;
+            right: 0;
+            height: 3px;
+            background: linear-gradient(90deg, var(--color-primary), var(--color-accent));
+            transform: scaleX(0);
+            transition: transform 0.4s ease;
+        }
+        
+        .stat-card:hover {
+            transform: translateY(-8px);
+            border-color: var(--color-primary);
+            box-shadow: 0 20px 40px rgba(0, 0, 0, 0.3);
+        }
+        
+        .stat-card:hover::before {
+            transform: scaleX(1);
+        }
+        
+        .stat-number {
+            font-size: 3rem;
+            font-weight: 700;
+            font-family: var(--font-mono);
+            background: linear-gradient(135deg, var(--color-primary), var(--color-accent));
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            background-clip: text;
+            display: block;
+            margin-bottom: 0.5rem;
+        }
+        
+        .stat-label {
+            font-size: 0.9rem;
+            color: var(--color-text-dim);
+            text-transform: uppercase;
+            letter-spacing: 0.1em;
+        }
+        
+        /* Modules Section */
+        .modules-section {
+            padding: 6rem 2rem;
+        }
+        
+        .section-title {
+            font-size: 2rem;
+            text-align: center;
+            margin-bottom: 3rem;
+            color: var(--color-text);
+        }
+        
+        .modules-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
+            gap: 1.5rem;
+            max-width: 1200px;
+            margin: 0 auto;
+        }
+        
+        .module-card {
+            background: var(--color-surface);
+            border: 1px solid var(--color-border);
+            border-radius: 20px;
+            padding: 2rem;
+            backdrop-filter: blur(20px);
+            transition: all 0.4s cubic-bezier(0.175, 0.885, 0.32, 1.275);
+            position: relative;
+            overflow: hidden;
+            cursor: pointer;
+        }
+        
+        .module-card::after {
+            content: '';
+            position: absolute;
+            inset: 0;
+            background: linear-gradient(135deg, var(--color-primary-dim), transparent);
+            opacity: 0;
+            transition: opacity 0.4s ease;
+        }
+        
+        .module-card:hover {
+            transform: translateY(-10px) scale(1.02);
+            border-color: var(--color-primary);
+            box-shadow: 0 30px 60px rgba(100, 255, 218, 0.15);
+        }
+        
+        .module-card:hover::after {
+            opacity: 1;
+        }
+        
+        .module-icon {
+            font-size: 2.5rem;
+            margin-bottom: 1rem;
+            display: block;
+        }
+        
+        .module-name {
+            font-size: 1.25rem;
+            font-weight: 600;
+            margin-bottom: 0.5rem;
+            color: var(--color-text);
+        }
+        
+        .module-desc {
+            font-size: 0.9rem;
+            color: var(--color-text-dim);
+            line-height: 1.5;
+        }
+        
+        /* Footer */
+        footer {
+            padding: 3rem 2rem;
+            text-align: center;
+            border-top: 1px solid var(--color-border);
+            background: var(--color-surface);
+        }
+        
+        .footer-text {
+            font-size: 0.85rem;
+            color: var(--color-text-dim);
+        }
+        
+        .footer-version {
+            font-family: var(--font-mono);
+            color: var(--color-primary);
+        }
+        
+        /* Accessibility */
+        @media (prefers-reduced-motion: reduce) {
+            *, *::before, *::after {
+                animation-duration: 0.01ms !important;
+                animation-iteration-count: 1 !important;
+                transition-duration: 0.01ms !important;
+            }
+        }
+        
+        /* Responsive */
+        @media (max-width: 768px) {
+            nav {
+                padding: 1rem 1.5rem;
+            }
+            
+            .nav-links {
+                display: none;
+            }
+            
+            .hero-title {
+                font-size: 2.5rem;
+            }
+            
+            .hero-cta {
+                flex-direction: column;
+                width: 100%;
+            }
+            
+            .btn {
+                width: 100%;
+                justify-content: center;
+            }
+        }
+        
+        /* Loading State */
+        .loading-screen {
+            position: fixed;
+            inset: 0;
+            background: var(--color-bg);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            z-index: 1000;
+            transition: opacity 0.5s ease;
+        }
+        
+        .loading-screen.hidden {
+            opacity: 0;
+            pointer-events: none;
+        }
+        
+        .loader {
+            width: 60px;
+            height: 60px;
+            border: 3px solid var(--color-border);
+            border-top-color: var(--color-primary);
+            border-radius: 50%;
+            animation: spin 1s linear infinite;
+        }
+        
+        @keyframes spin {
+            to { transform: rotate(360deg); }
+        }
+    </style>
+</head>
+<body>
+    <!-- Loading Screen -->
+    <div class="loading-screen" id="loading">
+        <div class="loader"></div>
+    </div>
+
+    <!-- Canvas Layers -->
+    <canvas id="three-canvas" aria-hidden="true"></canvas>
+    <canvas id="pixi-canvas" aria-hidden="true"></canvas>
+    <canvas id="p5-canvas" aria-hidden="true"></canvas>
+    <canvas id="babylon-canvas" aria-hidden="true"></canvas>
+
+    <!-- UI Layer -->
+    <div class="ui-layer">
+        <nav role="navigation" aria-label="Main navigation">
+            <a href="/" class="logo" aria-label="Bridge OS Home">
+                <svg viewBox="0 0 32 32" fill="none" xmlns="http://www.w3.org/2000/svg">
+                    <path d="M4 24L16 8L28 24" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"/>
+                    <path d="M8 20L16 12L24 20" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" opacity="0.6"/>
+                    <circle cx="16" cy="8" r="2" fill="currentColor"/>
+                </svg>
+                <span>SupaCo</span>
+            </a>
+            <ul class="nav-links">
+                <li><a href="#modules">Modules</a></li>
+                <li><a href="#stats">Resources</a></li>
+                <li><a href="#about">About</a></li>
+            </ul>
+        </nav>
+
+        <main>
+            <section class="hero">
+                <span class="hero-badge">
+                    <span class="status-dot"></span>
+                    Unified Bridge OS v1.0.0
+                </span>
+                <h1 class="hero-title">Sovereign Intelligence<br>Platform</h1>
+                <p class="hero-subtitle">
+                    Your centralized command center for all Bridge OS modules and services. 
+                    Manage humanitarian aid, AI agents, digital twins, and more from a single dashboard.
+                </p>
+                <div class="hero-cta">
+                    <a href="/dashboard" class="btn btn-primary">
+                        Enter Dashboard
+                        <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                            <path d="M5 12h14M12 5l7 7-7 7"/>
+                        </svg>
+                    </a>
+                    <button class="btn btn-secondary" aria-label="Learn more about Bridge OS">
+                        Learn More
+                    </button>
+                </div>
+            </section>
+
+            <section class="stats-section" id="stats">
+                <div class="stats-grid">
+                    <div class="stat-card" tabindex="0" role="article" aria-label="8 Modules available">
+                        <span class="stat-number" data-count="8">0</span>
+                        <span class="stat-label">Modules</span>
+                    </div>
+                    <div class="stat-card" tabindex="0" role="article" aria-label="76 PowerShell Scripts available">
+                        <span class="stat-number" data-count="76">0</span>
+                        <span class="stat-label">PowerShell Scripts</span>
+                    </div>
+                    <div class="stat-card" tabindex="0" role="article" aria-label="14 Python Scripts available">
+                        <span class="stat-number" data-count="14">0</span>
+                        <span class="stat-label">Python Scripts</span>
+                    </div>
+                </div>
+            </section>
+
+            <section class="modules-section" id="modules">
+                <h2 class="section-title">Bridge OS Modules</h2>
+                <div class="modules-grid">
+                    <article class="module-card" tabindex="0" role="button" aria-label="Aidbridge Module">
+                        <span class="module-icon">🌍</span>
+                        <h3 class="module-name">Aidbridge</h3>
+                        <p class="module-desc">Humanitarian aid coordination and resource management system</p>
+                    </article>
+                    <article class="module-card" tabindex="0" role="button" aria-label="Spine Module">
+                        <span class="module-icon">🦴</span>
+                        <h3 class="module-name">Spine</h3>
+                        <p class="module-desc">Digital twin infrastructure and backbone services</p>
+                    </article>
+                    <article class="module-card" tabindex="0" role="button" aria-label="Agents Module">
+                        <span class="module-icon">🤖</span>
+                        <h3 class="module-name">Agents</h3>
+                        <p class="module-desc">Autonomous AI agents for task automation and orchestration</p>
+                    </article>
+                    <article class="module-card" tabindex="0" role="button" aria-label="Rooted Earth Module">
+                        <span class="module-icon">🌱</span>
+                        <h3 class="module-name">Rooted Earth</h3>
+                        <p class="module-desc">Environmental monitoring and sustainability tracking</p>
+                    </article>
+                </div>
+            </section>
+        </main>
+
+        <footer>
+            <p class="footer-text">
+                Unified Bridge OS <span class="footer-version">v1.0.0</span> • Built for the future
+            </p>
+        </footer>
+    </div>
+
+    <!-- Three.js - Layer 0: 3D Particle Network -->
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
+    
+    <!-- Pixi.js - Layer 1: 2D Effects -->
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/pixi.js/7.3.2/pixi.min.js"></script>
+    
+    <!-- p5.js - Layer 2: Generative Art -->
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/p5.js/1.9.0/p5.min.js"></script>
+    
+    <!-- Babylon.js - Layer 3: Interactive 3D -->
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/babylonjs/6.45.0/babylon.min.js"></script>
+
+    <script>
+        // ============================================
+        // LAYER 0: Three.js - Neural Network Background
+        // ============================================
+        (function initThreeJS() {
+            const canvas = document.getElementById('three-canvas');
+            const scene = new THREE.Scene();
+            const camera = new THREE.PerspectiveCamera(75, window.innerWidth / window.innerHeight, 0.1, 1000);
+            const renderer = new THREE.WebGLRenderer({ canvas, alpha: true, antialias: true });
+            
+            renderer.setSize(window.innerWidth, window.innerHeight);
+            renderer.setPixelRatio(Math.min(window.devicePixelRatio, 2));
+            camera.position.z = 50;
+            
+            // Particle system - Neural network nodes
+            const particleCount = 200;
+            const positions = new Float32Array(particleCount * 3);
+            const colors = new Float32Array(particleCount * 3);
+            const sizes = new Float32Array(particleCount);
+            
+            for (let i = 0; i < particleCount; i++) {
+                positions[i * 3] = (Math.random() - 0.5) * 100;
+                positions[i * 3 + 1] = (Math.random() - 0.5) * 100;
+                positions[i * 3 + 2] = (Math.random() - 0.5) * 50;
+                
+                const color = new THREE.Color();
+                color.setHSL(0.45 + Math.random() * 0.1, 0.8, 0.6);
+                colors[i * 3] = color.r;
+                colors[i * 3 + 1] = color.g;
+                colors[i * 3 + 2] = color.b;
+                
+                sizes[i] = Math.random() * 2 + 0.5;
+            }
+            
+            const geometry = new THREE.BufferGeometry();
+            geometry.setAttribute('position', new THREE.BufferAttribute(positions, 3));
+            geometry.setAttribute('color', new THREE.BufferAttribute(colors, 3));
+            geometry.setAttribute('size', new THREE.BufferAttribute(sizes, 1));
+            
+            const material = new THREE.PointsMaterial({
+                size: 2,
+                vertexColors: true,
+                transparent: true,
+                opacity: 0.8,
+                blending: THREE.AdditiveBlending
+            });
+            
+            const particles = new THREE.Points(geometry, material);
+            scene.add(particles);
+            
+            // Connecting lines
+            const lineGeometry = new THREE.BufferGeometry();
+            const lineMaterial = new THREE.LineBasicMaterial({
+                color: 0x64ffda,
+                transparent: true,
+                opacity: 0.15
+            });
+            const lines = new THREE.LineSegments(lineGeometry, lineMaterial);
+            scene.add(lines);
+            
+            // Animation
+            let time = 0;
+            function animate() {
+                requestAnimationFrame(animate);
+                time += 0.001;
+                
+                // Rotate particle system
+                particles.rotation.y = time * 0.1;
+                particles.rotation.x = Math.sin(time * 0.5) * 0.1;
+                
+                // Update positions with wave effect
+                const pos = geometry.attributes.position.array;
+                for (let i = 0; i < particleCount; i++) {
+                    pos[i * 3 + 1] += Math.sin(time + i * 0.1) * 0.02;
+                }
+                geometry.attributes.position.needsUpdate = true;
+                
+                // Update connection lines
+                const linePositions = [];
+                for (let i = 0; i < particleCount; i++) {
+                    for (let j = i + 1; j < particleCount; j++) {
+                        const x1 = pos[i * 3], y1 = pos[i * 3 + 1], z1 = pos[i * 3 + 2];
+                        const x2 = pos[j * 3], y2 = pos[j * 3 + 1], z2 = pos[j * 3 + 2];
+                        const dist = Math.sqrt((x2-x1)**2 + (y2-y1)**2 + (z2-z1)**2);
+                        if (dist < 15) {
+                            linePositions.push(x1, y1, z1, x2, y2, z2);
+                        }
+                    }
+                }
+                lineGeometry.setAttribute('position', new THREE.Float32BufferAttribute(linePositions, 3));
+                
+                renderer.render(scene, camera);
+            }
+            animate();
+            
+            // Mouse interaction
+            let mouseX = 0, mouseY = 0;
+            document.addEventListener('mousemove', (e) => {
+                mouseX = (e.clientX / window.innerWidth - 0.5) * 2;
+                mouseY = (e.clientY / window.innerHeight - 0.5) * 2;
+                camera.position.x += (mouseX * 5 - camera.position.x) * 0.05;
+                camera.position.y += (-mouseY * 5 - camera.position.y) * 0.05;
+                camera.lookAt(scene.position);
+            });
+            
+            // Resize handler
+            window.addEventListener('resize', () => {
+                camera.aspect = window.innerWidth / window.innerHeight;
+                camera.updateProjectionMatrix();
+                renderer.setSize(window.innerWidth, window.innerHeight);
+            });
+        })();
+
+        // ============================================
+        // LAYER 1: Pixi.js - Glowing Particles
+        // ============================================
+        (function initPixiJS() {
+            const canvas = document.getElementById('pixi-canvas');
+            const app = new PIXI.Application({
+                view: canvas,
+                width: window.innerWidth,
+                height: window.innerHeight,
+                transparent: true,
+                resolution: window.devicePixelRatio || 1,
+                autoDensity: true
+            });
+            
+            const particleContainer = new PIXI.Container();
+            app.stage.addChild(particleContainer);
+            
+            // Create glow particles
+            const particleCount = 50;
+            const particles = [];
+            
+            for (let i = 0; i < particleCount; i++) {
+                const particle = new PIXI.Graphics();
+                const radius = Math.random() * 20 + 5;
+                const color = Math.random() > 0.5 ? 0x64ffda : 0x7b61ff;
+                
+                particle.beginFill(color, 0.3);
+                particle.drawCircle(0, 0, radius);
+                particle.endFill();
+                
+                particle.beginFill(color, 0.1);
+                particle.drawCircle(0, 0, radius * 2);
+                particle.endFill();
+                
+                particle.x = Math.random() * app.screen.width;
+                particle.y = Math.random() * app.screen.height;
+                particle.vx = (Math.random() - 0.5) * 0.5;
+                particle.vy = (Math.random() - 0.5) * 0.5;
+                particle.alpha = Math.random() * 0.5 + 0.2;
+                
+                particles.push(particle);
+                particleContainer.addChild(particle);
+            }
+            
+            // Animation loop
+            app.ticker.add((delta) => {
+                particles.forEach(p => {
+                    p.x += p.vx * delta;
+                    p.y += p.vy * delta;
+                    
+                    // Wrap around screen
+                    if (p.x < -50) p.x = app.screen.width + 50;
+                    if (p.x > app.screen.width + 50) p.x = -50;
+                    if (p.y < -50) p.y = app.screen.height + 50;
+                    if (p.y > app.screen.height + 50) p.y = -50;
+                    
+                    // Pulse effect
+                    p.alpha = 0.2 + Math.sin(Date.now() * 0.001 + p.x * 0.01) * 0.2;
+                });
+            });
+            
+            // Resize handler
+            window.addEventListener('resize', () => {
+                app.renderer.resize(window.innerWidth, window.innerHeight);
+            });
+        })();
+
+        // ============================================
+        // LAYER 2: p5.js - Noise Pattern Overlay
+        // ============================================
+        (function initP5JS() {
+            const canvas = document.getElementById('p5-canvas');
+            
+            const sketch = (p) => {
+                p.setup = () => {
+                    p.createCanvas(window.innerWidth, window.innerHeight).parent(canvas);
+                    p.noLoop();
+                };
+                
+                p.draw = () => {
+                    p.clear();
+                    
+                    // Flowing noise field
+                    const scale = 0.005;
+                    const time = Date.now() * 0.0001;
+                    
+                    p.strokeWeight(1);
+                    
+                    for (let x = 0; x < p.width; x += 40) {
+                        for (let y = 0; y < p.height; y += 40) {
+                            const n = p.noise(x * scale + time, y * scale + time);
+                            const alpha = p.map(n, 0, 1, 0, 30);
+                            
+                            p.stroke(100, 255, 218, alpha);
+                            p.point(x + n * 10, y + n * 10);
+                        }
+                    }
+                    
+                    // Occasional refresh for dynamic effect
+                    if (p.frameCount % 60 === 0) {
+                        p.redraw();
+                    }
+                };
+                
+                p.windowResized = () => {
+                    p.resizeCanvas(window.innerWidth, window.innerHeight);
+                };
+            };
+            
+            new p5(sketch);
+        })();
+
+        // ============================================
+        // LAYER 3: Babylon.js - Interactive 3D Elements
+        // ============================================
+        (function initBabylonJS() {
+            const canvas = document.getElementById('babylon-canvas');
+            const engine = new BABYLON.Engine(canvas, true, { preserveDrawingBuffer: true, stencil: true });
+            
+            const createScene = () => {
+                const scene = new BABYLON.Scene(engine);
+                scene.clearColor = new BABYLON.Color4(0, 0, 0, 0);
+                
+                // Camera
+                const camera = new BABYLON.ArcRotateCamera('camera', Math.PI / 2, Math.PI / 2, 15, BABYLON.Vector3.Zero(), scene);
+                camera.attachControl(canvas, true);
+                camera.lowerRadiusLimit = 8;
+                camera.upperRadiusLimit = 25;
+                
+                // Lighting
+                const light = new BABYLON.HemisphericLight('light', new BABYLON.Vector3(0, 1, 0), scene);
+                light.intensity = 0.5;
+                
+                const pointLight = new BABYLON.PointLight('pointLight', new BABYLON.Vector3(0, 5, 0), scene);
+                pointLight.diffuse = new BABYLON.Color3(0.4, 1, 0.85);
+                pointLight.intensity = 0.8;
+                
+                // Floating geometric shapes
+                const shapes = [];
+                const shapeCount = 5;
+                
+                for (let i = 0; i < shapeCount; i++) {
+                    let mesh;
+                    const type = i % 3;
+                    
+                    if (type === 0) {
+                        mesh = BABYLON.MeshBuilder.CreateTorusKnot('torus' + i, { radius: 0.8, tube: 0.2, radialSegments: 64 }, scene);
+                    } else if (type === 1) {
+                        mesh = BABYLON.MeshBuilder.CreateIcoSphere('ico' + i, { radius: 0.7, subdivisions: 2 }, scene);
+                    } else {
+                        mesh = BABYLON.MeshBuilder.CreateOctahedron('octa' + i, { size: 0.8 }, scene);
+                    }
+                    
+                    mesh.position = new BABYLON.Vector3(
+                        (Math.random() - 0.5) * 10,
+                        (Math.random() - 0.5) * 8,
+                        (Math.random() - 0.5) * 5
+                    );
+                    
+                    const mat = new BABYLON.StandardMaterial('mat' + i, scene);
+                    mat.diffuseColor = new BABYLON.Color3(0.4, 1, 0.85);
+                    mat.emissiveColor = new BABYLON.Color3(0.1, 0.3, 0.25);
+                    mat.alpha = 0.6;
+                    mat.wireframe = true;
+                    mesh.material = mat;
+                    
+                    shapes.push({
+                        mesh,
+                        rotSpeed: (Math.random() - 0.5) * 0.02,
+                        floatSpeed: Math.random() * 0.02 + 0.01,
+                        floatOffset: Math.random() * Math.PI * 2
+                    });
+                }
+                
+                // Animation
+                let time = 0;
+                scene.registerBeforeRender(() => {
+                    time += 0.01;
+                    shapes.forEach((s, i) => {
+                        s.mesh.rotation.x += s.rotSpeed;
+                        s.mesh.rotation.y += s.rotSpeed * 1.5;
+                        s.mesh.position.y += Math.sin(time + s.floatOffset) * s.floatSpeed;
+                    });
+                });
+                
+                return scene;
+            };
+            
+            const scene = createScene();
+            
+            engine.runRenderLoop(() => {
+                scene.render();
+            });
+            
+            window.addEventListener('resize', () => {
+                engine.resize();
+            });
+        })();
+
+        // ============================================
+        // UI Enhancements
+        // ============================================
+        document.addEventListener('DOMContentLoaded', () => {
+            // Hide loading screen
+            setTimeout(() => {
+                document.getElementById('loading').classList.add('hidden');
+            }, 1000);
+            
+            // Animated counter for stats
+            const animateCounters = () => {
+                const counters = document.querySelectorAll('.stat-number[data-count]');
+                
+                const observer = new IntersectionObserver((entries) => {
+                    entries.forEach(entry => {
+                        if (entry.isIntersecting) {
+                            const el = entry.target;
+                            const target = parseInt(el.dataset.count);
+                            const duration = 2000;
+                            const start = performance.now();
+                            
+                            const update = (now) => {
+                                const elapsed = now - start;
+                                const progress = Math.min(elapsed / duration, 1);
+                                const eased = 1 - Math.pow(1 - progress, 3);
+                                el.textContent = Math.floor(target * eased);
+                                
+                                if (progress < 1) {
+                                    requestAnimationFrame(update);
+                                }
+                            };
+                            
+                            requestAnimationFrame(update);
+                            observer.unobserve(el);
+                        }
+                    });
+                }, { threshold: 0.5 });
+                
+                counters.forEach(counter => observer.observe(counter));
+            };
+            
+            animateCounters();
+            
+            // Reduced motion check
+            const prefersReducedMotion = window.matchMedia('(prefers-reduced-motion: reduce)');
+            if (prefersReducedMotion.matches) {
+                document.querySelectorAll('.stat-card, .module-card').forEach(card => {
+                    card.style.transition = 'none';
+                });
+            }
+        });
+    </script>
+</body>
+</html>
