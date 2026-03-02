@@ -25,6 +25,32 @@ value = "http://backend:8000"
 enabled = true
 log_level = "info"
 
+# BRIDGE-AI-OS.COM (Main Economic Platform)
+[[routes]]
+pattern = "bridge-ai-os.com/*"
+zone_name = "bridge-ai-os.com"
+
+[[routes]]
+pattern = "www.bridge-ai-os.com/*"
+zone_name = "bridge-ai-os.com"
+
+[[routes]]
+pattern = "bridge-ai-os.co.za/*"
+zone_name = "bridge-ai-os.com"
+
+[[routes]]
+pattern = "bridge-ai-os.org/*"
+zone_name = "bridge-ai-os.com"
+
+[[routes]]
+pattern = "bridge-ai-os.tech/*"
+zone_name = "bridge-ai-os.com"
+
+[[routes]]
+pattern = "bridge-ai-os.xyz/*"
+zone_name = "bridge-ai-os.com"
+
+# SUPACO.IO (Command Layer)
 [[routes]]
 pattern = "supaco.io/*"
 zone_name = "supaco.io"
@@ -32,3 +58,28 @@ zone_name = "supaco.io"
 [[routes]]
 pattern = "www.supaco.io/*"
 zone_name = "supaco.io"
+
+[[routes]]
+pattern = "supaco.ai/*"
+zone_name = "supaco.io"
+
+[[routes]]
+pattern = "supaco.co.za/*"
+zone_name = "supaco.io"
+
+[[routes]]
+pattern = "supaco.team/*"
+zone_name = "supaco.io"
+
+[[routes]]
+pattern = "supaco.tech/*"
+zone_name = "supaco.io"
+
+[[routes]]
+pattern = "supaco.xyz/*"
+zone_name = "supaco.io"
+
+# AI-OS.CO.ZA (Treasury - Zero Trust)
+[[routes]]
+pattern = "ai-os.co.za/*"
+zone_name = "ai-os.co.za"
