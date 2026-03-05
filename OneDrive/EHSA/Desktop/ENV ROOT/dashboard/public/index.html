@@ -1,0 +1,122 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>Bridge AI OS — Public</title>
+  <link rel="stylesheet" href="../assets/site.css" />
+</head>
+<body>
+  <header>
+    <div class="logo">◈ BRIDGE AI OS — PUBLIC</div>
+    <div class="nav">
+      <a href="../">DASHBOARD</a>
+      <a href="../onboarding/">ONBOARD</a>
+      <a href="../workflows/">WORKFLOWS</a>
+      <a href="../#treasury">TREASURY</a>
+    </div>
+  </header>
+
+  <div class="container">
+    <div class="title">SOVEREIGN ECONOMIC ENGINE — PUBLIC ACCESS</div>
+
+    <div class="grid">
+      <div class="card">
+        <div class="muted">
+          This public page is the entry point. It links to onboarding and the live treasury dashboard.
+          Use <strong>GENERATE DEMO ACTIVITY</strong> for local/demo traffic only. In production, call the
+          engine from your own apps and let this UI observe billing/treasury.
+        </div>
+
+        <div class="kpi" id="kpi">
+          <div class="pill"><strong id="kpi-gw">GW</strong> <span class="muted" id="kpi-gw-url">—</span></div>
+          <div class="pill"><strong id="kpi-be">BE</strong> <span class="muted" id="kpi-be-url">—</span></div>
+        </div>
+
+        <div class="actions">
+          <button id="btn-refresh" class="secondary">REFRESH STATUS</button>
+          <button id="btn-demo">GENERATE DEMO ACTIVITY</button>
+          <button id="btn-open">OPEN TREASURY</button>
+        </div>
+      </div>
+
+      <div class="card">
+        <div class="muted">
+          Live gateway snapshot (what feeds the dashboard): total calls/tokens + endpoint activity.
+          In production, this should point at your real public backend (not localhost).
+        </div>
+        <div class="actions">
+          <button id="btn-billing" class="secondary">FETCH BILLING</button>
+          <button id="btn-bump" class="secondary">BUMP /RESEARCH</button>
+        </div>
+        <div class="log" id="log"></div>
+      </div>
+    </div>
+  </div>
+
+  <script src="../assets/site.js"></script>
+  <script>
+    (async function init(){
+      const cfg = await loadConfig('../config.json');
+      if(!cfg) return;
+
+      document.getElementById('kpi-gw-url').textContent = cfg.gateway_url || '—';
+      document.getElementById('kpi-be-url').textContent = cfg.backend_url || '—';
+
+      const refresh = async () => {
+        try{
+          const t = await fetchTreasury(cfg);
+          log(`Treasury OK — executions=${t.data.execution_count} fees=${t.data.total_fees} distributed=${t.data.total_distributed}`, 'ok');
+        }catch(e){
+          log(`Treasury error: ${e.message}`, 'err');
+        }
+      };
+
+      document.getElementById('btn-refresh').onclick = refresh;
+
+      document.getElementById('btn-open').onclick = () => {
+        window.location.href = '../#treasury';
+      };
+
+      document.getElementById('btn-billing').onclick = async () => {
+        try{
+          const b = await fetchBilling(cfg);
+          log(`Billing — calls=${b.summary.total_calls} tokens=${b.summary.total_tokens}`, 'ok');
+          Object.keys(b.by_endpoint||{}).sort().forEach(k=>{
+            const v = b.by_endpoint[k];
+            log(`${k} calls=${v.calls} tok=${v.tokens}`, 'warn');
+          });
+        }catch(e){
+          log(`Billing error: ${e.message}`, 'err');
+        }
+      };
+
+      document.getElementById('btn-bump').onclick = async () => {
+        try{
+          await bumpUsage(cfg, '/research', 1, 25);
+          log('Bumped /research +1 call +25 tok', 'ok');
+        }catch(e){
+          log(`Bump error: ${e.message}`, 'err');
+        }
+      };
+
+      document.getElementById('btn-demo').onclick = async () => {
+        try{
+          const payload = { org_id:'org-1', user_id:'user-1', amount: 25.0, idempotency_key: uuidv4() };
+          const r = await runDistribution(cfg, payload);
+          log(`Distribution OK — execution_id=${r.execution_id} net=${r.data.net_amount}`, 'ok');
+          await bumpUsage(cfg, '/ai', 1, 120);
+          await bumpUsage(cfg, '/code', 1, 80);
+          await bumpUsage(cfg, '/summarize', 1, 40);
+          log('Bumped /ai, /code, /summarize usage to light up endpoint table', 'warn');
+        }catch(e){
+          log(`Demo error: ${e.message}`, 'err');
+        }
+      };
+
+      log('PUBLIC page initialised', 'ok');
+      await refresh();
+    })();
+  </script>
+</body>
+</html>

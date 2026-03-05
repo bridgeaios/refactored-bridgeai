@@ -1,0 +1,7 @@
+{
+  "gateway_url": "https://api.supaco.ai",
+  "backend_url": "https://api.supaco.ai",
+  "api_key": "client1",
+  "price_per_tps": 0.20,
+  "qr_target": "https://business.supaco.ai/public/"
+}

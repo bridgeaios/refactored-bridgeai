@@ -1,0 +1,580 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<title>Bridge AI OS — Sovereign Economic Engine</title>
+<style>
+@import url('https://fonts.googleapis.com/css2?family=Share+Tech+Mono&display=swap');
+
+*{margin:0;padding:0;box-sizing:border-box}
+body{background:#010b14;color:#eaeaea;font-family:'Share Tech Mono',monospace;overflow-x:hidden}
+
+/* ── header ── */
+header{
+  display:flex;align-items:center;justify-content:space-between;
+  padding:14px 30px;border-bottom:1px solid #00ffd020;
+  background:#010b14;position:sticky;top:0;z-index:100;
+}
+.logo{font-size:15px;letter-spacing:4px;color:#00ffd0;filter:drop-shadow(0 0 8px #00ffd080)}
+.status-bar{display:flex;gap:20px;font-size:9px;letter-spacing:2px}
+.dot{width:7px;height:7px;border-radius:50%;background:#00ffd0;display:inline-block;margin-right:5px;box-shadow:0 0 6px #00ffd0}
+.dot.red{background:#ff4060;box-shadow:0 0 6px #ff4060}
+.clock{color:#00ffd060;font-size:10px}
+.nav{display:flex;gap:10px;align-items:center}
+.nav a{font-size:9px;letter-spacing:2px;color:#00ffd080;text-decoration:none;border:1px solid #00ffd020;padding:6px 10px;border-radius:3px;background:#0a1a2a}
+.nav a:hover{color:#fff;border-color:#00ffd060}
+
+/* ── grid layout ── */
+.grid{display:grid;grid-template-columns:1fr 1fr;grid-template-rows:auto auto;gap:1px;background:#00ffd010}
+.panel{background:#010b14;padding:24px}
+
+/* ── section titles ── */
+.section-title{
+  font-size:10px;letter-spacing:4px;color:#00ffd0;
+  border-bottom:1px solid #00ffd030;padding-bottom:8px;margin-bottom:16px;
+}
+
+/* ── stat cards ── */
+.stat-row{display:grid;grid-template-columns:repeat(4,1fr);gap:10px;margin-bottom:16px}
+.stat-card{background:#0a1a2a;border:1px solid #00ffd020;padding:14px;border-radius:3px}
+.stat-label{font-size:8px;letter-spacing:2px;color:#00ffd060;margin-bottom:6px}
+.stat-value{font-size:20px;color:#fff}
+.stat-value.green{color:#00ffd0}
+.stat-value.gold{color:#ffd700}
+.stat-value.red{color:#ff4060}
+
+/* ── distribution bars ── */
+.dist-row{margin-bottom:10px}
+.dist-label{display:flex;justify-content:space-between;font-size:9px;color:#00ffd080;margin-bottom:4px}
+.dist-bar-bg{background:#ffffff08;height:6px;border-radius:2px;overflow:hidden}
+.dist-bar{height:100%;border-radius:2px;transition:width 0.8s ease}
+
+/* ── endpoint table ── */
+.ep-table{width:100%;border-collapse:collapse;font-size:9px}
+.ep-table tr{border-bottom:1px solid #00ffd010}
+.ep-table td{padding:7px 4px;color:#aaa}
+.ep-table td:first-child{color:#00ffd0;letter-spacing:1px}
+.ep-table td:last-child{text-align:right;color:#ffd700}
+.agent-table{width:100%;border-collapse:collapse;font-size:9px;margin-top:8px}
+.agent-table th,.agent-table td{padding:5px 4px;text-align:left;border-bottom:1px solid #00ffd010}
+.agent-table th{color:#00ffd0;font-weight:normal;letter-spacing:2px;font-size:8px}
+.agent-table td.share{color:#00ffd080}
+.agent-table td.tokens{color:#ffd700;text-align:right}
+
+/* ── SVG panels ── */
+svg{width:100%;height:auto}
+
+/* ── EVM bridge ── */
+.evm-panel{grid-column:1/-1;padding:24px}
+.chain-box{fill:#0a1822;stroke:#00ffd030;stroke-width:1}
+.evm-node{fill:#0d2030;stroke:#00ffd0;stroke-width:1.5;cursor:pointer;transition:all 0.3s}
+.evm-node:hover{stroke:#fff;filter:drop-shadow(0 0 8px #00ffd0)}
+.evm-node.active{stroke:#00ff9c;stroke-width:2.5;filter:drop-shadow(0 0 10px #00ff9c)}
+.evm-label{fill:#fff;font-family:'Share Tech Mono',monospace;font-size:11px;text-anchor:middle;pointer-events:none}
+.evm-sub{fill:#00ffd080;font-family:'Share Tech Mono',monospace;font-size:8px;text-anchor:middle;pointer-events:none}
+.evm-arrow{stroke:#00ffd0;stroke-width:1.5;fill:none;marker-end:url(#arr)}
+.evm-arrow.active{stroke:#00ff9c;stroke-dasharray:6 4}
+
+/* ── log ── */
+.log-panel{
+  grid-column:1/-1;background:#0a1a2a;border-top:1px solid #00ffd020;
+  padding:14px 30px;max-height:120px;overflow-y:auto;font-size:9px;
+  color:#00ffd060;letter-spacing:1px;
+}
+.log-panel p{padding:2px 0;border-bottom:1px solid #00ffd008}
+
+/* ── QR ── */
+.qr-block{text-align:center;padding:10px}
+.qr-block img{border:1px solid #00ffd040;border-radius:4px}
+.qr-label{font-size:8px;letter-spacing:2px;color:#00ffd060;margin-top:6px}
+
+/* ── agent list ── */
+.agent-row{
+  display:flex;justify-content:space-between;align-items:center;
+  padding:8px 12px;background:#0a1a2a;margin-bottom:4px;border-radius:2px;
+  border-left:2px solid #00ffd040;font-size:9px;
+}
+.agent-name{color:#00ffd0}
+.agent-meta{color:#ffffff60}
+</style>
+</head>
+<body>
+
+<!-- HEADER -->
+<header>
+  <div class="logo">◈ BRIDGE AI OS — SOVEREIGN ECONOMIC ENGINE</div>
+  <div class="nav">
+    <a href="./architecture.html">ARCH</a>
+    <a href="./public/">PUBLIC</a>
+    <a href="./onboarding/">ONBOARD</a>
+    <a href="./workflows/">WORKFLOWS</a>
+    <a href="./#treasury">TREASURY</a>
+  </div>
+  <div class="status-bar">
+    <span><span class="dot" id="dot-gateway"></span>GATEWAY</span>
+    <span><span class="dot" id="dot-ledger"></span>LEDGER</span>
+    <span><span class="dot" id="dot-agents"></span>AGENTS</span>
+  </div>
+  <div class="clock" id="clock">--:--:--</div>
+</header>
+
+<!-- MAIN GRID -->
+<div class="grid">
+
+  <!-- TOP LEFT: Economic Engine -->
+  <div class="panel">
+    <div class="section-title">ECONOMIC ENGINE — LIVE LEDGER</div>
+
+    <div class="stat-row">
+      <div class="stat-card">
+        <div class="stat-label">NETWORK TPS</div>
+        <div class="stat-value green" id="s-tps">0.0000</div>
+      </div>
+      <div class="stat-card">
+        <div class="stat-label">DAILY REVENUE (PROJ)</div>
+        <div class="stat-value gold" id="s-daily">$0.00</div>
+      </div>
+      <div class="stat-card">
+        <div class="stat-label">TOTAL API CALLS</div>
+        <div class="stat-value" id="s-calls">0</div>
+      </div>
+      <div class="stat-card">
+        <div class="stat-label">TOTAL TOKENS</div>
+        <div class="stat-value" id="s-tokens">0</div>
+      </div>
+    </div>
+
+    <div class="section-title" style="margin-top:8px">DISTRIBUTION ROUTING</div>
+
+    <div class="dist-row">
+      <div class="dist-label"><span id="dist-label-agents">AGENTS (60%)</span><span id="d-agents">$0.00</span></div>
+      <div class="dist-bar-bg"><div class="dist-bar" id="b-agents" style="background:#ff4060"></div></div>
+    </div>
+    <div class="dist-row">
+      <div class="dist-label"><span id="dist-label-treasury">TREASURY (20%)</span><span id="d-treasury">$0.00</span></div>
+      <div class="dist-bar-bg"><div class="dist-bar" id="b-treasury" style="background:#ffd700"></div></div>
+    </div>
+    <div class="dist-row">
+      <div class="dist-label"><span id="dist-label-reinvest">REINVESTMENT (10%)</span><span id="d-reinvest">$0.00</span></div>
+      <div class="dist-bar-bg"><div class="dist-bar" id="b-reinvest" style="background:#00ffd0"></div></div>
+    </div>
+    <div class="dist-row">
+      <div class="dist-label"><span id="dist-label-ops">OPERATIONS (7%)</span><span id="d-ops">$0.00</span></div>
+      <div class="dist-bar-bg"><div class="dist-bar" id="b-ops" style="background:#8080ff"></div></div>
+    </div>
+    <div class="dist-row">
+      <div class="dist-label"><span id="dist-label-founder">FOUNDER (3%)</span><span id="d-founder">$0.00</span></div>
+      <div class="dist-bar-bg"><div class="dist-bar" id="b-founder" style="background:#ff8800"></div></div>
+    </div>
+
+    <div style="margin-top:14px;font-size:8px;color:#00ffd040;letter-spacing:2px">
+      FORMULA: TPS × <span id="formula-sec">86400</span> × $<span id="formula-p">0.20</span> &nbsp;|&nbsp; TARGET: <span id="formula-target-tps">3356</span> TPS = $<span id="formula-target-m">58</span>M/DAY
+    </div>
+  </div>
+
+  <!-- TOP RIGHT: Endpoints + Agents + QR -->
+  <div class="panel">
+    <div class="section-title">LIVE ENDPOINT ACTIVITY</div>
+    <table class="ep-table">
+      <tr><td>/ai</td><td id="ep-ai-c">0 calls</td><td id="ep-ai-t">0 tok</td></tr>
+      <tr><td>/leads</td><td id="ep-leads-c">0 calls</td><td id="ep-leads-t">0 tok</td></tr>
+      <tr><td>/research</td><td id="ep-research-c">0 calls</td><td id="ep-research-t">0 tok</td></tr>
+      <tr><td>/code</td><td id="ep-code-c">0 calls</td><td id="ep-code-t">0 tok</td></tr>
+      <tr><td>/outreach</td><td id="ep-outreach-c">0 calls</td><td id="ep-outreach-t">0 tok</td></tr>
+      <tr><td>/classify</td><td id="ep-classify-c">0 calls</td><td id="ep-classify-t">0 tok</td></tr>
+      <tr><td>/summarize</td><td id="ep-summarize-c">0 calls</td><td id="ep-summarize-t">0 tok</td></tr>
+      <tr><td>/automate</td><td id="ep-automate-c">0 calls</td><td id="ep-automate-t">0 tok</td></tr>
+    </table>
+
+    <div class="section-title" style="margin-top:20px">REGISTERED AGENTS</div>
+    <div id="agent-list"><div class="agent-row"><span class="agent-name">loading...</span></div></div>
+
+    <div class="section-title" style="margin-top:14px">AGENT REVENUE SHARE</div>
+    <table class="agent-table" id="agent-share">
+      <thead>
+        <tr>
+          <th>AGENT</th>
+          <th>SHARE</th>
+          <th style="text-align:right">TOKENS</th>
+        </tr>
+      </thead>
+      <tbody>
+        <tr><td colspan="3" style="color:#00ffd060;font-size:8px">waiting for billing...</td></tr>
+      </tbody>
+    </table>
+
+    <div class="qr-block" style="margin-top:16px">
+      <img id="qr-img" src="https://api.qrserver.com/v1/create-qr-code/?size=100x100&color=00ffd0&bgcolor=0a1a2a&data=https://business.supaco.ai/public/" width="100" height="100" alt="QR"/>
+      <div class="qr-label" id="qr-label">SCAN → business.supaco.ai/public/</div>
+    </div>
+  </div>
+
+  <!-- FULL WIDTH: EVM Bridge State Machine -->
+  <div class="evm-panel">
+    <div class="section-title">EVM BRIDGE — LOCK → VERIFY → MINT STATE MACHINE</div>
+
+    <svg viewBox="0 0 1200 320" id="evm-svg">
+      <defs>
+        <marker id="arr" markerWidth="8" markerHeight="8" refX="7" refY="3" orient="auto">
+          <path d="M0,0 L8,3 L0,6 Z" fill="#00ffd0"/>
+        </marker>
+        <filter id="glow2">
+          <feGaussianBlur stdDeviation="4" result="b"/>
+          <feMerge><feMergeNode in="b"/><feMergeNode in="SourceGraphic"/></feMerge>
+        </filter>
+      </defs>
+
+      <!-- Chain A background -->
+      <rect x="30" y="40" width="280" height="240" rx="4" class="chain-box"/>
+      <text x="170" y="65" text-anchor="middle" style="fill:#00ffd040;font-family:'Share Tech Mono',monospace;font-size:9px;letter-spacing:3px">EVM CHAIN A / BRIDGE AI</text>
+
+      <!-- Relayer background -->
+      <rect x="450" y="40" width="300" height="240" rx="4" class="chain-box"/>
+      <text x="600" y="65" text-anchor="middle" style="fill:#00ffd040;font-family:'Share Tech Mono',monospace;font-size:9px;letter-spacing:3px">RELAYER NETWORK</text>
+
+      <!-- Chain B background -->
+      <rect x="890" y="40" width="280" height="240" rx="4" class="chain-box"/>
+      <text x="1030" y="65" text-anchor="middle" style="fill:#00ffd040;font-family:'Share Tech Mono',monospace;font-size:9px;letter-spacing:3px">EVM CHAIN B / SETTLEMENT</text>
+
+      <!-- LOCK node -->
+      <g id="node-lock" class="evm-node" onclick="activate('lock')" style="cursor:pointer">
+        <rect x="70" y="110" width="160" height="70" rx="3"/>
+        <text x="150" y="140" class="evm-label">LOCK</text>
+        <text x="150" y="158" class="evm-sub">USDC / TOKEN</text>
+      </g>
+
+      <!-- WALLET node -->
+      <g id="node-wallet" class="evm-node" onclick="activate('wallet')" style="cursor:pointer">
+        <rect x="70" y="210" width="160" height="50" rx="3"/>
+        <text x="150" y="230" class="evm-label">AGENT WALLET</text>
+        <text x="150" y="246" class="evm-sub" id="wallet-addr">0x295304...435D2</text>
+      </g>
+
+      <!-- VERIFY node -->
+      <g id="node-verify" class="evm-node" onclick="activate('verify')" style="cursor:pointer">
+        <rect x="480" y="90" width="140" height="55" rx="3"/>
+        <text x="550" y="115" class="evm-label">VERIFY</text>
+        <text x="550" y="131" class="evm-sub">SIGNATURE CHECK</text>
+      </g>
+
+      <!-- MERKLE node -->
+      <g id="node-merkle" class="evm-node" onclick="activate('merkle')" style="cursor:pointer">
+        <rect x="480" y="165" width="140" height="55" rx="3"/>
+        <text x="550" y="190" class="evm-label">MERKLE PROOF</text>
+        <text x="550" y="206" class="evm-sub">LEDGER ANCHOR</text>
+      </g>
+
+      <!-- RELAY node -->
+      <g id="node-relay" class="evm-node" onclick="activate('relay')" style="cursor:pointer">
+        <rect x="480" y="238" width="140" height="30" rx="3"/>
+        <text x="550" y="257" class="evm-label" style="font-size:9px">MESSAGE RELAY</text>
+      </g>
+
+      <!-- MINT node -->
+      <g id="node-mint" class="evm-node" onclick="activate('mint')" style="cursor:pointer">
+        <rect x="930" y="110" width="160" height="70" rx="3"/>
+        <text x="1010" y="140" class="evm-label">MINT</text>
+        <text x="1010" y="158" class="evm-sub">WRAPPED TOKEN</text>
+      </g>
+
+      <!-- DISTRIBUTE node -->
+      <g id="node-distribute" class="evm-node" onclick="activate('distribute')" style="cursor:pointer">
+        <rect x="930" y="210" width="160" height="50" rx="3"/>
+        <text x="1010" y="230" class="evm-label">DISTRIBUTE</text>
+        <text x="1010" y="246" class="evm-sub" id="dist-label">60/20/10/7/3</text>
+      </g>
+
+      <!-- TREASURY node (center bottom) -->
+      <g id="node-treasury" class="evm-node" onclick="activate('treasury')" style="cursor:pointer">
+        <rect x="530" y="295" width="140" height="30" rx="3" style="stroke:#ffd700"/>
+        <text x="600" y="314" class="evm-label" style="fill:#ffd700;font-size:9px">TREASURY RESERVE</text>
+      </g>
+
+      <!-- ARROWS -->
+      <path id="arr-lock-verify" d="M230 145 L480 117" class="evm-arrow"/>
+      <path id="arr-verify-merkle" d="M550 145 L550 165" class="evm-arrow"/>
+      <path id="arr-merkle-relay" d="M550 220 L550 238" class="evm-arrow"/>
+      <path id="arr-relay-mint" d="M620 253 L930 145" class="evm-arrow"/>
+      <path id="arr-mint-dist" d="M1010 180 L1010 210" class="evm-arrow"/>
+      <path id="arr-dist-treasury" d="M960 260 L670 310" class="evm-arrow" style="stroke:#ffd700"/>
+      <path d="M150 210 L150 180" class="evm-arrow"/>
+
+      <text id="evm-state" x="600" y="25" text-anchor="middle" style="fill:#00ffd060;font-family:'Share Tech Mono',monospace;font-size:10px;letter-spacing:3px">CLICK ANY NODE TO ACTIVATE STATE</text>
+    </svg>
+
+    <div style="display:flex;gap:8px;margin-top:10px;flex-wrap:wrap">
+      <button onclick="runSequence()" style="background:#00ffd020;border:1px solid #00ffd060;color:#00ffd0;padding:6px 14px;cursor:pointer;font-family:'Share Tech Mono';font-size:9px;letter-spacing:2px">▶ RUN SEQUENCE</button>
+      <button onclick="activate('lock')" style="background:#0a1a2a;border:1px solid #00ffd030;color:#888;padding:6px 14px;cursor:pointer;font-family:'Share Tech Mono';font-size:9px">#LOCK</button>
+      <button onclick="activate('verify')" style="background:#0a1a2a;border:1px solid #00ffd030;color:#888;padding:6px 14px;cursor:pointer;font-family:'Share Tech Mono';font-size:9px">#VERIFY</button>
+      <button onclick="activate('merkle')" style="background:#0a1a2a;border:1px solid #00ffd030;color:#888;padding:6px 14px;cursor:pointer;font-family:'Share Tech Mono';font-size:9px">#MERKLE</button>
+      <button onclick="activate('relay')" style="background:#0a1a2a;border:1px solid #00ffd030;color:#888;padding:6px 14px;cursor:pointer;font-family:'Share Tech Mono';font-size:9px">#RELAY</button>
+      <button onclick="activate('mint')" style="background:#0a1a2a;border:1px solid #00ffd030;color:#888;padding:6px 14px;cursor:pointer;font-family:'Share Tech Mono';font-size:9px">#MINT</button>
+      <button onclick="activate('distribute')" style="background:#0a1a2a;border:1px solid #00ffd030;color:#888;padding:6px 14px;cursor:pointer;font-family:'Share Tech Mono';font-size:9px">#DISTRIBUTE</button>
+      <button onclick="activate('treasury')" style="background:#0a1a2a;border:1px solid #ffd70040;color:#ffd700;padding:6px 14px;cursor:pointer;font-family:'Share Tech Mono';font-size:9px">#TREASURY</button>
+    </div>
+  </div>
+
+</div>
+
+<!-- LOG -->
+<div class="log-panel" id="log"></div>
+
+<script>
+// Config: loaded from config.json (same dir); fallbacks for production (api.supaco.ai)
+let GW = 'https://api.supaco.ai';
+let LOCAL = 'https://api.supaco.ai';
+let KEY = 'client1';
+let P = 0.20;
+let QR_TARGET = 'https://business.supaco.ai/public/';
+
+// ─── Constants (single place for tuning; no magic numbers in billing/display/polling) ───
+const TPS_WINDOW_SEC = 86400;             // TPS calculation window in seconds
+const SECONDS_PER_DAY = 86400;            // seconds in a day (formula: daily = tps × SECONDS_PER_DAY × P)
+const MIN_TPS = 0.0001;                  // minimum TPS threshold for display
+const DIST = { agents: 0.60, treasury: 0.20, reinvest: 0.10, ops: 0.07, founder: 0.03 }; // distribution %
+const POLL_BILLING_MS = 15000;            // billing poll interval (ms)
+const POLL_AGENTS_MS = 30000;             // agents list poll interval (ms)
+const TARGET_TPS = 3356;                  // target TPS for formula label
+const TARGET_DAILY_M = 58;                // target daily revenue (M) for formula label
+
+async function loadConfig(){
+  try {
+    const r = await fetch('config.json');
+    if (r.ok) {
+      const c = await r.json();
+      if (c.gateway_url) GW = c.gateway_url.replace(/\/$/, '');
+      if (c.backend_url) LOCAL = c.backend_url.replace(/\/$/, '');
+      if (c.api_key) KEY = c.api_key;
+      if (typeof c.price_per_tps === 'number') P = c.price_per_tps;
+      if (c.qr_target) QR_TARGET = c.qr_target;
+    }
+  } catch (_) {}
+  const qrImg = document.getElementById('qr-img');
+  const qrLabel = document.getElementById('qr-label');
+  if (qrImg) qrImg.src = 'https://api.qrserver.com/v1/create-qr-code/?size=100x100&color=00ffd0&bgcolor=0a1a2a&data=' + encodeURIComponent(QR_TARGET);
+  if (qrLabel) qrLabel.textContent = 'SCAN → ' + QR_TARGET.replace(/^https?:\/\//, '');
+  updateFormulaDisplay();
+}
+
+function updateFormulaDisplay(){
+  s('formula-sec', SECONDS_PER_DAY);
+  s('formula-p', String(P));
+  s('formula-target-tps', TARGET_TPS);
+  s('formula-target-m', TARGET_DAILY_M);
+}
+
+function syncDistributionUI(){
+  const labels = [
+    { id: 'dist-label-agents', name: 'AGENTS', key: 'agents' },
+    { id: 'dist-label-treasury', name: 'TREASURY', key: 'treasury' },
+    { id: 'dist-label-reinvest', name: 'REINVESTMENT', key: 'reinvest' },
+    { id: 'dist-label-ops', name: 'OPERATIONS', key: 'ops' },
+    { id: 'dist-label-founder', name: 'FOUNDER', key: 'founder' }
+  ];
+  labels.forEach(({ id, name, key }) => {
+    const el = document.getElementById(id);
+    if (el) el.textContent = name + ' (' + Math.round(DIST[key] * 100) + '%)';
+  });
+  const bars = [
+    { id: 'b-agents', key: 'agents' },
+    { id: 'b-treasury', key: 'treasury' },
+    { id: 'b-reinvest', key: 'reinvest' },
+    { id: 'b-ops', key: 'ops' },
+    { id: 'b-founder', key: 'founder' }
+  ];
+  bars.forEach(({ id, key }) => {
+    const el = document.getElementById(id);
+    if (el) el.style.width = (DIST[key] * 100) + '%';
+  });
+  const distLabel = document.getElementById('dist-label');
+  if (distLabel) distLabel.textContent = [DIST.agents, DIST.treasury, DIST.reinvest, DIST.ops, DIST.founder].map(x => Math.round(x * 100)).join('/');
+}
+
+function fmt(n){
+  if(n>=1e6) return '$'+(n/1e6).toFixed(2)+'M';
+  if(n>=1e3) return '$'+(n/1e3).toFixed(1)+'k';
+  return '$'+n.toFixed(4);
+}
+function pad(n){return String(n).padStart(2,'0')}
+function s(id,v){const e=document.getElementById(id);if(e)e.textContent=v}
+
+function log(msg,color){
+  const d=document.getElementById('log');
+  const p=document.createElement('p');
+  p.style.color=color||'#00ffd060';
+  p.textContent='['+new Date().toISOString().slice(11,19)+'] '+msg;
+  d.appendChild(p);
+  d.scrollTop=d.scrollHeight;
+}
+
+function tick(){
+  const d=new Date();
+  s('clock',pad(d.getHours())+':'+pad(d.getMinutes())+':'+pad(d.getSeconds()));
+}
+
+const NODE_MAP = {
+  lock:       'node-lock',
+  wallet:     'node-wallet',
+  verify:     'node-verify',
+  merkle:     'node-merkle',
+  relay:      'node-relay',
+  mint:       'node-mint',
+  distribute: 'node-distribute',
+  treasury:   'node-treasury'
+};
+
+function getStateMsgs(){
+  const distStr = [DIST.agents, DIST.treasury, DIST.reinvest, DIST.ops, DIST.founder].map(x => Math.round(x * 100)).join('/');
+  return {
+    lock:       'LOCK: Token locked in contract on Chain A. Awaiting relayer confirmation.',
+    wallet:     'WALLET: Agent wallet identified. Balance check initiated.',
+    verify:     'VERIFY: Relayer network validating signature and source transaction.',
+    merkle:     'MERKLE PROOF: Ledger anchor committed. Cryptographic proof generated.',
+    relay:      'RELAY: Message broadcasting to destination chain.',
+    mint:       'MINT: Wrapped token minted on Chain B. Value transferred.',
+    distribute: 'DISTRIBUTE: Revenue routing ' + distStr + ' to agents/treasury/reinvest/ops/founder.',
+    treasury:   'TREASURY: Reserve capital secured. Reinvestment pool updated.'
+  };
+}
+
+function activate(id){
+  document.querySelectorAll('.evm-node').forEach(e=>e.classList.remove('active'));
+  const el=document.getElementById(NODE_MAP[id]);
+  if(el){
+    el.classList.add('active');
+    s('evm-state','STATE: '+id.toUpperCase());
+    log(getStateMsgs()[id]||'State: '+id, id==='treasury'?'#ffd700':id==='mint'?'#00ff9c':'#00ffd0');
+  }
+  history.replaceState(null,'','#'+id);
+}
+
+const SEQUENCE = ['lock','verify','merkle','relay','mint','distribute','treasury'];
+let seqIdx = 0;
+let seqTimer = null;
+
+function runSequence(){
+  if(seqTimer) clearInterval(seqTimer);
+  seqIdx = 0;
+  activate(SEQUENCE[seqIdx]);
+  seqTimer = setInterval(()=>{
+    seqIdx++;
+    if(seqIdx>=SEQUENCE.length){clearInterval(seqTimer);return;}
+    activate(SEQUENCE[seqIdx]);
+  }, 1400);
+}
+
+if(location.hash) activate(location.hash.replace('#',''));
+window.addEventListener('hashchange',()=>activate(location.hash.replace('#','')));
+
+async function fetchBilling(){
+  try{
+    const r=await fetch(GW+'/billing',{headers:{'x-api-key':KEY}});
+    if(!r.ok) throw new Error('HTTP '+r.status);
+    const d=await r.json();
+
+    const calls=d.summary.total_calls||0;
+    const tokens=d.summary.total_tokens||0;
+    const tps = Math.max(calls / TPS_WINDOW_SEC, MIN_TPS);
+    const daily = tps * SECONDS_PER_DAY * P;
+
+    s('s-tps',tps.toFixed(4));
+    s('s-daily',fmt(daily));
+    s('s-calls',calls.toLocaleString());
+    s('s-tokens',tokens.toLocaleString());
+    s('d-agents',fmt(daily*DIST.agents));
+    s('d-treasury',fmt(daily*DIST.treasury));
+    s('d-reinvest',fmt(daily*DIST.reinvest));
+    s('d-ops',fmt(daily*DIST.ops));
+    s('d-founder',fmt(daily*DIST.founder));
+
+    s('dist-label',fmt(daily*DIST.agents)+' agents');
+
+    const ep=d.by_endpoint||{};
+    const eps=['/ai','/leads','/research','/code','/outreach','/classify','/summarize','/automate'];
+    eps.forEach(e=>{
+      const key=e.replace('/','').replace('/','');
+      const dat=ep[e]||{calls:0,tokens:0};
+      s('ep-'+key+'-c',dat.calls+' calls');
+      s('ep-'+key+'-t',(dat.tokens||0).toLocaleString()+' tok');
+    });
+
+    const perAgent = Array.isArray(d.per_agent) ? d.per_agent : [];
+    const shareTable = document.getElementById('agent-share');
+    if(shareTable){
+      const tbody = shareTable.querySelector('tbody');
+      tbody.innerHTML = '';
+      if(perAgent.length === 0){
+        const tr = document.createElement('tr');
+        const td = document.createElement('td');
+        td.colSpan = 3;
+        td.style.color = '#00ffd060';
+        td.style.fontSize = '8px';
+        td.textContent = 'no per-agent share configured (set AGENTS_JSON on backend)';
+        tr.appendChild(td);
+        tbody.appendChild(tr);
+      }else{
+        perAgent.forEach(a=>{
+          const tr = document.createElement('tr');
+          const name = document.createElement('td');
+          const share = document.createElement('td');
+          const tokensTd = document.createElement('td');
+
+          name.textContent = a.name || (a.wallet || '').slice(0,10) + '...';
+          share.className = 'share';
+          const pct = typeof a.share === 'number' ? (a.share*100).toFixed(1) : '—';
+          share.textContent = pct + '%';
+
+          tokensTd.className = 'tokens';
+          tokensTd.textContent = (a.tokens || 0).toLocaleString() + ' tok';
+
+          tr.appendChild(name);
+          tr.appendChild(share);
+          tr.appendChild(tokensTd);
+          tbody.appendChild(tr);
+        });
+      }
+    }
+
+    document.getElementById('dot-gateway').className='dot';
+    log('Gateway sync OK — '+calls+' calls, '+tokens+' tokens, proj '+fmt(daily)+'/day');
+  }catch(e){
+    document.getElementById('dot-gateway').className='dot red';
+    log('Gateway error: '+e.message,'#ff4060');
+  }
+}
+
+async function fetchAgents(){
+  try{
+    const r=await fetch(LOCAL+'/api/agents');
+    if(!r.ok) throw new Error('local server '+r.status);
+    const agents=await r.json();
+    const list=document.getElementById('agent-list');
+    list.innerHTML='';
+    (Array.isArray(agents)?agents:[]).forEach(a=>{
+      const div=document.createElement('div');
+      div.className='agent-row';
+      div.innerHTML='<span class="agent-name">'+a.name+'</span><span class="agent-meta">'+a.role+' | TPS:'+a.TPS+'</span>';
+      list.appendChild(div);
+      s('wallet-addr',(a.wallet||'').slice(0,16)+'...');
+    });
+    document.getElementById('dot-agents').className='dot';
+  }catch(e){
+    document.getElementById('dot-agents').className='dot red';
+  }
+}
+
+(async function init(){
+  await loadConfig();
+  syncDistributionUI();
+  fetchBilling();
+  fetchAgents();
+  setInterval(fetchBilling, POLL_BILLING_MS);
+  setInterval(fetchAgents, POLL_AGENTS_MS);
+  setInterval(tick, 1000);
+  tick();
+  log('BRIDGE AI OS DASHBOARD INITIALISED','#00ffd0');
+  log('Economic engine: TPS × '+SECONDS_PER_DAY+' × $'+P+' → distribution '+Object.values(DIST).map(x=>Math.round(x*100)).join('/')+' → treasury → reinvest','#ffd700');
+})();
+</script>
+</body>
+</html>

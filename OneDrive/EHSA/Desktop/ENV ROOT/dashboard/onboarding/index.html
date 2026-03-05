@@ -1,0 +1,149 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>Bridge AI OS — Onboarding</title>
+  <link rel="stylesheet" href="../assets/site.css" />
+</head>
+<body>
+  <header>
+    <div class="logo">◈ BRIDGE AI OS — ONBOARDING</div>
+    <div class="nav">
+      <a href="../public/">PUBLIC</a>
+      <a href="../">DASHBOARD</a>
+      <a href="../workflows/">WORKFLOWS</a>
+      <a href="../#treasury">TREASURY</a>
+    </div>
+  </header>
+
+  <div class="container">
+    <div class="title">ONBOARDING — START ENGINE</div>
+
+    <div class="grid">
+      <div class="card">
+        <div class="muted">
+          This page runs the full workflow in order:
+          1) generate idempotency key → 2) run distribution (updates treasury) → 3) bump endpoint usage →
+          4) confirm billing + treasury.
+        </div>
+
+        <div class="row">
+          <div>
+            <label>ORG ID</label>
+            <input id="org_id" value="org-1" />
+          </div>
+          <div>
+            <label>USER ID</label>
+            <input id="user_id" value="user-1" />
+          </div>
+        </div>
+
+        <div class="row">
+          <div>
+            <label>AMOUNT</label>
+            <input id="amount" value="99.00" />
+          </div>
+          <div>
+            <label>IDEMPOTENCY KEY</label>
+            <input id="idem" />
+          </div>
+        </div>
+
+        <div class="actions">
+          <button id="btn-idem" class="secondary">GENERATE KEY</button>
+          <button id="btn-run">RUN DISTRIBUTION</button>
+          <button id="btn-verify" class="secondary">VERIFY (BILLING + TREASURY)</button>
+          <button id="btn-open" class="secondary">OPEN TREASURY DASHBOARD</button>
+        </div>
+
+        <div class="log" id="log"></div>
+      </div>
+
+      <div class="card">
+        <div class="muted">
+          Config + status. If you deploy this to Pages, set `dashboard/config.json` to your production backend URL
+          (and ensure CORS allows the Pages origin).
+        </div>
+
+        <label>CONFIG (read-only)</label>
+        <textarea id="cfg" readonly></textarea>
+
+        <div class="actions">
+          <button id="btn-health" class="secondary">CHECK HEALTH</button>
+          <button id="btn-bump-ai" class="secondary">BUMP /AI</button>
+          <button id="btn-bump-research" class="secondary">BUMP /RESEARCH</button>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <script src="../assets/site.js"></script>
+  <script>
+    (async function init(){
+      const cfg = await loadConfig('../config.json');
+      if(!cfg) return;
+
+      document.getElementById('cfg').value = JSON.stringify(cfg, null, 2);
+      document.getElementById('idem').value = uuidv4();
+
+      const getPayload = () => ({
+        org_id: document.getElementById('org_id').value.trim(),
+        user_id: document.getElementById('user_id').value.trim(),
+        amount: Number(document.getElementById('amount').value),
+        idempotency_key: document.getElementById('idem').value.trim()
+      });
+
+      document.getElementById('btn-idem').onclick = () => {
+        document.getElementById('idem').value = uuidv4();
+        log('Generated new idempotency key', 'ok');
+      };
+
+      document.getElementById('btn-run').onclick = async () => {
+        try{
+          const payload = getPayload();
+          const r = await runDistribution(cfg, payload);
+          log(`Distribution OK — execution_id=${r.execution_id} fee=${r.data.fee} net=${r.data.net_amount}`, 'ok');
+          await bumpUsage(cfg, '/automate', 1, Math.max(0, Math.floor(payload.amount)));
+          log('Recorded /automate endpoint usage', 'warn');
+        }catch(e){
+          log(`Run failed: ${e.message}`, 'err');
+        }
+      };
+
+      document.getElementById('btn-verify').onclick = async () => {
+        try{
+          const b = await fetchBilling(cfg);
+          log(`Billing OK — calls=${b.summary.total_calls} tokens=${b.summary.total_tokens}`, 'ok');
+          const t = await fetchTreasury(cfg);
+          log(`Treasury OK — executions=${t.data.execution_count} fees=${t.data.total_fees} distributed=${t.data.total_distributed}`, 'ok');
+        }catch(e){
+          log(`Verify failed: ${e.message}`, 'err');
+        }
+      };
+
+      document.getElementById('btn-open').onclick = () => window.location.href = '../#treasury';
+
+      document.getElementById('btn-health').onclick = async () => {
+        try{
+          const h = await getJSON(cfg.backend_url + '/health');
+          log(`Health OK — ${h.service} edge_mode=${h.edge_mode}`, 'ok');
+        }catch(e){
+          log(`Health failed: ${e.message}`, 'err');
+        }
+      };
+
+      document.getElementById('btn-bump-ai').onclick = async () => {
+        try{ await bumpUsage(cfg, '/ai', 1, 120); log('Bumped /ai +1 call +120 tok', 'ok'); }
+        catch(e){ log(`Bump failed: ${e.message}`, 'err'); }
+      };
+      document.getElementById('btn-bump-research').onclick = async () => {
+        try{ await bumpUsage(cfg, '/research', 1, 30); log('Bumped /research +1 call +30 tok', 'ok'); }
+        catch(e){ log(`Bump failed: ${e.message}`, 'err'); }
+      };
+
+      log('ONBOARDING page initialised', 'ok');
+    })();
+  </script>
+</body>
+</html>

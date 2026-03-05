@@ -1,0 +1,152 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>Bridge AI OS — Workflows</title>
+  <link rel="stylesheet" href="../assets/site.css" />
+</head>
+<body>
+  <header>
+    <div class="logo">◈ BRIDGE AI OS — WORKFLOWS</div>
+    <div class="nav">
+      <a href="../public/">PUBLIC</a>
+      <a href="../onboarding/">ONBOARD</a>
+      <a href="../">DASHBOARD</a>
+      <a href="../#treasury">TREASURY</a>
+    </div>
+  </header>
+
+  <div class="container">
+    <div class="title">WORKFLOWS & AUTOMATION — IN ORDER</div>
+
+    <div class="grid">
+      <div class="card">
+        <div class="muted">
+          Use these buttons to run the system end-to-end and confirm each stage is working.
+          All actions call your backend based on `dashboard/config.json`.
+        </div>
+
+        <div class="actions">
+          <button id="wf-1">1) BUMP ENDPOINTS</button>
+          <button id="wf-2">2) RUN DISTRIBUTION</button>
+          <button id="wf-3" class="secondary">3) FETCH BILLING</button>
+          <button id="wf-4" class="secondary">4) FETCH TREASURY</button>
+          <button id="wf-5" class="secondary">OPEN DASHBOARD</button>
+        </div>
+
+        <div class="log" id="log"></div>
+      </div>
+
+      <div class="card">
+        <div class="muted">
+          Automation presets: these simulate real traffic so the dashboard’s endpoint table lights up.
+        </div>
+
+        <label>PRESET</label>
+        <select id="preset">
+          <option value="light">LIGHT (ai/code/summarize)</option>
+          <option value="research">RESEARCH (research/classify)</option>
+          <option value="outreach">OUTREACH (leads/outreach)</option>
+        </select>
+
+        <label>CALLS PER ENDPOINT</label>
+        <input id="calls" value="3" />
+
+        <label>TOKENS PER CALL</label>
+        <input id="tokens" value="50" />
+
+        <div class="actions">
+          <button id="run-preset" class="secondary">RUN PRESET</button>
+          <button id="clear-note" class="danger">NOTE: NO RESET</button>
+        </div>
+
+        <div class="muted" style="margin-top:10px">
+          This does not reset history. It only increments counters.
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <script src="../assets/site.js"></script>
+  <script>
+    (async function init(){
+      const cfg = await loadConfig('../config.json');
+      if(!cfg) return;
+
+      const bumpPreset = async (name, calls, tokens) => {
+        const c = Math.max(1, Number(calls||1));
+        const t = Math.max(0, Number(tokens||0));
+        const map = {
+          light:    [['/ai', c, t], ['/code', c, t], ['/summarize', c, t]],
+          research: [['/research', c, t], ['/classify', c, t]],
+          outreach: [['/leads', c, t], ['/outreach', c, t]],
+        };
+        const items = map[name] || map.light;
+        for(const [ep, cc, tt] of items){
+          await bumpUsage(cfg, ep, cc, tt * cc);
+          log(`Bumped ${ep} +${cc} calls +${tt*cc} tok`, 'ok');
+        }
+      };
+
+      document.getElementById('wf-1').onclick = async () => {
+        try{
+          await bumpPreset('light', 2, 40);
+          await bumpPreset('research', 1, 60);
+          log('Workflow step 1 complete: endpoint usage bumped', 'warn');
+        }catch(e){
+          log(`Step 1 failed: ${e.message}`, 'err');
+        }
+      };
+
+      document.getElementById('wf-2').onclick = async () => {
+        try{
+          const payload = { org_id:'org-1', user_id:'user-1', amount: 50.0, idempotency_key: uuidv4() };
+          const r = await runDistribution(cfg, payload);
+          log(`Distribution OK — execution_id=${r.execution_id} net=${r.data.net_amount}`, 'ok');
+        }catch(e){
+          log(`Step 2 failed: ${e.message}`, 'err');
+        }
+      };
+
+      document.getElementById('wf-3').onclick = async () => {
+        try{
+          const b = await fetchBilling(cfg);
+          log(`Billing — calls=${b.summary.total_calls} tokens=${b.summary.total_tokens}`, 'ok');
+          Object.keys(b.by_endpoint||{}).sort().forEach(k=>{
+            const v = b.by_endpoint[k];
+            log(`${k} calls=${v.calls} tok=${v.tokens}`, 'warn');
+          });
+        }catch(e){
+          log(`Step 3 failed: ${e.message}`, 'err');
+        }
+      };
+
+      document.getElementById('wf-4').onclick = async () => {
+        try{
+          const t = await fetchTreasury(cfg);
+          log(`Treasury — executions=${t.data.execution_count} fees=${t.data.total_fees} distributed=${t.data.total_distributed}`, 'ok');
+        }catch(e){
+          log(`Step 4 failed: ${e.message}`, 'err');
+        }
+      };
+
+      document.getElementById('wf-5').onclick = () => window.location.href = '../#treasury';
+
+      document.getElementById('run-preset').onclick = async () => {
+        try{
+          const p = document.getElementById('preset').value;
+          const calls = Number(document.getElementById('calls').value);
+          const tokens = Number(document.getElementById('tokens').value);
+          await bumpPreset(p, calls, tokens);
+          log(`Preset '${p}' complete`, 'warn');
+        }catch(e){
+          log(`Preset failed: ${e.message}`, 'err');
+        }
+      };
+
+      log('WORKFLOWS page initialised', 'ok');
+    })();
+  </script>
+</body>
+</html>

@@ -1,0 +1,50 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>Bridge AI OS — Gateway Architecture</title>
+  <style>
+    @import url('https://fonts.googleapis.com/css2?family=Share+Tech+Mono&display=swap');
+    *{margin:0;padding:0;box-sizing:border-box}
+    body{background:#010b14;color:#eaeaea;font-family:'Share Tech Mono',monospace;overflow-x:hidden}
+    header{
+      display:flex;align-items:center;justify-content:space-between;
+      padding:14px 30px;border-bottom:1px solid #00ffd020;
+      background:#010b14;position:sticky;top:0;z-index:100;
+    }
+    .logo{font-size:15px;letter-spacing:4px;color:#00ffd0;filter:drop-shadow(0 0 8px #00ffd080)}
+    .nav{display:flex;gap:10px;align-items:center}
+    .nav a{font-size:9px;letter-spacing:2px;color:#00ffd080;text-decoration:none;border:1px solid #00ffd020;padding:6px 10px;border-radius:3px;background:#0a1a2a}
+    .nav a:hover{color:#fff;border-color:#00ffd060}
+    .wrap{padding:20px 30px}
+    .wrap p{font-size:11px;color:#00ffd060;margin-bottom:10px;max-width:820px}
+    .svg-wrap{border:1px solid #00ffd020;border-radius:8px;overflow:hidden;background:#020913}
+    .svg-wrap object{width:100%;height:auto;display:block}
+  </style>
+</head>
+<body>
+  <header>
+    <div class="logo">◈ BRIDGE AI OS — ARCHITECTURE</div>
+    <div class="nav">
+      <a href="./">DASHBOARD</a>
+      <a href="./public/">PUBLIC</a>
+      <a href="./onboarding/">ONBOARD</a>
+      <a href="./workflows/">WORKFLOWS</a>
+      <a href="./#treasury">TREASURY</a>
+    </div>
+  </header>
+
+  <div class="wrap">
+    <p>
+      High-level view of the Sovereign Economic Engine. All real-world requests (users, apps, agents, external APIs)
+      pass through the GATEWAY, into the economic engine (executions, treasury, endpoint_usage), and are surfaced in
+      the dashboards and onboarding wizards.
+    </p>
+    <div class="svg-wrap">
+      <object data="gateway-architecture.svg" type="image/svg+xml"></object>
+    </div>
+  </div>
+</body>
+</html>
+

@@ -1,0 +1,5 @@
+# Cloudflare Pages — Bridge AI OS Dashboard (static)
+# Deploy from repo root: npx wrangler pages deploy dashboard --project-name=bridge-dashboard
+# Direct upload does not require this file; kept for reference.
+name = "bridge-dashboard"
+compatibility_date = "2025-01-01"
