@@ -1,0 +1,1 @@
+PASTE YOUR URL-ENCODED DRAW.IO XML HERE (e.g. content starting with %3CmxGraphModel%3E), then run: .\scripts\import-drawio-from-encoded.ps1

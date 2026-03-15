@@ -41,6 +41,7 @@ Run this whenever you want to refresh twins and versioned artifacts (e.g. after 
 | **Single-page viewer (all twins + all versions)** | **docs/twin-wiki.html** (open in browser) |
 | **Machine-readable registry** | **data/twin-registry.json** |
 | **From running backend** | **GET http://localhost:8000/api/wiki/registry** (returns registry when present) |
+| **Diagrams (draw.io)** | **docs/diagrams/** — e.g. Digital Ecosystem Evolution; see docs/diagrams/README.md. Import URL-encoded draw.io via `.\scripts\import-drawio-from-encoded.ps1`. |
 
 ---
 
