@@ -1,0 +1,36 @@
+{
+  "version": 1,
+  "updatedAt": "2026-03-15T16:00:00.0000000Z",
+  "objectives": [
+    {
+      "id": "obj-1",
+      "title": "Ship Phase 4 - Frontend Control Surface",
+      "status": "complete",
+      "completedAt": "2026-02-23T23:02:58.3664285+02:00"
+    },
+    {
+      "id": "obj-2",
+      "title": "Stabilize Bridge Live Wall integration",
+      "status": "complete",
+      "completedAt": "2026-03-15T16:00:00.0000000Z"
+    },
+    {
+      "id": "obj-3",
+      "title": "AWS credentials configured",
+      "status": "complete",
+      "completedAt": "2026-03-15T16:00:00.0000000Z"
+    },
+    {
+      "id": "obj-4",
+      "title": "Skills pipeline composable",
+      "status": "complete",
+      "completedAt": "2026-03-15T16:00:00.0000000Z"
+    },
+    {
+      "id": "obj-5",
+      "title": "Dashboard + Installer live (3000/7777)",
+      "status": "complete",
+      "completedAt": null
+    }
+  ]
+}

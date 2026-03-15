@@ -1,0 +1,4 @@
+Place your GLB model at this path as `model.glb`.
+Recommended: a rigged, morph-target/blendshape-capable face GLB with morph targets named for visemes and micro expressions.
+Example path: frontend/public/model.glb
+If unavailable the renderer will fall back to a procedural sphere.

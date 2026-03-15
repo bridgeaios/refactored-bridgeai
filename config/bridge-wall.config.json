@@ -1,0 +1,269 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "description": "Bridge Live Wall — system-wide optional settings, modules, services, API, capabilities, port handling, E/C/D drives",
+  "version": "1.0.0",
+
+  "optional": {
+    "features": {
+      "siwe": true,
+      "jwt": true,
+      "refreshTokens": true,
+      "onChainRole": false,
+      "websocketEvents": true,
+      "sqliteNonce": true,
+      "redisSessions": true,
+      "turnstile": false,
+      "elevenLabs": false,
+      "openai": true,
+      "anthropic": false,
+      "huggingFace": true,
+      "cloudflareR2": false,
+      "smtp": false,
+      "paypal": false,
+      "discordBot": false,
+      "awsCli": false
+    },
+    "env": {
+      "NODE_ENV": "development",
+      "BRIDGE_AUDIT_DEV": "0",
+      "BRIDGE_JSON_LIMIT": "1mb"
+    }
+  },
+
+  "modules": {
+    "bridge-backend": {
+      "path": "bridge-backend",
+      "entry": "server.js",
+      "type": "commonjs",
+      "description": "Sovereign entry ladder — SIWE, SQLite nonce, JWT, on-chain role, WebSocket events"
+    },
+    "bridge-auth": {
+      "path": "bridge-auth",
+      "entry": "server.js",
+      "type": "module",
+      "description": "Identity & Authority Layer — SIWE, session, refresh, WebSocket events"
+    },
+    "frontend": {
+      "path": "frontend",
+      "entry": "serve-no-cache.cjs",
+      "devEntry": "vite",
+      "type": "module",
+      "description": "Bridge AI frontend — Vite, Babylon, viem"
+    },
+    "redis": {
+      "path": null,
+      "description": "Session/store — used by bridge-auth"
+    },
+    "audit": {
+      "path": "audit-wall.ps1",
+      "description": "Full audit — keys, settings, Cloudflare, ports, DNS, E/C/D drives"
+    }
+  },
+
+  "services": {
+    "bridge-backend": {
+      "port": 3001,
+      "altPorts": [3002, 3003, 3010],
+      "env": ["PORT", "NODE_ENV"],
+      "health": "/health",
+      "baseUrl": "http://localhost:3001"
+    },
+    "bridge-auth": {
+      "port": 3030,
+      "altPorts": [3031, 3032, 3040],
+      "env": ["BRIDGE_AUTH_PORT", "REDIS_URL", "BRIDGE_SIWE_JWT_SECRET", "BRIDGE_SIWE_ALLOWED_DOMAINS", "BRIDGE_SIWE_RPC_URL", "BRIDGE_SIWE_CHAIN_ID", "BRIDGE_SIWE_REQUIRE_ROLE", "BRIDGE_SIWE_ROLE_CONTRACT", "NODE_ENV"],
+      "health": "/health",
+      "baseUrl": "http://localhost:3030"
+    },
+    "frontend": {
+      "port": 3020,
+      "altPorts": [3021, 3000, 5173],
+      "env": ["PORT", "BACKEND_URL", "VITE_*"],
+      "devPort": 5173,
+      "baseUrl": "http://localhost:3020"
+    },
+    "dashboard": {
+      "port": 3000,
+      "altPorts": [3001, 3002],
+      "label": "Dashboard"
+    },
+    "installer": {
+      "port": 7777,
+      "altPorts": [7778, 7779],
+      "label": "Installer"
+    },
+    "bridge-api-docker": {
+      "port": 8000,
+      "hostPort": 8081,
+      "label": "Bridge API (Docker)"
+    },
+    "frontend-docker": {
+      "port": 3000,
+      "hostPort": 8001,
+      "label": "Frontend (Docker)"
+    },
+    "redis": {
+      "port": 6379,
+      "label": "Redis"
+    },
+    "determinator-boot-agent": {
+      "port": 4201,
+      "label": "Determinator Boot Agent (RBAC HRE)",
+      "env": ["DETERMINATOR_NEXT_URL", "PORT"]
+    },
+    "taurus-showcase": {
+      "port": 4202,
+      "label": "Taurus — Gamification, Dev Support & Security Showcase",
+      "env": ["PORT"],
+      "health": "/health",
+      "baseUrl": "http://localhost:4202"
+    }
+  },
+
+  "api": {
+    "endpoints": {
+      "auth_siwe": "POST /auth/siwe",
+      "auth_refresh": "POST /auth/refresh",
+      "auth_verify": "GET /auth/verify",
+      "ws_events": "WS /ws/events",
+      "health_backend": "GET /health",
+      "health_auth": "GET /health"
+    },
+    "baseUrls": {
+      "backend": "http://localhost:3001",
+      "auth": "http://localhost:3030",
+      "api_production": "https://api.bridge-ai-os.tech"
+    }
+  },
+
+  "capabilities": {
+    "siwe": "Sign-In with Ethereum",
+    "jwt": "Short-lived JWT + refresh rotation",
+    "sqliteNonce": "SQLite replay protection / nonce",
+    "onChainRole": "On-chain role check",
+    "websocketEvents": "WebSocket push for contract events",
+    "redisSessions": "Redis-backed sessions (bridge-auth)",
+    "cors": "Configurable CORS allowed domains",
+    "helmet": "Security headers (bridge-auth)"
+  },
+
+  "ports": {
+    "registry": [3000, 3001, 3002, 3003, 3020, 3021, 3030, 3031, 4201, 4202, 5173, 6379, 7777, 7778, 8000, 8001, 8081, 9229],
+    "defaults": {
+      "bridge-backend": 3001,
+      "bridge-auth": 3030,
+      "frontend": 3020,
+      "frontend-dev": 5173,
+      "dashboard": 3000,
+      "installer": 7777,
+      "redis": 6379,
+      "backend-docker": 8081,
+      "frontend-docker": 8001,
+      "determinator-boot-agent": 4201,
+      "taurus-showcase": 4202,
+      "debug": 9229
+    },
+    "portRangeFallback": [3010, 3011, 3012, 3040, 3041, 3050, 3051]
+  },
+
+  "drives": {
+    "E": {
+      "root": "E:\\",
+      "paths": {
+        "aoe": "E:\\AOE",
+        "aoeEnv": "E:\\AOE\\.env",
+        "aoeV1Env": "E:\\AOE\\v1\\.env",
+        "bridgeLiveWall": "E:\\BridgeAI\\BridgeLiveWall",
+        "data": "E:\\BridgeAI\\BridgeLiveWall\\data",
+        "logs": "E:\\BridgeAI\\BridgeLiveWall\\logs"
+      }
+    },
+    "C": {
+      "root": "C:\\",
+      "paths": {
+        "userProfile": "C:\\Users",
+        "downloads": "C:\\Users\\%USERNAME%\\Downloads",
+        "downloadsRoot": "C:\\Downloads",
+        "appDataRoaming": "C:\\Users\\%USERNAME%\\AppData\\Roaming",
+        "npmGlobal": "C:\\Users\\%USERNAME%\\AppData\\Roaming\\npm",
+        "awsCredentials": "C:\\Users\\%USERNAME%\\.aws\\credentials",
+        "awsConfig": "C:\\Users\\%USERNAME%\\.aws\\config",
+        "programFiles": "C:\\Program Files",
+        "programData": "C:\\ProgramData"
+      }
+    },
+    "D": {
+      "root": "D:\\",
+      "paths": {
+        "data": "D:\\BridgeAI\\data",
+        "logs": "D:\\BridgeAI\\logs",
+        "backup": "D:\\BridgeAI\\backup",
+        "workspaceAlt": "D:\\BridgeAI\\BridgeLiveWall"
+      }
+    },
+    "envSearchOrder": [
+      "E:\\BridgeAI\\BridgeLiveWall\\.env",
+      "E:\\AOE\\.env",
+      "E:\\AOE\\v1\\.env",
+      "D:\\BridgeAI\\BridgeLiveWall\\.env",
+      "C:\\Users\\%USERNAME%\\.bridge-wall\\.env"
+    ]
+  },
+
+  "twinsSync": {
+    "description": "Sync all digital twins on this system; wiki-style version control; scan C:\\Downloads",
+    "apiBaseUrl": "http://localhost:8000",
+    "registryPath": "data/twin-registry.json",
+    "wikiPath": "docs/WIKI-VERSIONS.md",
+    "downloadsPaths": [
+      "C:\\Users\\%USERNAME%\\Downloads",
+      "C:\\Downloads"
+    ],
+    "versionedPatterns": [
+      "*bridge*",
+      "*living*",
+      "*twin*",
+      "*neural*",
+      "*.html",
+      "manifest.json",
+      "*.json"
+    ],
+    "endpoints": {
+      "twins": "GET /api/twins",
+      "leaderboard": "GET /api/twins/leaderboard",
+      "stateSnapshot": "GET /api/state/snapshot",
+      "sharedXml": "GET /api/twin/shared-xml",
+      "envKeys": "GET /api/twin/env-keys",
+      "wikiRegistry": "GET /api/wiki/registry",
+      "liveMap": "GET /api/live/map",
+      "liveReport": "GET /api/live/report",
+      "orchestrateDirectives": "GET /api/orchestrate/directives",
+      "sensorsWifi": "GET/POST /api/sensors/wifi",
+      "sensorsMouse": "GET/POST /api/sensors/mouse"
+    }
+  },
+
+  "pbootsAndRuns": {
+    "description": "Process boots (pboots) and run sessions (runbs). Map everything; orchestrate and direct; report live display.",
+    "trackBoots": true,
+    "trackRuns": true,
+    "maxLogEntries": 100,
+    "liveReportPollHintSec": 5
+  },
+
+  "sensors": {
+    "description": "Optional boot-time sensors: WiFi RF and mouse tracker. Scripts run at logon and POST to Bridge API.",
+    "wifi_rf": {
+      "enabled": true,
+      "scriptPath": "scripts/wifi-rf-boot.ps1",
+      "reportIntervalMs": 15000,
+      "endpoint": "POST /api/sensors/wifi"
+    },
+    "mouse_tracker": {
+      "enabled": true,
+      "scriptPath": "scripts/mouse-tracker-boot.ps1",
+      "reportIntervalMs": 5000,
+      "endpoint": "POST /api/sensors/mouse"
+    }
+  }
+}

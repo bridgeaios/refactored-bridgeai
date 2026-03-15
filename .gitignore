@@ -1,0 +1,13 @@
+# Env with secrets — never commit
+.env
+!.env.example
+
+# Common
+node_modules/
+__pycache__/
+*.pyc
+.venv/
+venv/
+dist/
+build/
+.bridge-state/

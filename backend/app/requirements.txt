@@ -1,0 +1,14 @@
+fastapi
+uvicorn[standard]
+redis
+aiohttp
+pydantic
+python-multipart
+numpy
+torch
+pytest
+requests
+PyJWT>=2.8.0
+eth-account>=0.10.0
+web3>=6.0.0
+websockets

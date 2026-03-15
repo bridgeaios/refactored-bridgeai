@@ -1,0 +1,22 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <title>Bridge UI</title>
+</head>
+<body>
+  <h1>Run Task</h1>
+  <button onclick="submitTask()">Send</button>
+
+  <script>
+    async function submitTask() {
+      const res = await fetch("http://localhost:8000/run-task", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ task: "bridge" })
+      });
+      const data = await res.json();
+      alert(JSON.stringify(data));
+    }
+  </script>
+</body>
+</html>

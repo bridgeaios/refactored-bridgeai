@@ -1,0 +1,69 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<svg width="800" height="800" viewBox="0 0 800 800"
+     xmlns="http://www.w3.org/2000/svg">
+
+  <defs>
+    <linearGradient id="axisGrad" x1="0%" y1="100%" x2="0%" y2="0%">
+      <stop offset="0%" stop-color="#0B1020"/>
+      <stop offset="50%" stop-color="#00E5FF"/>
+      <stop offset="100%" stop-color="#FFFFFF"/>
+    </linearGradient>
+
+    <linearGradient id="arcGrad" x1="0%" y1="0%" x2="100%" y2="0%">
+      <stop offset="0%" stop-color="#7B61FF"/>
+      <stop offset="100%" stop-color="#00FFB2"/>
+    </linearGradient>
+
+    <radialGradient id="coreGlow" cx="50%" cy="50%" r="50%">
+      <stop offset="0%" stop-color="#FFFFFF" stop-opacity="1"/>
+      <stop offset="100%" stop-color="#00E5FF" stop-opacity="0.25"/>
+    </radialGradient>
+  </defs>
+
+  <!-- Planetary Boundary -->
+  <circle cx="400" cy="400" r="310"
+          fill="none"
+          stroke="#00FFD1"
+          stroke-width="6"
+          opacity="0.7"/>
+
+  <!-- Sovereign Structural Triangle -->
+  <polygon points="400,120 680,620 120,620"
+           fill="none"
+           stroke="#00E5FF"
+           stroke-width="5"
+           opacity="0.6"/>
+
+  <!-- Orbital Governance Ellipse -->
+  <ellipse cx="400" cy="420" rx="240" ry="130"
+           fill="none"
+           stroke="#7B61FF"
+           stroke-width="4"
+           opacity="0.7"/>
+
+  <!-- Bridge Uplift Arc -->
+  <path d="M180 460 Q400 280 620 460"
+        fill="none"
+        stroke="url(#arcGrad)"
+        stroke-width="8"
+        stroke-linecap="round"/>
+
+  <!-- Central Alignment Axis -->
+  <line x1="400" y1="80" x2="400" y2="700"
+        stroke="url(#axisGrad)"
+        stroke-width="8"
+        stroke-linecap="round"/>
+
+  <!-- Conscious Core -->
+  <circle cx="400" cy="400" r="45"
+          fill="url(#coreGlow)"
+          stroke="#FFFFFF"
+          stroke-width="2"/>
+
+  <!-- Foundation Line -->
+  <line x1="220" y1="660" x2="580" y2="660"
+        stroke="#FFFFFF"
+        stroke-width="6"
+        opacity="0.85"/>
+
+</svg>

@@ -1,0 +1,5 @@
+{
+  "source": "none",
+  "syncedAt": null,
+  "hint": "Run google-storage-sync: set GOOGLE_DRIVE_FILE_ID, GOOGLE_SHEET_ID, or LOCAL_EXCEL_PATH then run scripts/google-storage-sync.sh or scripts/google-storage-sync.ps1. View at http://localhost:4202/"
+}

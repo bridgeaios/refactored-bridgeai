@@ -1,0 +1,21 @@
+name: bridge-ai-backend
+channels:
+  - pytorch
+  - conda-forge
+  - defaults
+dependencies:
+  - python=3.12
+  - pip
+  - numpy
+  - aiohttp
+  - aioredis
+  - pydantic
+  - pytest
+  - requests
+  - pip:
+    - fastapi
+    - uvicorn[standard]
+    - python-multipart
+    - torch
+    - torchvision
+    - torchaudio

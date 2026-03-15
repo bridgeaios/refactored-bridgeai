@@ -1,0 +1,23 @@
+version: '3.8'
+services:
+  bridge-backend:
+    build: ./backend
+    command: uvicorn app.main:app --host 0.0.0.0 --port 8000 --reload
+    ports:
+      - "8000:8000"
+    environment:
+      - REDIS_URL=redis://redis:6379/0
+      - ELEVEN_API_KEY
+    depends_on:
+      - redis
+  redis:
+    image: redis:7-alpine
+    ports:
+      - "6379:6379"
+  local-tts:
+    image: ghcr.io/some/local-tts:latest
+    restart: on-failure
+    environment:
+      - PORT=9000
+    ports:
+      - "9000:9000"

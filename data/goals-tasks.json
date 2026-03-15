@@ -1,0 +1,82 @@
+﻿{
+    "description":  "Goal = Task = Goal: each goal maps to task(s); completing task(s) satisfies the goal.",
+    "updatedAt":  "2026-03-15T20:54:55.8811060+02:00",
+    "goals":  [
+                  {
+                      "id":  "install",
+                      "goal":  "Install all dependencies",
+                      "tasks":  [
+                                    "install-all.ps1"
+                                ],
+                      "outcome":  "Python + bridge-backend + frontend npm install"
+                  },
+                  {
+                      "id":  "build",
+                      "goal":  "Build frontend and verify state",
+                      "tasks":  [
+                                    "frontend: npm run build",
+                                    "state verify before build"
+                                ],
+                      "outcome":  "dist/ and state Merkle OK"
+                  },
+                  {
+                      "id":  "audit",
+                      "goal":  "Audit system (keys, ports, DNS)",
+                      "tasks":  [
+                                    "audit-wall.ps1"
+                                ],
+                      "outcome":  "audit-results.json; 0 critical"
+                  },
+                  {
+                      "id":  "apply",
+                      "goal":  "Apply keys and optional paths",
+                      "tasks":  [
+                                    "apply-keys.ps1",
+                                    "ensure-optional-paths.ps1"
+                                ],
+                      "outcome":  ".env and D: paths if needed"
+                  },
+                  {
+                      "id":  "debug",
+                      "goal":  "Debug: state verify + pytest",
+                      "tasks":  [
+                                    "node tools/state/verify.cjs",
+                                    "pytest tests/"
+                                ],
+                      "outcome":  "State OK, 27/27 tests pass"
+                  },
+                  {
+                      "id":  "deploy",
+                      "goal":  "Deploy edge (Worker)",
+                      "tasks":  [
+                                    "wrangler deploy from worker/"
+                                ],
+                      "outcome":  "api.bridge-ai-os.tech live"
+                  },
+                  {
+                      "id":  "full-run",
+                      "goal":  "Full run: install → build → debug → deploy",
+                      "tasks":  [
+                                    "run-full-install-build-deploy.ps1"
+                                ],
+                      "outcome":  "Log + all goals completed"
+                  },
+                  {
+                      "id":  "debug-loop-learn-install-deploy-display",
+                      "goal":  "Debug → Loop → Learn → Install → Deploy → Display",
+                      "tasks":  [
+                                    "run-debug-loop-learn-install-deploy-display.ps1"
+                                ],
+                      "outcome":  "Verify, audit loop, update goals, install, deploy, show URLs and open frontend"
+                  }
+              ],
+    "runLogPath":  "logs/full-install-build-deploy.log",
+    "lastRun":  {
+                    "debug":  {
+                                  "stateOk":  true,
+                                  "testsOk":  true
+                              },
+                    "auditOk":  true,
+                    "at":  "2026-03-15T20:54:55.8834829+02:00"
+                }
+}

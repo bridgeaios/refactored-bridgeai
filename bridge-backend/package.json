@@ -1,0 +1,18 @@
+{
+  "name": "bridge-backend",
+  "version": "1.0.0",
+  "description": "Bridge AI OS — Sovereign entry ladder. SIWE, SQLite nonce, JWT, on-chain role, WebSocket events.",
+  "main": "server.js",
+  "scripts": {
+    "start": "node server.js",
+    "dev": "node --watch server.js"
+  },
+  "dependencies": {
+    "cors": "^2.8.5",
+    "dotenv": "^16.3.1",
+    "ethers": "^6.8.1",
+    "express": "^4.18.2",
+    "jsonwebtoken": "^9.0.2",
+    "sqlite3": "^5.1.6"
+  }
+}

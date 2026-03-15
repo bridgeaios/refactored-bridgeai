@@ -1,0 +1,17 @@
+# Bridge Live Wall — Cloudflare Worker (API + R2)
+# Deploy: npx wrangler deploy
+# Set CLOUDFLARE_ACCOUNT_ID and CLOUDFLARE_API_TOKEN (or use wrangler login).
+
+name = "bridge-live-wall-api"
+main = "src/index.js"
+compatibility_date = "2024-01-01"
+
+# R2: run .\scripts\setup-r2-and-deploy.ps1 to create bucket, enable binding, deploy, and set .env.
+[[r2_buckets]]
+binding = "BUCKET"
+bucket_name = "bridge-live-wall"
+
+# Custom domain: api.bridge-ai-os.tech (zone bridge-ai-os.tech must be in this account).
+[[routes]]
+pattern = "api.bridge-ai-os.tech"
+custom_domain = true

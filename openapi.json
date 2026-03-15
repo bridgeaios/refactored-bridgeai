@@ -1,0 +1,862 @@
+{
+  "openapi": "3.1.0",
+  "info": {
+    "title": "Bridge AI OS",
+    "version": "1.0.0",
+    "description": "Perception-aligned API. State flows: Endpoint → Reducer → State → Scheduler → Expression. Phase 3 contracts frozen."
+  },
+  "paths": {
+    "/": {
+      "get": {
+        "summary": "API Root",
+        "operationId": "root",
+        "responses": {
+          "200": {
+            "description": "Service info, docs link, frontend URL",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "service": { "type": "string", "example": "Bridge AI OS API" },
+                    "docs": { "type": "string", "example": "/docs" },
+                    "health": { "type": "string", "example": "/api/health" },
+                    "frontend": { "type": "string", "example": "http://localhost:3010" }
+                  }
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/health": {
+      "get": {
+        "summary": "Health",
+        "operationId": "health_api_health_get",
+        "responses": {
+          "200": {
+            "description": "Service health",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": { "ok": { "type": "boolean" } }
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/state": {
+      "post": {
+        "summary": "State Mutation",
+        "operationId": "state_mutation_api_state_post",
+        "description": "Mutate canonical state via sanctioned reducers. Broadcasts to WebSocket clients.",
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": { "$ref": "#/components/schemas/StateMutationRequest" }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Mutation broadcast to clients",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": { "ok": { "type": "boolean" } }
+                }
+              }
+            }
+          },
+          "400": { "description": "reducer required" },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": { "$ref": "#/components/schemas/HTTPValidationError" }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/mission/board": {
+      "get": {
+        "summary": "Mission Board",
+        "operationId": "mission_board_api_mission_board_get",
+        "responses": {
+          "200": {
+            "description": "Mission counts",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "backlog": { "type": "integer" },
+                    "in_progress": { "type": "integer" },
+                    "review": { "type": "integer" },
+                    "done": { "type": "integer" }
+                  }
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/skills": {
+      "post": {
+        "summary": "Add Skill",
+        "operationId": "add_skill_api_skills_post",
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": { "$ref": "#/components/schemas/SkillModel" }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": { "ok": { "type": "boolean" } }
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": { "$ref": "#/components/schemas/HTTPValidationError" }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/twin/shared-xml": {
+      "get": {
+        "summary": "Get Shared XML",
+        "operationId": "get_shared_xml_api_twin_shared_xml_get",
+        "description": "Canonical Twin document — mission, face_state, authority.",
+        "responses": {
+          "200": {
+            "description": "XML document",
+            "content": {
+              "application/xml": { "schema": { "type": "string" } }
+            }
+          }
+        }
+      },
+      "post": {
+        "summary": "Set Shared XML",
+        "operationId": "set_shared_xml_api_twin_shared_xml_post",
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/xml": { "schema": { "type": "string" } }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": { "ok": { "type": "boolean" } }
+                }
+              }
+            }
+          },
+          "400": { "description": "valid XML required" }
+        }
+      }
+    },
+    "/api/twin/profile": {
+      "get": {
+        "summary": "Twin Profile",
+        "operationId": "get_twin_profile_api_twin_profile_get",
+        "description": "Identity, Skill Stack, Decision Model, Adaptive Loop, Risk Model, Communication Style, Blind Spots, Upgrade Path.",
+        "responses": {
+          "200": {
+            "description": "Twin Profile",
+            "content": {
+              "application/json": {
+                "schema": { "$ref": "#/components/schemas/TwinProfile" }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/twin/decide": {
+      "post": {
+        "summary": "Decision Engine",
+        "operationId": "twin_decide_api_twin_decide_post",
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "properties": {
+                  "environment": { "type": "object" },
+                  "goal_vector": { "type": "array", "items": { "type": "number" } },
+                  "constraints": { "type": "array", "items": { "type": "string" } },
+                  "risk_threshold": { "type": "number" },
+                  "candidates": { "type": "array" }
+                }
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Action or silence",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "action": {},
+                    "reason": { "type": "string" }
+                  }
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/twin/simulate": {
+      "post": {
+        "summary": "Behavioral Simulation",
+        "operationId": "twin_simulate_api_twin_simulate_post",
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "properties": {
+                  "uncertainty": { "type": "number" },
+                  "pressure": { "type": "number" },
+                  "loss": { "type": "number" },
+                  "opportunity": { "type": "number" }
+                }
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Simulation result",
+            "content": {
+              "application/json": { "schema": { "type": "object" } }
+            }
+          }
+        }
+      }
+    },
+    "/api/twin/evolve": {
+      "post": {
+        "summary": "Evolution Loop",
+        "operationId": "twin_evolve_api_twin_evolve_post",
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": { "schema": { "type": "object" } }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Evolution state",
+            "content": {
+              "application/json": { "schema": { "type": "object" } }
+            }
+          }
+        }
+      }
+    },
+    "/api/speech/reason": {
+      "post": {
+        "summary": "Speech Reasoning",
+        "operationId": "speech_reason_api_speech_reason_post",
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "properties": {
+                  "transcript": { "type": "string" },
+                  "text": { "type": "string" },
+                  "context": { "type": "object" }
+                }
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Reasoning result",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "normalized_text": { "type": "string" },
+                    "intent": { "type": "string" },
+                    "topic": { "type": "string" },
+                    "emotion": { "type": "string" },
+                    "urgency": { "type": "string" },
+                    "confidence": { "type": "number" },
+                    "clarification_needed": { "type": "boolean" },
+                    "response": { "type": "string" },
+                    "execution_plan": { "type": "object" }
+                  }
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/speech/embody": {
+      "post": {
+        "summary": "Speech Embodiment",
+        "operationId": "speech_embody_api_speech_embody_post",
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "properties": {
+                  "transcript": { "type": "string" },
+                  "prompt": { "type": "string" },
+                  "text": { "type": "string" },
+                  "context": { "type": "object" },
+                  "audience_model": { "type": "object" }
+                }
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Embodied response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "response": { "type": "string" },
+                    "phonemes": {
+                      "type": "array",
+                      "items": {
+                        "type": "object",
+                        "properties": {
+                          "viseme": { "type": "string" },
+                          "start_ms": { "type": "number" },
+                          "end_ms": { "type": "number" }
+                        }
+                      }
+                    },
+                    "emotion": { "type": "string" },
+                    "prosody": { "type": "object" },
+                    "audio_base64": { "type": "string", "nullable": true },
+                    "silence": { "type": "boolean" },
+                    "confidence": { "type": "number" },
+                    "execution_plan": {},
+                    "viseme_map": { "type": "object" }
+                  }
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/speech/embody/speak": {
+      "post": {
+        "summary": "Speak Pre-generated Text",
+        "operationId": "speech_embody_speak_api_speech_embody_speak_post",
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "properties": { "text": { "type": "string" } }
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Phonemes and audio",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "response": { "type": "string" },
+                    "phonemes": { "type": "array" },
+                    "emotion": { "type": "string" },
+                    "audio_base64": { "type": "string", "nullable": true },
+                    "viseme_map": { "type": "object" }
+                  }
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/speech/embodiment/skill": {
+      "get": {
+        "summary": "Embodiment Skill Definition",
+        "operationId": "get_embodiment_skill_api_speech_embodiment_skill_get",
+        "responses": {
+          "200": {
+            "description": "Skill definition",
+            "content": {
+              "application/json": { "schema": { "type": "object" } }
+            }
+          }
+        }
+      }
+    },
+    "/api/speech/embodiment/memory": {
+      "get": {
+        "summary": "Dialogue History",
+        "operationId": "get_embodiment_memory_api_speech_embodiment_memory_get",
+        "responses": {
+          "200": {
+            "description": "Dialogue history",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": { "history": { "type": "array" } }
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/speech/embodiment/memory/clear": {
+      "post": {
+        "summary": "Clear Embodiment Memory",
+        "operationId": "clear_embodiment_memory_api_speech_embodiment_memory_clear_post",
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": { "ok": { "type": "boolean" } }
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/emotion/compute": {
+      "post": {
+        "summary": "Compute Emotion",
+        "operationId": "compute_emotion_api_emotion_compute_post",
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "additionalProperties": true
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": { "description": "Emotion record", "content": { "application/json": { "schema": { "type": "object" } } } },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": { "$ref": "#/components/schemas/HTTPValidationError" }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/train/start": {
+      "post": {
+        "summary": "Start Training",
+        "operationId": "start_training_api_train_start_post",
+        "responses": {
+          "200": {
+            "description": "Training started",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": { "started": { "type": "boolean" } }
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/train/status": {
+      "get": {
+        "summary": "Training Status",
+        "operationId": "training_status_api_train_status_get",
+        "responses": {
+          "200": { "description": "Training status", "content": { "application/json": { "schema": { "type": "object" } } } }
+        }
+      }
+    },
+    "/api/esim/status": {
+      "get": {
+        "summary": "Esim Status",
+        "operationId": "esim_status_api_esim_status_get",
+        "responses": {
+          "200": { "description": "Esim status", "content": { "application/json": { "schema": { "type": "object" } } } }
+        }
+      }
+    },
+    "/api/ubi/claim": {
+      "post": {
+        "summary": "Claim Ubi",
+        "operationId": "claim_ubi_api_ubi_claim_post",
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "required": ["address"],
+                "properties": { "address": { "type": "string" } }
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Amount claimed",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": { "amount": { "type": "number" } }
+                }
+              }
+            }
+          },
+          "400": { "description": "address required" },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": { "$ref": "#/components/schemas/HTTPValidationError" }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/marketplace/tasks": {
+      "get": {
+        "summary": "Get Tasks",
+        "operationId": "get_tasks_api_marketplace_tasks_get",
+        "responses": {
+          "200": { "description": "Task list", "content": { "application/json": { "schema": { "type": "array" } } } }
+        }
+      }
+    },
+    "/api/marketplace/task": {
+      "post": {
+        "summary": "Create Task",
+        "operationId": "create_task_api_marketplace_task_post",
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "properties": {
+                  "title": { "type": "string" },
+                  "desc": { "type": "string" },
+                  "reward": { "type": "number" }
+                }
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Task created",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "status": { "type": "string", "example": "created" },
+                    "task": { "type": "object" }
+                  }
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": { "$ref": "#/components/schemas/HTTPValidationError" }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/marketplace/accept": {
+      "post": {
+        "summary": "Accept Task",
+        "operationId": "accept_task_api_marketplace_accept_post",
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "required": ["task_id", "wallet"],
+                "properties": {
+                  "task_id": { "type": "integer" },
+                  "wallet": { "type": "string" }
+                }
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Task accepted",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "status": { "type": "string", "example": "accepted" },
+                    "task": { "type": "object" }
+                  }
+                }
+              }
+            }
+          },
+          "400": { "description": "task_id and wallet required" },
+          "404": { "description": "task not available" },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": { "$ref": "#/components/schemas/HTTPValidationError" }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/sdg/metrics": {
+      "get": {
+        "summary": "Get Sdg Metrics",
+        "operationId": "get_sdg_metrics_api_sdg_metrics_get",
+        "responses": {
+          "200": { "description": "SDG metrics", "content": { "application/json": { "schema": { "type": "object" } } } }
+        }
+      }
+    },
+    "/api/revenue/status": {
+      "get": {
+        "summary": "Get Revenue",
+        "operationId": "get_revenue_api_revenue_status_get",
+        "responses": {
+          "200": { "description": "Revenue status", "content": { "application/json": { "schema": { "type": "object" } } } }
+        }
+      }
+    },
+    "/api/bossbots/trade": {
+      "post": {
+        "summary": "Execute Trade",
+        "operationId": "execute_trade_api_bossbots_trade_post",
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "required": ["asset"],
+                "properties": { "asset": { "type": "string" } }
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Trade signal",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": { "signal": {} }
+                }
+              }
+            }
+          },
+          "400": { "description": "asset required" }
+        }
+      }
+    },
+    "/api/bossbots/signals": {
+      "get": {
+        "summary": "Get Signals",
+        "operationId": "get_signals_api_bossbots_signals_get",
+        "responses": {
+          "200": { "description": "Signals", "content": { "application/json": { "schema": { "type": "array" } } } }
+        }
+      }
+    },
+    "/api/tts": {
+      "post": {
+        "summary": "Text To Speech",
+        "operationId": "text_to_speech_api_tts_post",
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "required": ["text"],
+                "properties": {
+                  "text": { "type": "string" },
+                  "voice_id": { "type": "string", "default": "21m00Tcm4TlvDq8ikWAM" }
+                }
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Audio stream",
+            "content": { "audio/mpeg": { "schema": { "type": "string", "format": "binary" } } }
+          },
+          "400": { "description": "text required" },
+          "503": { "description": "TTS service unavailable" },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": { "$ref": "#/components/schemas/HTTPValidationError" }
+              }
+            }
+          }
+        }
+      }
+    }
+  },
+  "components": {
+    "schemas": {
+      "StateMutationRequest": {
+        "type": "object",
+        "required": ["reducer"],
+        "properties": {
+          "reducer": { "type": "string", "description": "Sanctioned reducer name", "example": "emotionOverride" },
+          "payload": { "type": "object", "description": "Reducer payload", "example": { "valenceDelta": 0.1 } },
+          "authToken": { "type": "string", "description": "Auth class: internal | economic | orchestrator | public" }
+        },
+        "title": "StateMutationRequest"
+      },
+      "SkillModel": {
+        "type": "object",
+        "required": ["name", "tags"],
+        "properties": {
+          "name": { "type": "string" },
+          "tags": { "type": "array", "items": { "type": "string" } },
+          "description": { "type": "string", "nullable": true }
+        },
+        "title": "SkillModel"
+      },
+      "TwinProfile": {
+        "type": "object",
+        "properties": {
+          "identity": {
+            "type": "object",
+            "properties": {
+              "core_values": { "type": "array", "items": { "type": "string" } },
+              "cognitive_mode": { "type": "string" },
+              "time_horizon_bias": { "type": "string" },
+              "conflict_style": { "type": "string" },
+              "pattern_recognition": { "type": "string" },
+              "information_compression": { "type": "string" }
+            }
+          },
+          "skill_stack": {
+            "type": "object",
+            "properties": {
+              "hard": { "type": "array", "items": { "type": "string" } },
+              "soft": { "type": "array", "items": { "type": "string" } },
+              "meta": { "type": "array", "items": { "type": "string" } },
+              "effective_skill": { "type": "number" }
+            }
+          },
+          "decision_model": { "type": "object" },
+          "adaptive_loop": { "type": "object" },
+          "risk_model": { "type": "object" },
+          "communication_style": { "type": "object" },
+          "blind_spots": { "type": "array", "items": { "type": "string" } },
+          "upgrade_path": { "type": "array", "items": { "type": "string" } }
+        },
+        "title": "TwinProfile"
+      },
+      "HTTPValidationError": {
+        "type": "object",
+        "properties": {
+          "detail": {
+            "type": "array",
+            "items": { "$ref": "#/components/schemas/ValidationError" }
+          }
+        },
+        "title": "HTTPValidationError"
+      },
+      "ValidationError": {
+        "type": "object",
+        "required": ["loc", "msg", "type"],
+        "properties": {
+          "loc": { "type": "array", "items": {} },
+          "msg": { "type": "string" },
+          "type": { "type": "string" },
+          "input": {},
+          "ctx": { "type": "object" }
+        },
+        "title": "ValidationError"
+      }
+    }
+  }
+}
