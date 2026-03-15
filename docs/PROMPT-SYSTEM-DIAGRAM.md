@@ -108,8 +108,9 @@ flowchart TB
 
 ## Stored diagrams (draw.io)
 
-- **docs/diagrams/** — Store `.drawio.xml` files here. **Digital Ecosystem Evolution** (Cosmic Processes → Infrastructure → Data Flows → Twin Agents → Marketplace → AI Evolution → Digital Civilization) can be imported from a URL-encoded paste: save paste to `docs/diagrams/encoded_diagram.txt`, then run `.\scripts\import-drawio-from-encoded.ps1`. See **docs/diagrams/README.md**.
-- **sync-twins-wiki:** `.\scripts\sync-twins-wiki.ps1` syncs twins and wiki (data/twin-registry.json, docs/WIKI-VERSIONS.md, docs/twin-wiki.html); it does not modify docs/diagrams/.
+- **docs/diagrams/** — Store `.drawio`, `.drawio.xml`, `.dio` here. **BRIDGE.DRAWIO** = canonical Bridge AI OS diagram (edit in VS Code Draw.io or app.diagrams.net; sync to [Google Drive](https://drive.google.com/drive) as needed). **Digital Ecosystem Evolution** = same four-layer + civilization flow; import from URL-encoded paste via `docs/diagrams/encoded_diagram.txt` and `.\scripts\import-drawio-from-encoded.ps1`. See **docs/diagrams/README.md**.
+- **Four-layer self-expanding model:** **docs/SELF-EXPANDING-AI-NETWORK.md** (Infrastructure, Agents, Economy, Replication). **Global swarm:** **docs/GLOBAL-TWIN-SWARM-ARCHITECTURE.md** (node mesh, discovery, global tasks, replication engine).
+- **sync-twins-wiki:** `.\scripts\sync-twins-wiki.ps1` — does not modify docs/diagrams/.
 
 ## References
 

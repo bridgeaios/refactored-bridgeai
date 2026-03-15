@@ -103,7 +103,15 @@ Three core layers still to be added:
 
 ---
 
-## 6. Bootstrap option (on request)
+## 6. Self-expanding network and replication
+
+- **Four components:** Infrastructure ✅, Agents ✅, Economy ✅, **Replication** ⬜ (agents creating new agents automatically). See **docs/SELF-EXPANDING-AI-NETWORK.md**.
+- **Proto-replication already in API:** `/api/twins/auto-add`, `/api/twins/teach`, `/api/twins/allocate`, `/api/twin/evolve`. Missing: replication engine rules (e.g. task demand > capacity → create twin).
+- **Global swarm directive:** **docs/GLOBAL-TWIN-SWARM-ARCHITECTURE.md** — node mesh, discovery, global task network, agent mobility, replication across mesh, evolutionary memory.
+
+---
+
+## 7. Bootstrap option (on request)
 
 A one-shot PowerShell script can add into the repo:
 
@@ -117,7 +125,7 @@ so Bridge AI OS becomes a real thinking system instead of orchestration-only. In
 
 ---
 
-## 7. Summary
+## 8. Summary
 
 | Aspect | Current | Target |
 |--------|---------|--------|
