@@ -211,6 +211,40 @@ def test_telemetry_includes_degradation_and_drift():
     assert "baseline_drift" in body
 
 
+def test_replication_status():
+    """Replication engine status: enabled, twin_count, open_tasks, rules_evaluated."""
+    r = client.get("/api/replication/status")
+    assert r.status_code == 200
+    data = r.json()
+    assert "enabled" in data
+    assert "twin_count" in data
+    assert "open_tasks" in data
+    assert "capacity" in data
+
+
+def test_replication_nodes():
+    """Node discovery: list registered nodes."""
+    r = client.get("/api/replication/nodes")
+    assert r.status_code == 200
+    data = r.json()
+    assert data.get("ok") is True
+    assert "nodes" in data
+    assert isinstance(data["nodes"], list)
+
+
+def test_replication_register():
+    """Register a node for mesh discovery."""
+    r = client.post("/api/replication/register", json={"node_id": "test-node-1", "url": "http://localhost:8000"})
+    assert r.status_code == 200
+    assert r.json().get("ok") is True
+    assert r.json().get("node_id") == "test-node-1"
+
+
+def test_replication_register_missing_fields():
+    r = client.post("/api/replication/register", json={"node_id": "x"})
+    assert r.status_code == 400
+
+
 def test_physics_cohesion_capability_off():
     """
     Physics cohesion: core still functions when speech, economy, evolution disabled.

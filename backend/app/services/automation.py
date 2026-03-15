@@ -22,10 +22,11 @@ class AutomationLoops:
     - Mission board sync from marketplace truth
     """
 
-    def __init__(self, mission, marketplace, twins, bossbots, revenue, sdg):
+    def __init__(self, mission, marketplace, twins, bossbots, revenue, sdg, replication=None):
         self.mission = mission
         self.marketplace = marketplace
         self.twins = twins
+        self.replication = replication
         self.bossbots = bossbots
         self.revenue = revenue
         self.sdg = sdg
@@ -38,19 +39,24 @@ class AutomationLoops:
         self.auto_complete_sec = _env_int("BRIDGE_AUTO_COMPLETE_SEC", 20)
         self.auto_dex_sec = _env_int("BRIDGE_AUTO_DEX_SEC", 45)
         self.board_sync_sec = _env_int("BRIDGE_BOARD_SYNC_SEC", 10)
+        self.replication_sec = _env_int("BRIDGE_REPLICATION_SEC", 90)
+        self.replication_engine = replication
 
         self._alloc_idx = 0
 
     def start(self) -> None:
         if not self.enabled:
             return
-        self._tasks = [
+        tasks = [
             asyncio.create_task(self._loop_auto_add(), name="bridge:auto_add"),
             asyncio.create_task(self._loop_auto_allocate(), name="bridge:auto_allocate"),
             asyncio.create_task(self._loop_auto_complete(), name="bridge:auto_complete"),
             asyncio.create_task(self._loop_auto_dex(), name="bridge:auto_dex"),
             asyncio.create_task(self._loop_sync_board(), name="bridge:sync_board"),
         ]
+        if self.replication_engine:
+            tasks.append(asyncio.create_task(self._loop_replication(), name="bridge:replication"))
+        self._tasks = tasks
 
     async def stop(self) -> None:
         self._stop.set()
@@ -155,6 +161,16 @@ class AutomationLoops:
                     "done": len(done),
                 }
                 await self.mission.update_board(counts)
+            except Exception:
+                pass
+
+    async def _loop_replication(self):
+        """Replication engine: task demand > capacity or performance > threshold → create twin / add task."""
+        while not self._stop.is_set():
+            await self._sleep(self.replication_sec)
+            try:
+                if self.replication_engine:
+                    await self.replication_engine.evaluate()
             except Exception:
                 pass
 

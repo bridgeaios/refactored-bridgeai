@@ -16,6 +16,7 @@ from app.runtime import (
     revenue_service,
     bossbots_service,
     twins_competition,
+    replication_engine,
     cognitive_twin,
     voice_broker,
     speech_reasoning,
@@ -634,6 +635,34 @@ async def twins_teach(data: dict):
             detail='twin not found or teacher does not have that skill verified'
         )
     return {"status": "taught", **result}
+
+
+# Replication engine + node discovery (GLOBAL-TWIN-SWARM-ARCHITECTURE.md)
+@router.get('/replication/status')
+async def get_replication_status():
+    """Replication engine status: last run, open_tasks, twin_count, rules_evaluated, twins_created."""
+    return await replication_engine.get_status()
+
+
+@router.get('/replication/nodes')
+async def get_replication_nodes():
+    """Registered nodes for mesh discovery."""
+    nodes = await replication_engine.get_nodes()
+    return {"ok": True, "nodes": nodes}
+
+
+@router.post('/replication/register')
+async def post_replication_register(data: dict):
+    """Register a node for discovery (node_id, url, capabilities)."""
+    node_id = data.get("node_id")
+    url = data.get("url")
+    if not node_id or not url:
+        raise HTTPException(status_code=400, detail="node_id and url required")
+    capabilities = data.get("capabilities")
+    if isinstance(capabilities, str):
+        capabilities = [c.strip() for c in capabilities.split(",") if c.strip()]
+    await replication_engine.register_node(node_id, url, capabilities)
+    return {"ok": True, "node_id": node_id, "url": url}
 
 
 @router.get('/sdg/metrics')

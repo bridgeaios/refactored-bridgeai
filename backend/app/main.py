@@ -30,6 +30,7 @@ from app.runtime import (
     mission_service,
     marketplace_service,
     twins_competition,
+    replication_engine,
     bossbots_service,
     revenue_service,
     sdg_service,
@@ -72,6 +73,7 @@ automation = AutomationLoops(
     bossbots=bossbots_service,
     revenue=revenue_service,
     sdg=sdg_service,
+    replication=replication_engine,
 )
 
 

@@ -23,6 +23,7 @@ from app.services.speech_reasoning import SpeechReasoningService
 from app.services.cognitive_twin import CognitiveTwinService
 from app.services.speech_embodiment import SpeechEmbodimentService
 from app.services.system_comprehension import SystemComprehensionService
+from app.services.replication import ReplicationEngine
 
 
 # Shared memory (Redis if available; file-backed fallback if not).
@@ -40,6 +41,7 @@ sdg_service = SdgService()
 revenue_service = RevenueService()
 bossbots_service = BossBotsService()
 twins_competition = TwinsCompetitionService()
+replication_engine = ReplicationEngine(memory, twins_competition, marketplace_service)
 
 # AI/speech systems.
 cognitive_twin = CognitiveTwinService()

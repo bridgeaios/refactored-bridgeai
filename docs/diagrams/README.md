@@ -6,7 +6,8 @@ Diagrams (draw.io / mxGraph) for Bridge AI OS. Open `.drawio`, `.drawio.xml`, or
 
 ## BRIDGE.DRAWIO and Digital Ecosystem
 
-- **BRIDGE.DRAWIO** — Canonical Bridge AI OS architecture diagram. Edit in VS Code (hediet.vscode-drawio) or in [app.diagrams.net](https://app.diagrams.net/). Sync to [Google Drive](https://drive.google.com/drive) for team access (e.g. `digital ecosystem.drawio`).
+- **BRIDGE.DRAWIO** — Canonical Bridge AI OS architecture diagram. Edit in VS Code (hediet.vscode-drawio) or in [app.diagrams.net](https://app.diagrams.net/). Sync to [Google Drive](https://drive.google.com/drive) for team access.
+- **Digital ecosystem diagram (shared):** [Google Drive — Digital Ecosystem Evolution](https://drive.google.com/file/d/1aebwruTyIYZYe8fkOn8R9njOtcL82z0c/view?usp=sharing) — open in draw.io or download to edit locally, then re-upload to Drive.
 - **Four-layer self-expanding architecture:** Infrastructure → Data flows → Twin agents → Marketplace economy → AI evolution → Digital civilization. See **docs/SELF-EXPANDING-AI-NETWORK.md** and **docs/GLOBAL-TWIN-SWARM-ARCHITECTURE.md**.
 
 ---
