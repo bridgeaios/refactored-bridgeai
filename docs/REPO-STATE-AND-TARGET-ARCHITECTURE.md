@@ -136,3 +136,11 @@ so Bridge AI OS becomes a real thinking system instead of orchestration-only. In
 | **Clients** | Web + Python | Web + Python (+ optional Swift later) |
 
 The repo is the **kernel**; the **AI engine** and **knowledge memory** are the next major additions.
+
+---
+
+## 9. Swarm scaling (apply before deploy)
+
+- **28 risks and fixes:** [SWARM-SCALING-RISKS-AND-FIXES.md](./SWARM-SCALING-RISKS-AND-FIXES.md) — coordination overhead, task bottlenecks, state sync, discovery explosion, identity, duplicate work, economic imbalance, specialization, resource scheduling, memory growth, evolution drift, fragmentation, latency, security, fault propagation, feedback instability, memory contamination, task starvation, inflation, skill discovery, lineage, observability, deployment drift, replication storms, market manipulation, node churn, governance, **global task bus**.
+- **5-layer topology (1k → 1M agents):** [SWARM-TOPOLOGY-5-LAYER.md](./SWARM-TOPOLOGY-5-LAYER.md) — Edge Agents → Local Clusters → Regional Coordinators → Global Orchestrators → Shared Knowledge Layer; scaling rule N² → N×log N; replication path; task flow. Bridge AI OS today = bottom half (edge agents, clusters, replication, economy); add regional coordinators, global orchestrators, shared knowledge layer for million-agent scale.
+- **Deploy checklist:** [DEPLOY-CHECKLIST.md](./DEPLOY-CHECKLIST.md).

@@ -168,6 +168,8 @@ It becomes a **network of intelligence**, not a single AI.
 
 **Next step:** Implement a **replication engine** that uses `/api/twins/auto-add`, `/api/twins/allocate`, and `/api/twin/evolve` under conditions (task demand vs capacity, performance threshold). See **docs/GLOBAL-TWIN-SWARM-ARCHITECTURE.md** for the global node-mesh and swarm directive.
 
+**Apply before deploy:** See **docs/SWARM-SCALING-RISKS-AND-FIXES.md** (28 risks and fixes, including global task bus) and **docs/SWARM-TOPOLOGY-5-LAYER.md** (5-layer topology for 1k→1M agents). **docs/DEPLOY-CHECKLIST.md** ties them to the deploy flow.
+
 ---
 
 ## Diagram

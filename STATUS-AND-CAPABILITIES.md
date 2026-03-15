@@ -5,7 +5,8 @@
 **Operational interpretation (system integrity, topology, cortex state, twin mesh):** see **docs/OPERATIONAL-INTERPRETATION.md**.  
 **Determinator (boot agent 4201, RBAC HRE, run version, deployed flag):** see **docs/DETERMINATOR-SYSTEM-SPEC.md**.  
 **Full audit (3020, dashboard, digital twins, APIs, sync, GET/POST) and full run (install → build → debug → deploy):** see **docs/FULL-AUDIT-3020-DASHBOARD-TWINS.md** and **run-full-install-build-deploy.ps1** (goal = task = goal in data/goals-tasks.json).  
-**Rebase / branch / commit checklist:** see **docs/REBASE-BRANCH-COMMIT-CHECKLIST.md**. **Changes for review (added/changed list):** see **docs/CHANGES-FOR-REVIEW.md**.
+**Rebase / branch / commit checklist:** see **docs/REBASE-BRANCH-COMMIT-CHECKLIST.md**. **Changes for review (added/changed list):** see **docs/CHANGES-FOR-REVIEW.md**.  
+**Apply before deploy (swarm scaling, 28 risks/fixes, 5-layer topology, 5 tricks for unlimited scale):** see **docs/DEPLOY-CHECKLIST.md**, **docs/SWARM-SCALING-RISKS-AND-FIXES.md**, **docs/SWARM-TOPOLOGY-5-LAYER.md**, **docs/SWARM-SCALE-UNLIMITED-5-TRICKS.md**.
 
 ---
 
