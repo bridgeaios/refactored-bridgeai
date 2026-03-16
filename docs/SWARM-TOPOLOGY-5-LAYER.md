@@ -264,4 +264,5 @@ Bridge AI OS already has pieces of **(2)** discovery/gossip and **(5)** replicat
 - **28 risks and fixes (apply before deploy):** [SWARM-SCALING-RISKS-AND-FIXES.md](./SWARM-SCALING-RISKS-AND-FIXES.md)  
 - **Global task bus (item 28):** same doc — broadcast to swarm, best agent claims.  
 - **Beyond 1M agents — five tricks for unlimited scale:** [SWARM-SCALE-UNLIMITED-5-TRICKS.md](./SWARM-SCALE-UNLIMITED-5-TRICKS.md) (fractal swarm, gossip, event streams, capability routing, economic regulation).  
+- **Planetary-scale topology + 10 capabilities + 7-plane intelligence stack:** [PLANETARY-SCALE-AGENT-TOPOLOGY.md](./PLANETARY-SCALE-AGENT-TOPOLOGY.md).  
 - **Replication and node discovery:** [GLOBAL-TWIN-SWARM-ARCHITECTURE.md](./GLOBAL-TWIN-SWARM-ARCHITECTURE.md), [SELF-EXPANDING-AI-NETWORK.md](./SELF-EXPANDING-AI-NETWORK.md).

@@ -204,6 +204,7 @@ Those are actually the **hardest parts** most systems struggle to design.
 
 ## References
 
+- **Planetary-scale topology + 10 capabilities + 7-plane stack:** [PLANETARY-SCALE-AGENT-TOPOLOGY.md](./PLANETARY-SCALE-AGENT-TOPOLOGY.md)  
 - **5-layer topology (1k → 1M agents):** [SWARM-TOPOLOGY-5-LAYER.md](./SWARM-TOPOLOGY-5-LAYER.md)  
 - **28 risks and fixes + global task bus:** [SWARM-SCALING-RISKS-AND-FIXES.md](./SWARM-SCALING-RISKS-AND-FIXES.md)  
 - **Deploy checklist:** [DEPLOY-CHECKLIST.md](./DEPLOY-CHECKLIST.md)  

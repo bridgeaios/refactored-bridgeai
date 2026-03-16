@@ -49,6 +49,7 @@ const DEFAULT_EXCLUDE_DIR_NAMES = new Set([
   ".mypy_cache",
   ".venv",
   "venv",
+  "logs",  // run-full-install-build-deploy.ps1 writes here; exclude so pipeline doesn't flip Merkle root
 ]);
 
 const DEFAULT_EXCLUDE_FILE_NAMES = new Set([
