@@ -1,12 +1,12 @@
-import asyncio, json
-from typing import Dict, List
+import asyncio
+
 from fastapi import WebSocket
 
 HEARTBEAT = 20.0
 
 class ConnectionManager:
     def __init__(self):
-        self.active: Dict[str, List[WebSocket]] = {}
+        self.active: dict[str, list[WebSocket]] = {}
         self.lock = asyncio.Lock()
 
     async def connect(self, channel: str, ws: WebSocket):

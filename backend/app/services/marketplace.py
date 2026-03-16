@@ -4,16 +4,16 @@ Aligns with UN SDG 8: Decent Work and Economic Growth
 This is an in-memory simulated marketplace. Production should persist
 to a database and integrate escrow/payment flows via BlockchainService.
 """
-from typing import List, Dict, Optional
+from typing import Optional
 
 
 class MarketplaceService:
     def __init__(self):
-        self.tasks: List[Dict] = []
+        self.tasks: list[dict] = []
         self._next_id = 1
         self._seen_pledge_event_ids: set[str] = set()
 
-    def get_tasks(self, status: Optional[str] = None) -> List[Dict]:
+    def get_tasks(self, status: Optional[str] = None) -> list[dict]:
         """Get tasks. status='open' (default) | 'all' | 'in_progress' | 'completed'."""
         if status == 'all':
             return list(self.tasks)
@@ -23,7 +23,7 @@ class MarketplaceService:
             return [t for t in self.tasks if t.get('status') == 'completed']
         return [t for t in self.tasks if t.get('status') == 'open']
 
-    def add_task(self, task: Dict) -> Dict:
+    def add_task(self, task: dict) -> dict:
         task_copy = task.copy()
         task_copy['id'] = self._next_id
         self._next_id += 1
@@ -36,7 +36,7 @@ class MarketplaceService:
         self.tasks.append(task_copy)
         return task_copy
 
-    def accept_task(self, task_id: int, wallet: str) -> Optional[Dict]:
+    def accept_task(self, task_id: int, wallet: str) -> Optional[dict]:
         for t in self.tasks:
             if t.get('id') == task_id and t.get('status') == 'open':
                 t['acceptor'] = wallet
@@ -45,7 +45,7 @@ class MarketplaceService:
                 return t
         return None
 
-    def complete_task(self, task_id: int) -> Optional[Dict]:
+    def complete_task(self, task_id: int) -> Optional[dict]:
         for t in self.tasks:
             if t.get('id') == task_id and t.get('status') == 'in_progress':
                 t['status'] = 'completed'
@@ -53,7 +53,7 @@ class MarketplaceService:
                 return t
         return None
 
-    def pledge_task(self, task_id: int, wallet: str, amount: float, event_id: str | None = None) -> Optional[Dict]:
+    def pledge_task(self, task_id: int, wallet: str, amount: float, event_id: str | None = None) -> Optional[dict]:
         """
         Record a pledge for an upliftment task.
         - Idempotent when event_id is provided (prevents double counting on retries).

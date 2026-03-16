@@ -10,7 +10,8 @@ Status is stored in memory (replication:status) for GET /api/replication/status.
 
 import os
 import time
-from typing import Any, Dict, List, Optional
+from typing import Any, Optional
+
 
 def _env_int(name: str, default: int) -> int:
     try:
@@ -32,7 +33,7 @@ class ReplicationEngine:
         self.enabled = os.getenv("BRIDGE_REPLICATION", "1") not in ("0", "false", "False")
         self.demand_per_twin = _env_int("BRIDGE_REPLICATION_DEMAND_PER_TWIN", 3)
         self.performance_threshold = _env_int("BRIDGE_REPLICATION_PERFORMANCE_THRESHOLD", 5)
-        self._last_status: Dict[str, Any] = {}
+        self._last_status: dict[str, Any] = {}
 
     def _twin_count(self) -> int:
         return len(getattr(self.twins, "twins", {}))
@@ -57,7 +58,7 @@ class ReplicationEngine:
                 return name
         return f"twin_{len(existing) + 1}"
 
-    async def evaluate(self) -> Dict[str, Any]:
+    async def evaluate(self) -> dict[str, Any]:
         """Run replication rules once. Returns status dict and persists to memory."""
         if not self.enabled:
             return {"enabled": False, "message": "replication disabled"}
@@ -121,7 +122,7 @@ class ReplicationEngine:
             pass
         return status
 
-    async def get_status(self) -> Dict[str, Any]:
+    async def get_status(self) -> dict[str, Any]:
         """Return last replication status (from memory or last run)."""
         if self._last_status:
             return self._last_status
@@ -145,7 +146,7 @@ class ReplicationEngine:
             "rules_evaluated": [],
         }
 
-    async def register_node(self, node_id: str, url: str, capabilities: Optional[List[str]] = None) -> None:
+    async def register_node(self, node_id: str, url: str, capabilities: Optional[list[str]] = None) -> None:
         """Register this or a peer node for discovery (store in memory)."""
         import json
         nodes = await self.get_nodes()
@@ -158,7 +159,7 @@ class ReplicationEngine:
         })
         await self.memory.set(self.NODES_KEY, json.dumps(nodes))
 
-    async def get_nodes(self) -> List[Dict[str, Any]]:
+    async def get_nodes(self) -> list[dict[str, Any]]:
         """Return list of registered nodes (for mesh discovery)."""
         try:
             raw = await self.memory.get(self.NODES_KEY)

@@ -3,8 +3,8 @@ Twins Competition — Auto-add tasks, allocate to twins, leaderboard.
 Twins compete to build the most and get more done for the Bridge.
 """
 import random
-from typing import List, Dict, Optional
 from dataclasses import dataclass, field
+from typing import Optional
 
 
 @dataclass
@@ -44,7 +44,7 @@ class TwinsCompetitionService:
     """Manages twins, auto-adds tasks, allocates to twins, tracks leaderboard."""
 
     def __init__(self):
-        self.twins: Dict[str, Twin] = {}
+        self.twins: dict[str, Twin] = {}
         self._ensure_default_twins()
 
     def _ensure_default_twins(self):
@@ -56,7 +56,7 @@ class TwinsCompetitionService:
             ]:
                 self.twins[t.id] = t
 
-    def list_twins(self) -> List[dict]:
+    def list_twins(self) -> list[dict]:
         """Return all twins with their stats and skills learned."""
         return [
             {
@@ -73,7 +73,7 @@ class TwinsCompetitionService:
             for t in self.twins.values()
         ]
 
-    def get_leaderboard(self) -> List[dict]:
+    def get_leaderboard(self) -> list[dict]:
         """Return twins ranked by completed tasks, trades, total score."""
         ranked = sorted(
             self.twins.values(),
@@ -95,7 +95,7 @@ class TwinsCompetitionService:
             for i, t in enumerate(ranked)
         ]
 
-    def execute_signal_for_twins(self, asset: str, signal: str) -> List[dict]:
+    def execute_signal_for_twins(self, asset: str, signal: str) -> list[dict]:
         """All twins with auto_dex follow the buy/sell signal. Returns executions."""
         results = []
         for t in self.twins.values():

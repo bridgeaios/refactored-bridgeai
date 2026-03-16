@@ -1,64 +1,68 @@
+import json
+import os
+import time
+from datetime import datetime
+from pathlib import Path
+
 from fastapi import APIRouter, HTTPException, Request
-from fastapi.responses import Response, PlainTextResponse
+from fastapi.responses import PlainTextResponse, Response
 from pydantic import BaseModel
-from app.services.speech_embodiment import SpeechEmbodimentService, SKILL_DEFINITION
-from app.services.system_comprehension import SystemComprehensionService, SKILL_DEFINITION as SYS_COMP_SKILL_DEF
-from app.runtime import (
-    memory,
-    mission_service,
-    emotion_service,
-    gov_service,
-    learning_service,
-    esim_service,
-    ubi_service,
-    marketplace_service,
-    sdg_service,
-    revenue_service,
-    bossbots_service,
-    twins_competition,
-    replication_engine,
-    cognitive_twin,
-    voice_broker,
-    speech_reasoning,
-    speech_embodiment,
-    system_comprehension,
-)
+
 from app.cortex import (
     CAPABILITIES,
-    wrap_response,
-    capability_enabled,
     auth_class_from_token,
     authority_allows,
-    get_state_version,
-    get_state_hash,
+    capability_enabled,
     get_boots_log,
-    get_runs_log,
     get_current_run,
-    set_sensor_wifi,
-    get_sensor_wifi,
-    set_sensor_mouse,
+    get_runs_log,
     get_sensor_mouse,
+    get_sensor_wifi,
+    get_state_hash,
+    get_state_version,
+    set_sensor_mouse,
+    set_sensor_wifi,
+    wrap_response,
 )
 from app.physics import (
     DETERMINISTIC_MODE,
-    deterministic_seed,
-    telemetry,
-    fallback_for,
+    DRIFT_THRESHOLD,
     check_economic_risk,
-    validate_identity_immutability,
-    should_silence_for_ethics,
+    consume_evolution_budget,
+    deterministic_seed,
+    drift_score,
     ethical_conflict_score,
     ethical_reason_category,
+    fallback_for,
     get_degradation,
     record_economic_action,
-    consume_evolution_budget,
     replenish_evolution_budget,
-    drift_score,
+    should_silence_for_ethics,
     should_trigger_governance,
-    DRIFT_THRESHOLD,
+    telemetry,
+    validate_identity_immutability,
 )
-import time
-import json
+from app.runtime import (
+    bossbots_service,
+    cognitive_twin,
+    emotion_service,
+    esim_service,
+    learning_service,
+    marketplace_service,
+    memory,
+    mission_service,
+    replication_engine,
+    revenue_service,
+    sdg_service,
+    speech_embodiment,
+    speech_reasoning,
+    system_comprehension,
+    twins_competition,
+    ubi_service,
+    voice_broker,
+)
+from app.services.speech_embodiment import SKILL_DEFINITION
+from app.services.system_comprehension import SKILL_DEFINITION as SYS_COMP_SKILL_DEF
 
 router = APIRouter()
 
@@ -66,6 +70,13 @@ class SkillModel(BaseModel):
     name: str
     tags: list[str]
     description: str | None = None
+
+@router.get("/skills")
+async def list_skills():
+    """Return all stored skills (most recent 200)."""
+    skills = await memory.get_recent("skills", 200)
+    return {"ok": True, "skills": skills, "count": len(skills)}
+
 
 @router.post("/skills")
 async def add_skill(skill: SkillModel):
@@ -287,6 +298,54 @@ async def health():
     return {"ok": True}
 
 
+USER_SETTINGS_KEY_PREFIX = "user:settings:"
+
+
+def _user_id_from_request(request: Request) -> str:
+    """User id for settings: X-User-Id header (shared across domains) or default."""
+    uid = request.headers.get("X-User-Id") or request.headers.get("X-Bridge-User-Id")
+    if uid and isinstance(uid, str) and uid.strip():
+        return uid.strip()[:128]
+    return "default"
+
+
+@router.get("/user/settings")
+async def get_user_settings(request: Request):
+    """
+    Get user settings (shared per user across all domains).
+    User id from X-User-Id or X-Bridge-User-Id header; otherwise "default".
+    """
+    uid = _user_id_from_request(request)
+    key = USER_SETTINGS_KEY_PREFIX + uid
+    raw = await memory.get(key)
+    if not raw:
+        return {"ok": True, "settings": {}}
+    try:
+        import json
+        data = json.loads(raw) if isinstance(raw, str) else raw
+        return {"ok": True, "settings": data if isinstance(data, dict) else {}}
+    except Exception:
+        return {"ok": True, "settings": {}}
+
+
+@router.put("/user/settings")
+async def put_user_settings(request: Request):
+    """
+    Save user settings (shared per user across all domains).
+    Body: { "settings": { ... } } or { ... } (whole object as settings).
+    """
+    try:
+        payload = await request.json()
+    except Exception:
+        payload = {}
+    uid = _user_id_from_request(request)
+    key = USER_SETTINGS_KEY_PREFIX + uid
+    settings = payload.get("settings") if isinstance(payload.get("settings"), dict) else (payload if isinstance(payload, dict) else {})
+    import json
+    await memory.set(key, json.dumps(settings))
+    return {"ok": True, "settings": settings}
+
+
 @router.get("/health/extended")
 async def health_extended():
     """
@@ -294,9 +353,9 @@ async def health_extended():
     health = (1 - error_rate) × (1 - silence_spike_deviation) × latency_factor × invariant_integrity
     """
     from app.physics import (
-        telemetry,
         economic_circuit_breaker_tripped,
         economic_entropy_score,
+        telemetry,
     )
     err_rate = 0.0
     total = telemetry.state_mutation_count + telemetry.failed_mutation_count
@@ -354,8 +413,9 @@ async def esim_status():
 
 
 @router.post("/ubi/claim")
+@router.post("/ubi/distribute")
 async def claim_ubi(payload: dict):
-    """UBI claim. Economic risk governor: max exposure, cooldown."""
+    """UBI claim/distribute. Economic risk governor: max exposure, cooldown."""
     address = payload.get('address') if isinstance(payload, dict) else None
     if not address:
         raise HTTPException(status_code=400, detail="address required")
@@ -388,7 +448,7 @@ async def create_task(task: dict):
     try:
         reward = float(task.get('reward', 0))
         fee = reward * 0.05
-        revenue_service.collect(fee)
+        revenue_service.collect(fee, source="marketplace", method="marketplace")
     except Exception:
         pass
     return {"status": "created", "task": t}
@@ -407,9 +467,9 @@ async def pledge_task(data: dict):
     if not task_id or not wallet:
         raise HTTPException(status_code=400, detail='task_id and wallet required')
     try:
-        amt = float(amount)
+        amt = float(amount)  # type: ignore[arg-type]
     except Exception:
-        raise HTTPException(status_code=400, detail='valid amount required')
+        raise HTTPException(status_code=400, detail='valid amount required') from None
     if amt <= 0:
         raise HTTPException(status_code=400, detail='amount must be > 0')
     t = marketplace_service.pledge_task(int(task_id), str(wallet), amt, str(event_id) if event_id else None)
@@ -417,7 +477,7 @@ async def pledge_task(data: dict):
         raise HTTPException(status_code=404, detail='task not found')
     # Treat pledges as a revenue inflow (simulated): small processing fee
     try:
-        revenue_service.collect(max(0.01, amt * 0.01))
+        revenue_service.collect(max(0.01, amt * 0.01), source="marketplace", method="marketplace")
     except Exception:
         pass
     return {"status": "pledged", "task": t, "event_id": event_id}
@@ -539,18 +599,68 @@ async def sensors_wifi_get():
     return {"ok": True, "wifi": out}
 
 
+_MOUSE_SESSION_KEY = "sensor:mouse:session"
+_MOUSE_MOVES_PER_TASK = 12   # ~60 s of active tracking (5 s poll × 12)
+_MOUSE_BRDG_PER_TASK = 0.5   # BRDG earned per milestone
+
+
 @router.post("/sensors/mouse")
 async def sensors_mouse_post(payload: dict):
-    """Ingest mouse position/activity from mouse-tracker-boot.ps1. Expects x, y, moved, etc."""
+    """
+    Ingest mouse position/activity from mouse-tracker-boot.ps1.
+    Every 12 active (moved=true) samples a marketplace task is auto-created
+    and completed, earning the user 0.5 BRDG in the revenue pool.
+    """
     await set_sensor_mouse(memory, payload)
-    return {"ok": True}
+
+    earned: float = 0.0
+    task_created: bool = False
+
+    if payload.get("moved"):
+        # Load session counter
+        raw = await memory.get(_MOUSE_SESSION_KEY)
+        try:
+            session: dict = json.loads(raw) if isinstance(raw, str) and raw else {}
+        except Exception:
+            session = {}
+
+        active_count: int = int(session.get("active_count", 0)) + 1
+        total_earned: float = float(session.get("total_earned", 0.0))
+
+        if active_count >= _MOUSE_MOVES_PER_TASK:
+            # Milestone reached → create + auto-complete a task
+            task = marketplace_service.add_task({
+                "title": "Mouse Activity — Human Presence",
+                "description": f"Passive income: user active for ~{_MOUSE_MOVES_PER_TASK * 5}s",
+                "reward": _MOUSE_BRDG_PER_TASK,
+                "type": "sensor",
+                "source": payload.get("source", "mouse-tracker"),
+            })
+            marketplace_service.accept_task(task["id"], "user")
+            marketplace_service.complete_task(task["id"])
+            revenue_service.collect(_MOUSE_BRDG_PER_TASK, source="sensor", method="sensor")
+            earned = _MOUSE_BRDG_PER_TASK
+            total_earned += earned
+            active_count = 0
+            task_created = True
+
+        session["active_count"] = active_count
+        session["total_earned"] = total_earned
+        await memory.set(_MOUSE_SESSION_KEY, json.dumps(session))
+
+    return {"ok": True, "earned": earned, "task_created": task_created}
 
 
 @router.get("/sensors/mouse")
 async def sensors_mouse_get():
-    """Return latest mouse sensor sample."""
+    """Return latest mouse sensor sample plus lifetime session earnings."""
     out = await get_sensor_mouse(memory)
-    return {"ok": True, "mouse": out}
+    raw = await memory.get(_MOUSE_SESSION_KEY)
+    try:
+        session: dict = json.loads(raw) if isinstance(raw, str) and raw else {}
+    except Exception:
+        session = {}
+    return {"ok": True, "mouse": out, "session": session}
 
 
 @router.get("/orchestrate/directives")
@@ -583,7 +693,7 @@ async def get_wiki_registry():
         data = json.loads(registry_path.read_text(encoding="utf-8"))
         return {"ok": True, "registry": data}
     except Exception as e:
-        raise HTTPException(status_code=500, detail=f"Failed to read registry: {e}")
+        raise HTTPException(status_code=500, detail=f"Failed to read registry: {e}") from e
 
 
 # Twins competition — auto-add, allocate, leaderboard
@@ -688,7 +798,7 @@ async def execute_trade(trade: dict):
         raise HTTPException(status_code=429, detail=reason)
     signal = bossbots_service.generate_signal(asset)
     twin_executions = twins_competition.execute_signal_for_twins(asset, signal)
-    collected = revenue_service.collect(0.05)
+    collected = revenue_service.collect(0.05, source="bossbots", method="trade")
     if collected:
         record_economic_action(twin_id, amount)
         sdg_service.track('trades_executed', 1)
@@ -920,21 +1030,17 @@ async def text_to_speech(payload: dict):
             headers={"X-Deprecation": "Prefer /api/speech/embody/speak for phoneme-aware use"},
         )
     except RuntimeError as e:
-        raise HTTPException(status_code=503, detail=str(e))
+        raise HTTPException(status_code=503, detail=str(e)) from e
 
 
 # Founder TODO — linked to digital twin wallpaper. Live updates when objectives met.
-import os
-from pathlib import Path
-from datetime import datetime
-
 FOUNDER_TODO_PATH = Path(os.environ.get("BRIDGE_LIVE_WALL_PATH", "C:/Users/supas/BridgeLiveWall")) / "founder-todo.json"
 
 
 def _read_founder_todo():
     if not FOUNDER_TODO_PATH.exists():
         return {"version": 1, "updatedAt": None, "objectives": []}
-    with open(FOUNDER_TODO_PATH, "r", encoding="utf-8") as f:
+    with open(FOUNDER_TODO_PATH, encoding="utf-8") as f:
         return json.load(f)
 
 

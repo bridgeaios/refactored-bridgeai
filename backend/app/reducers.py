@@ -9,8 +9,6 @@ from __future__ import annotations
 import hashlib
 import json
 import os
-from dataclasses import dataclass, field
-from typing import Optional
 
 REGISTRY_VERSION = "1.0.0"
 SPINE = "Endpoint → Reducer → State → Scheduler → Expression"
@@ -54,7 +52,7 @@ def is_sanctioned(name: str) -> bool:
     return name in SANCTIONED_NAMES
 
 
-def reducer_class(name: str) -> Optional[str]:
+def reducer_class(name: str) -> str | None:
     for r in REDUCER_REGISTRY:
         if r["name"] == name:
             return r["class"]

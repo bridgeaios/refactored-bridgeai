@@ -11,13 +11,13 @@ Perception → Decision → Expression → Economic Effect → State Update → 
 """
 from __future__ import annotations
 
-import os
-import time
 import hashlib
 import json
+import os
+import time
 from dataclasses import dataclass, field
 from enum import Enum
-from typing import Any, Optional
+from typing import Any
 
 # =============================================================================
 # Capability Registry — Twins read flags before acting. Scale to 100 variants.
@@ -101,7 +101,7 @@ AUTHORITY_SCOPES = {
 AUTHORITY_ORDER = {AuthorityClass.PUBLIC: 0, AuthorityClass.ECONOMIC: 1, AuthorityClass.INTERNAL: 2, AuthorityClass.ORCHESTRATOR: 3}
 
 
-def auth_class_from_token(token: Optional[str]) -> AuthorityClass:
+def auth_class_from_token(token: str | None) -> AuthorityClass:
     if token == "internal":
         return AuthorityClass.INTERNAL
     if token == "orchestrator":
@@ -127,7 +127,7 @@ def authority_allows(auth: AuthorityClass, scope: str) -> bool:
 def authority_escalation_allowed(
     from_auth: AuthorityClass,
     to_auth: AuthorityClass,
-    via_reducer: Optional[str] = None,
+    via_reducer: str | None = None,
 ) -> bool:
     """
     Escalation requires governanceVote reducer. No silent privilege jump.
@@ -175,10 +175,10 @@ def wrap_response(
     confidence: float = 1.0,
     silence: bool = False,
     state_delta: bool = False,
-    state_version: Optional[int] = None,
-    deterministic_seed: Optional[int] = None,
-    ethical_score: Optional[float] = None,
-    ethical_reason: Optional[str] = None,
+    state_version: int | None = None,
+    deterministic_seed: int | None = None,
+    ethical_score: float | None = None,
+    ethical_reason: str | None = None,
 ) -> dict:
     """Wrap any response in normalized structure. Enforces confidence floor → silence."""
     if confidence < CONFIDENCE_FLOOR:

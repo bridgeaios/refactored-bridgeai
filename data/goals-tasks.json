@@ -1,6 +1,6 @@
 ﻿{
     "description":  "Goal = Task = Goal: each goal maps to task(s); completing task(s) satisfies the goal.",
-    "updatedAt":  "2026-03-15T22:36:03.7381293+02:00",
+    "updatedAt":  "2026-03-15T23:33:51.8275559+02:00",
     "goals":  [
                   {
                       "id":  "install",
@@ -74,9 +74,9 @@
     "lastRun":  {
                     "auditOk":  true,
                     "installOk":  true,
-                    "deployOk":  false,
+                    "deployOk":  true,
                     "allOk":  false,
-                    "at":  "2026-03-15T22:36:03.7409757+02:00",
+                    "at":  "2026-03-15T23:33:51.8300711+02:00",
                     "testsOk":  true,
                     "buildOk":  false,
                     "logFile":  "E:\\BridgeAI\\BridgeLiveWall\\logs\\full-install-build-deploy.log",

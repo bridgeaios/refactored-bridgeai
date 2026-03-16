@@ -19,19 +19,78 @@ const STUBS = {
   '/api/system/comprehension/explain': { level: 1, explanation: 'The Bridge is an ecosystem for poverty reduction and value creation.' },
   '/api/state/reducers': { version: '1.0.0', reducer_names: ['dialogueAppend','emotionOverride','faceStateUpdate','governanceVote','marketplaceTaskUpdate','missionBoardUpdate','skillIngest','twinStateUpdate'], strict_mode: true, spine: 'Endpoint → Reducer → State → Scheduler → Expression', identity_hash: 'stub' },
   '/api/capabilities': { ok: true, data: { perception: true, speech: true, trade: true, ubi: true, simulate: true, evolution: true, marketplace: true, state_mutation: true }, meta: { state_delta: false } },
-  '/api/telemetry': { ok: true, data: { decision_latency_p50_ms: 0, speech_latency_p50_ms: 0, silence_rate: 0, state_mutation_frequency: 0, economic_conversion_rate: 0 }, meta: {} }
+  '/api/telemetry': { ok: true, data: { decision_latency_p50_ms: 0, speech_latency_p50_ms: 0, silence_rate: 0, state_mutation_frequency: 0, economic_conversion_rate: 0 }, meta: {} },
+  '/api/replication/status': { ok: true, last_run_ts: null, open_tasks: 0, twin_count: 0, rules_evaluated: 0, twins_created: 0 },
+  '/api/replication/nodes': { ok: true, nodes: [] },
+  '/api/skills': { ok: true, skills: [], count: 0 },
+  '/api/projects': { ok: true, count: 0, projects: [] },
+  '/api/sensors/mouse': { ok: true, mouse: null, session: { active_count: 0, total_earned: 0 } },
+  '/api/sensors/wifi': { ok: true, wifi: null },
+  '/api/twin/env-keys': { keys: [], summary: { configured: 0, criticalMissing: 0 } },
+  '/api/treasury/status': { ok: true, total_collected_brdg: 0, total_tx: 0, buckets: { ubi: 0, treasury: 0, ops: 0, founder: 0 }, by_project: {}, by_method: {}, by_currency: {}, last_tx_ts: null },
+  '/api/treasury/ledger': { ok: true, count: 0, entries: [] },
+  '/api/treasury/rails': { ok: true, rails: [], split: { ubi: '40%', treasury: '30%', ops: '20%', founder: '10%' } },
+  '/health': { status: 'ok', service: 'bridge-live-wall', port: 8000 },
+  '/api/health/extended': { ok: true, status: 'ok', checks: {} },
+  '/api/ubi/claim': { amount: 0, detail: 'Backend offline — stub response' },
+  '/api/ubi/distribute': { amount: 0, detail: 'Backend offline — stub response' },
+  '/api/services': () => ({
+    services: 'Dashboard:3000=offline, Bridge API:8000=offline, Frontend:3020=online, Determinator:4201=offline, Taurus:4202=offline',
+    timestamp: new Date().toISOString(),
+  }),
+  '/api/human': () => ({
+    ok: true,
+    timestamp: new Date().toISOString(),
+    telemetry: { decision_latency_p50_ms: 0, speech_latency_p50_ms: 0, silence_rate: 0, state_mutation_frequency: 0, economic_conversion_rate: 0 },
+    mission_board: { backlog: 0, in_progress: 0, review: 0, done: 0 },
+    objectives: [],
+    identity_hash: 'stub',
+    spine: 'Endpoint → Reducer → State → Scheduler → Expression',
+    services: [],
+    live_report_at: new Date().toISOString(),
+  }),
+  '/api/live/report': () => ({
+    ok: true,
+    report_at: new Date().toISOString(),
+    live_display: true,
+    twins: [],
+    leaderboard: [],
+    capabilities: {},
+    telemetry: {},
+    sensors: { wifi: null, mouse: null },
+    polity: {
+      spine: 'Endpoint → Reducer → State → Scheduler → Expression',
+      identity_hash: 'stub',
+      reducer_names: ['dialogueAppend', 'emotionOverride', 'faceStateUpdate', 'governanceVote', 'marketplaceTaskUpdate', 'missionBoardUpdate', 'skillIngest', 'twinStateUpdate'],
+    },
+    governance: { score: 0 },
+    value_deltas: { balance: 0, distributed: 0, ubi: 0, treasury: 0, ops: 0, founder: 0 },
+  }),
 };
+
+// In-memory stub for PUT /api/user/settings when backend is down (shared per dev server)
+let stubUserSettings = {};
 
 const CSP =
   "default-src 'self'; " +
-  "script-src 'self' 'unsafe-inline' 'unsafe-eval' https://cdn.babylonjs.com; " +
-  "style-src 'self' 'unsafe-inline' https://fonts.googleapis.com; " +
+  "script-src 'self' 'unsafe-inline' 'unsafe-eval' https://cdn.babylonjs.com https://cdn.tailwindcss.com https://cdn.jsdelivr.net; " +
+  "style-src 'self' 'unsafe-inline' https://fonts.googleapis.com https://cdn.jsdelivr.net; " +
   "font-src 'self' data: https://fonts.gstatic.com https://fonts.googleapis.com; " +
   "img-src 'self' data: https: blob:; " +
   "connect-src 'self' ws: wss: https: http:; " +
   "frame-src https:;";
 
+// Multi-page: use named object entries (array input is not valid for Vite rollupOptions.input).
+const projectRoot = process.cwd();
 export default {
+  build: {
+    rollupOptions: {
+      input: {
+        main: join(projectRoot, 'index.html'),
+        apps: join(projectRoot, '50-applications.html'),
+      },
+    },
+  },
   server: {
     port: 3020,
     headers: { 'Content-Security-Policy': CSP },
@@ -46,6 +105,26 @@ export default {
       const stubMiddleware = (req, res, next) => {
         const path = req.url?.split('?')[0];
         const key = req.method + ' ' + path;
+        if (path === '/api/user/settings') {
+          res.setHeader('Content-Type', 'application/json');
+          if (req.method === 'GET') {
+            res.end(JSON.stringify({ ok: true, settings: stubUserSettings }));
+          } else if (req.method === 'PUT') {
+            let body = '';
+            req.on('data', (ch) => { body += ch; });
+            req.on('end', () => {
+              try {
+                const payload = body ? JSON.parse(body) : {};
+                stubUserSettings = payload.settings && typeof payload.settings === 'object' ? payload.settings : (typeof payload === 'object' ? payload : {});
+              } catch (_) {}
+              res.end(JSON.stringify({ ok: true, settings: stubUserSettings }));
+            });
+          } else {
+            res.statusCode = 405;
+            res.end(JSON.stringify({ error: 'Method not allowed' }));
+          }
+          return;
+        }
         let stub = (key === 'POST /api/marketplace/task' || key === 'POST /api/marketplace/accept' || key === 'POST /api/bossbots/trade')
           ? { ok: true }
           : (key === 'POST /api/twins/auto-add' ? { status: 'created', task: { id: 1, desc: 'Stub task', reward: 10, status: 'open' } } : STUBS[path]);

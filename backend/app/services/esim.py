@@ -1,5 +1,6 @@
 import random
 
+
 class EsimService:
     def get_status(self):
         return {

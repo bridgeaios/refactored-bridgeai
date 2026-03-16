@@ -117,6 +117,12 @@
       "env": ["PORT"],
       "health": "/health",
       "baseUrl": "http://localhost:4202"
+    },
+    "nextjs-app": {
+      "port": 3032,
+      "label": "Next.js App (root)",
+      "env": ["PORT", "DASHBOARD_PORT"],
+      "baseUrl": "http://localhost:3032"
     }
   },
 
@@ -148,11 +154,12 @@
   },
 
   "ports": {
-    "registry": [3000, 3001, 3002, 3003, 3020, 3021, 3030, 3031, 4201, 4202, 5173, 6379, 7777, 7778, 8000, 8001, 8081, 9229],
+    "registry": [3000, 3001, 3002, 3003, 3020, 3021, 3022, 3030, 3031, 3032, 4201, 4202, 5173, 6379, 7777, 7778, 8000, 8001, 8081, 9229],
     "defaults": {
       "bridge-backend": 3001,
       "bridge-auth": 3030,
       "frontend": 3020,
+      "console-sync": 3022,
       "frontend-dev": 5173,
       "dashboard": 3000,
       "installer": 7777,
@@ -161,6 +168,7 @@
       "frontend-docker": 8001,
       "determinator-boot-agent": 4201,
       "taurus-showcase": 4202,
+      "nextjs-app": 3032,
       "debug": 9229
     },
     "portRangeFallback": [3010, 3011, 3012, 3040, 3041, 3050, 3051]
@@ -208,6 +216,34 @@
       "D:\\BridgeAI\\BridgeLiveWall\\.env",
       "C:\\Users\\%USERNAME%\\.bridge-wall\\.env"
     ]
+  },
+
+  "integratedPlatforms": {
+    "description": "Bridge, Supac, Taurus and Wiki — fully integrated; all share the same Digital Twin registry and state.",
+    "bridge": {
+      "label": "Bridge AI OS",
+      "baseUrl": "http://localhost:3020",
+      "apiUrl": "http://localhost:8000",
+      "registryPath": "data/twin-registry.json"
+    },
+    "wiki": {
+      "label": "Wiki",
+      "wikiPath": "docs/WIKI-VERSIONS.md",
+      "registryPath": "data/twin-registry.json",
+      "syncScript": "scripts/sync-twins-wiki.ps1"
+    },
+    "taurus": {
+      "label": "Taurus",
+      "path": "C:\\Users\\supas\\Videos\\MM\\M TAURUS",
+      "port": 4202,
+      "baseUrl": "http://localhost:4202",
+      "shareTwins": true
+    },
+    "supaco": {
+      "label": "Supaco",
+      "path": "C:\\Users\\supas\\Videos\\supaco\\supaco_observatory_build (1)",
+      "shareTwins": true
+    }
   },
 
   "twinsSync": {

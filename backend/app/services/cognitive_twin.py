@@ -9,10 +9,9 @@ Constraints:
 - Default to silence if no positive-value output exists
 - Optimize for long-term structural advantage
 """
-from dataclasses import dataclass, field
-from typing import Optional
+from dataclasses import dataclass
 from enum import Enum
-
+from typing import Optional
 
 # =============================================================================
 # Phase 1 — Identity Mapping

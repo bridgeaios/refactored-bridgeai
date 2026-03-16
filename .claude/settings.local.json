@@ -1,0 +1,20 @@
+{
+  "permissions": {
+    "allow": [
+      "Bash(python -m mypy backend/ --ignore-missing-imports)",
+      "Bash(python -m pytest tests/ -q)",
+      "Bash(python -m ruff check .)",
+      "Bash(python -m ruff check . --select B904,N812,N806,RUF012)",
+      "Bash(python -m ruff check . --select RUF012)",
+      "Bash(python -m ruff check app/main.py --fix)",
+      "Bash(python -m ruff check app/runtime.py --fix)",
+      "Bash(python -m mypy backend/app/services/projects.py --ignore-missing-imports)",
+      "Bash(powershell -Command \"\\(Get-WmiObject Win32_Process | Where-Object { $_ProcessId -in @\\(13164, 37600\\) } | Select-Object ProcessId, ExecutablePath, CommandLine | Format-List | Out-String\\)\")",
+      "Bash(grep -v \"Safety\\\\|loaded\\\\|^$\")",
+      "Bash(curl -s http://localhost:8000/api/projects)",
+      "Bash(powershell -Command \"\\(Get-WmiObject Win32_Process | Where-Object { $_ProcessId -eq 11724 } | Select-Object ProcessId, Name, CommandLine | Format-List | Out-String\\)\")",
+      "Bash(ls -la E:/BridgeAI/BridgeLiveWall/frontend/public/*.html)",
+      "Bash(ls -la E:/BridgeAI/BridgeLiveWall/frontend/src/*.js)"
+    ]
+  }
+}

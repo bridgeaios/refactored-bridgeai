@@ -1,10 +1,11 @@
-import os
 import asyncio
 import json
 import time
-from pathlib import Path
 from contextlib import asynccontextmanager
+from pathlib import Path
+
 from fastapi import FastAPI, Request, WebSocket, WebSocketDisconnect
+
 
 # Load env API keys for Digital Twin: repo .env first, then E:\AOE (same order as audit-wall.ps1)
 def _load_twin_env():
@@ -21,48 +22,49 @@ def _load_twin_env():
 
 _load_twin_env()
 from fastapi.middleware.cors import CORSMiddleware
-from fastapi.responses import JSONResponse
-from app.routes.api import router as api_router
-from app.routes.auth import router as auth_router
-from app.websockets.hub import ConnectionManager
-from app.runtime import (
-    memory,
-    mission_service,
-    marketplace_service,
-    twins_competition,
-    replication_engine,
-    bossbots_service,
-    revenue_service,
-    sdg_service,
-)
-from app.services.speech_reasoning import SpeechReasoningService
-from app.services.automation import AutomationLoops
+
 from app.cortex import (
     CAPABILITIES,
-    capability_enabled,
+    SCHEMA_VERSION,
     auth_class_from_token,
     authority_allows,
-    wrap_response,
-    get_state_version,
+    capability_enabled,
     get_state_hash,
+    get_state_version,
     increment_state_version,
-    SCHEMA_VERSION,
-    verify_boot_identity,
     record_boot,
     record_run_start,
+    verify_boot_identity,
+    wrap_response,
 )
 from app.physics import (
-    DETERMINISTIC_MODE,
     emit as physics_emit,
-    telemetry,
-    fallback_for,
-    check_economic_risk,
-    validate_identity_immutability,
-    should_silence_for_ethics,
-    get_degradation,
-    require_commit_for_canonical,
-    replenish_evolution_budget,
 )
+from app.physics import (
+    identity_seal,
+    replenish_evolution_budget,
+    telemetry,
+)
+from app.reducers import STRICT_MODE, get_registry_snapshot, is_sanctioned
+from app.routes.api import router as api_router
+from app.routes.auth import router as auth_router
+from app.routes.projects import router as projects_router
+from app.routes.treasury import router as treasury_router
+from app.runtime import (
+    bossbots_service,
+    marketplace_service,
+    memory,
+    mission_service,
+    projects_service,
+    replication_engine,
+    revenue_service,
+    sdg_service,
+    twins_competition,
+)
+from app.services.automation import AutomationLoops
+from app.services.cognitive_twin import CognitiveTwinService
+from app.services.speech_reasoning import SpeechReasoningService
+from app.websockets.hub import ConnectionManager
 
 manager = ConnectionManager()
 speech_reasoning = SpeechReasoningService()
@@ -83,6 +85,33 @@ async def lifespan(app: FastAPI):
     await verify_boot_identity(memory)
     await record_boot(memory)
     await record_run_start(memory)
+    # Seed project registry from config — Bridge API is now the single source of truth
+    try:
+        import json as _json
+        from pathlib import Path as _Path
+        _cfg_path = _Path(__file__).resolve().parents[2] / "config" / "bridge-wall.config.json"
+        if _cfg_path.exists():
+            _cfg = _json.loads(_cfg_path.read_text(encoding="utf-8"))
+            await projects_service.seed_from_config(_cfg)
+        # Wire revenue → treasury unified flow
+        from app.runtime import revenue_service, treasury_service as _ts
+        async def _rev_to_treasury(amount: float, source: str, method: str) -> None:
+            await _ts.collect(amount=amount, currency="BRDG", source_project=source, method=method, type_="revenue")
+        revenue_service.set_treasury_callback(_rev_to_treasury)
+        # Self-register Bridge API
+        await projects_service.register({
+            "id": "bridge-api",
+            "label": "Bridge API",
+            "type": "api",
+            "baseUrl": "http://localhost:8000",
+            "apiUrl": "http://localhost:8000",
+            "health": "/health",
+            "port": 8000,
+            "status": "online",
+            "capabilities": ["state", "twins", "marketplace", "ubi", "replication", "speech", "emotion"],
+        })
+    except Exception:
+        pass
     heartbeat_task = asyncio.create_task(manager.heartbeat())
     from app.services.contract_listener import run_listener
     listener_task = asyncio.create_task(run_listener(memory))
@@ -135,10 +164,8 @@ async def cortex_middleware(request: Request, call_next):
 
 app.include_router(api_router, prefix="/api")
 app.include_router(auth_router, prefix="/api")
-
-from app.reducers import is_sanctioned, STRICT_MODE, get_registry_snapshot
-from app.services.cognitive_twin import CognitiveTwinService
-from app.physics import identity_seal
+app.include_router(projects_router, prefix="/api")
+app.include_router(treasury_router, prefix="/api")
 
 
 @app.post("/api/state")

@@ -1,5 +1,6 @@
 from app.services.memory_store import MemoryStore
 
+
 class MissionService:
     def __init__(self, memory: MemoryStore | None = None):
         self.memory = memory or MemoryStore()

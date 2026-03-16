@@ -1,22 +1,22 @@
 import time
-from typing import Dict
-from app.services.memory_store import MemoryStore
-import time
-from typing import Dict
+from typing import Any, ClassVar
+
 import torch
 import torch.nn.functional as F
-from app.services.memory_store import MemoryStore
+
 from app.services import learning
+from app.services.memory_store import MemoryStore
+
 
 class EmotionService:
-    EMOTIONS = ["neutral", "focused", "confident", "alert", "reflective", "concerned"]
+    EMOTIONS: ClassVar[list[str]] = ["neutral", "focused", "confident", "alert", "reflective", "concerned"]
 
     def __init__(self, memory: MemoryStore | None = None):
         self.memory = memory or MemoryStore()
         self.model = None
         self.use_model = False
 
-    async def compute(self, inputs: Dict) -> Dict:
+    async def compute(self, inputs: dict) -> dict:
         # normalize / extract expected fields
         votes = float(inputs.get("votes", inputs.get("governance_score", 0)))
         backlog = float(inputs.get("backlog", inputs.get("backlog_count", 0)))
@@ -24,7 +24,7 @@ class EmotionService:
         sentiment = float(inputs.get("sentiment", inputs.get("conversation_sentiment", 0.0)))
         health = float(inputs.get("health", inputs.get("system_health", 1.0)))
 
-        record = {"inputs": {"votes": votes, "backlog": backlog, "in_progress": in_progress, "sentiment": sentiment, "health": health}}
+        record: dict[str, Any] = {"inputs": {"votes": votes, "backlog": backlog, "in_progress": in_progress, "sentiment": sentiment, "health": health}}
         timestamp = time.time()
 
         if self.use_model and self.model is not None:

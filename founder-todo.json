@@ -1,12 +1,12 @@
 {
   "version": 1,
-  "updatedAt": "2026-03-15T16:00:00.0000000Z",
+  "updatedAt": "2026-03-16T11:44:43.199103Z",
   "objectives": [
     {
       "id": "obj-1",
       "title": "Ship Phase 4 - Frontend Control Surface",
       "status": "complete",
-      "completedAt": "2026-02-23T23:02:58.3664285+02:00"
+      "completedAt": "2026-03-16T11:44:43.199103Z"
     },
     {
       "id": "obj-2",

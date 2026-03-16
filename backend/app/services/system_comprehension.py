@@ -8,8 +8,8 @@ If comprehension confidence < threshold → request clarification or silence.
 """
 from __future__ import annotations
 
-from dataclasses import dataclass, field
-from typing import Optional
+from dataclasses import dataclass
+from typing import Any
 
 # =============================================================================
 # Structural Mapping Layer — Canonical system graph
@@ -20,7 +20,7 @@ MISSION_VECTOR = (
     "of value-creating systems. Long-term compounding over short-term extraction."
 )
 
-SYSTEM_ARCHITECTURE = {
+SYSTEM_ARCHITECTURE: dict[str, Any] = {
     "components": [
         {"id": "mission_board", "role": "Track backlog, in-progress, review, done"},
         {"id": "cognitive_twin", "role": "Decision engine, behavioral simulation, evolution loop"},
@@ -191,7 +191,7 @@ class SystemComprehensionService:
         """Twin's function, authority boundaries, decision constraints."""
         return ROLE_HIERARCHY
 
-    def check_alignment(self, action: str, context: Optional[dict] = None) -> AlignmentResult:
+    def check_alignment(self, action: str, context: dict | None = None) -> AlignmentResult:
         """
         Alignment filter. Reject if action ∉ Mission or violates governance or reduces long-term value.
         """
@@ -223,7 +223,7 @@ class SystemComprehensionService:
             clarification_needed=True,
         )
 
-    def filter_action(self, action: str, context: Optional[dict] = None) -> tuple[bool, str]:
+    def filter_action(self, action: str, context: dict | None = None) -> tuple[bool, str]:
         """
         Bridge_Aligned_Action filter. Returns (pass, reason).
         If not aligned → reject. Silence > misalignment.

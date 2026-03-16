@@ -6,10 +6,9 @@ Functional speech embodiment. Not cosmetic chatter.
 from __future__ import annotations
 
 import re
-import asyncio
 from collections import deque
-from dataclasses import dataclass, field
-from typing import Optional
+from dataclasses import dataclass
+
 
 # Lazy import to avoid circular deps
 def _get_system_comprehension():
@@ -199,9 +198,9 @@ class SpeechEmbodimentService:
     def process(
         self,
         transcript_or_prompt: str,
-        context: Optional[dict] = None,
-        audience_model: Optional[dict] = None,
-    ) -> tuple[EmbodyOutput, Optional[dict]]:
+        context: dict | None = None,
+        audience_model: dict | None = None,
+    ) -> tuple[EmbodyOutput, dict | None]:
         """
         Full pipeline: Language Engine → Emotional Modulation → Phoneme Sequence.
         Returns (EmbodyOutput, execution_plan or None).
@@ -212,7 +211,7 @@ class SpeechEmbodimentService:
         context["dialogue_history"] = list(self._memory)
 
         result = engine.process(transcript_or_prompt, context=context)
-        out_dict = engine.to_dict(result)
+        engine.to_dict(result)
 
         # Semantic confidence check
         confidence = result.confidence

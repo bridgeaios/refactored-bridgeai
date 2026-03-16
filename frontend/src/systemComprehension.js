@@ -108,7 +108,7 @@ export function initSystemComprehension() {
     <button class="sys-btn" data-level="1">Explain (Simple)</button>
     <button class="sys-btn" data-level="2">Explain (Operational)</button>
     <button class="sys-btn" data-level="3">Explain (Strategic)</button>
-    <div id="sys-result" style="margin-top:6px;font-size:11px;color:#8ac;max-height:80px;overflow:auto;"></div>
+    <div id="sys-result" style="margin-top:6px;font-size:11px;color:#8ac;max-height:160px;overflow:auto;white-space:pre-wrap;word-break:break-word;"></div>
   `;
   container.appendChild(panel);
 
@@ -119,7 +119,20 @@ export function initSystemComprehension() {
       const level = parseInt(btn.getAttribute('data-level'), 10);
       resultEl.textContent = 'Loading...';
       const data = await explainSystem(level);
-      resultEl.textContent = data?.text || (data ? JSON.stringify(data) : 'Unavailable');
+      if (!data) {
+        resultEl.textContent = 'Unavailable';
+        return;
+      }
+      const explanation = data.explanation;
+      if (typeof explanation === 'string') {
+        resultEl.textContent = explanation;
+      } else if (explanation && typeof explanation === 'object') {
+        resultEl.textContent = Object.entries(explanation)
+          .map(([k, v]) => `${k}: ${typeof v === 'object' ? JSON.stringify(v) : v}`)
+          .join('\n\n');
+      } else {
+        resultEl.textContent = JSON.stringify(data);
+      }
     });
   });
 }

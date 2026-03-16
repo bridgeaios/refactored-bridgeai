@@ -8,7 +8,6 @@ from __future__ import annotations
 
 import asyncio
 import os
-from typing import Optional
 
 ENABLED = os.environ.get("BRIDGE_CONTRACT_LISTENER", "0") == "1"
 CONTRACT_ADDRESS = os.environ.get("BRIDGE_CONTRACT_ADDRESS", "")

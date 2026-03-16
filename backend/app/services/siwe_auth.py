@@ -9,7 +9,6 @@ from __future__ import annotations
 import os
 import re
 import time
-from typing import Optional
 
 import jwt
 from eth_account import Account
@@ -35,7 +34,7 @@ MSG_PATTERN = re.compile(
 )
 
 
-def parse_siwe_message(message: str) -> Optional[tuple[str, str, str]]:
+def parse_siwe_message(message: str) -> tuple[str, str, str] | None:
     """Parse (domain, address, nonce) from SIWE-style message. Returns None if invalid."""
     m = MSG_PATTERN.search(message.strip())
     if not m:
@@ -44,7 +43,7 @@ def parse_siwe_message(message: str) -> Optional[tuple[str, str, str]]:
     return domain, address, nonce
 
 
-def verify_signature(message: str, signature: str) -> Optional[str]:
+def verify_signature(message: str, signature: str) -> str | None:
     """Recover signer address from message + signature. Returns address or None."""
     try:
         msg_hash = encode_defunct(text=message)
@@ -71,7 +70,7 @@ def create_jwt(address: str, authority: str = "economic") -> str:
     return jwt.encode(payload, JWT_SECRET, algorithm="HS256")
 
 
-def verify_jwt(token: str) -> Optional[dict]:
+def verify_jwt(token: str) -> dict | None:
     """Verify JWT and return payload or None."""
     try:
         payload = jwt.decode(token, JWT_SECRET, algorithms=["HS256"])

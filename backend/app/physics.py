@@ -8,13 +8,13 @@ Without these, evolution becomes folklore.
 """
 from __future__ import annotations
 
-import os
-import time
 import hashlib
 import json
-from dataclasses import dataclass, field
-from typing import Any, Callable, Optional
+import os
+import time
 from collections import deque
+from dataclasses import dataclass, field
+from typing import Callable
 
 # =============================================================================
 # 1. Determinism Layer — Same inputs + state → same output. Auditability.
@@ -111,7 +111,7 @@ def set_degradation_level(level: int) -> None:
     _current_degradation_level = max(0, min(3, level))
 
 
-FAILURE_FALLBACKS = {
+FAILURE_FALLBACKS: dict[str, dict] = {
     "tts": {"phonemes_only": True, "audio_base64": None},
     "emotion": {"state": "neutral", "score": 0.0},
     "state_mutation_rejected": {"ok": False, "silence": True},

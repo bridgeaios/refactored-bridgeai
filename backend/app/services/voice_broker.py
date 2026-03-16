@@ -1,7 +1,6 @@
 import os
+
 import aiohttp
-import asyncio
-from typing import AsyncIterator
 
 ELEVEN_API = os.getenv("ELEVEN_API_KEY")
 LOCAL_TTS = os.getenv("LOCAL_TTS_URL")

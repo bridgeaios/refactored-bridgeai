@@ -3,28 +3,51 @@ import { API_BASE } from './config.js';
 export function initSkillsPanel(){
     const panel = document.getElementById('skillsPanel');
     panel.innerHTML = `
-        <input id="skillInput" type="text" placeholder="Add skill...">
-        <button id="addSkill">Add</button>
-        <ul id="skillsList"></ul>
+        <h4 style="margin:0 0 6px 0;font-size:10px;text-transform:uppercase;letter-spacing:.08em;color:#f59e0b;">Skills</h4>
+        <div style="display:flex;gap:4px;margin-bottom:6px">
+          <input id="skillInput" type="text" placeholder="Add skill..." style="flex:1;min-width:0">
+          <button id="addSkill">+</button>
+        </div>
+        <ul id="skillsList" style="margin:0;padding-left:14px;max-height:120px;overflow-y:auto"></ul>
     `;
     const addButton = document.getElementById('addSkill');
     const input = document.getElementById('skillInput');
     const list = document.getElementById('skillsList');
     let skills = [];
-    addButton.addEventListener('click', () => {
+
+    async function loadSkills() {
+        try {
+            const res = await fetch(`${API_BASE}/api/skills`);
+            if (res.ok) {
+                const data = await res.json();
+                skills = (data.skills || []).map(s => s.name || String(s));
+                updateList();
+            }
+        } catch (e) { console.warn('skills load failed', e); }
+    }
+
+    addButton.addEventListener('click', async () => {
         const skill = input.value.trim();
         if (!skill) return;
         skills.push(skill);
         updateList();
         input.value = '';
-        setTimeout(async () => {
-            try { await fetch(`${API_BASE}/api/skills`, { method: 'POST', headers: {'Content-Type':'application/json'}, body: JSON.stringify({ name: skill, tags: [], description: '' }) }); }
-            catch (e) { console.warn('skill post failed', e); }
-        }, 0);
+        try {
+            await fetch(`${API_BASE}/api/skills`, {
+                method: 'POST',
+                headers: {'Content-Type':'application/json'},
+                body: JSON.stringify({ name: skill, tags: [], description: '' })
+            });
+        } catch (e) { console.warn('skill post failed', e); }
     });
+
+    input.addEventListener('keydown', (e) => { if (e.key === 'Enter') addButton.click(); });
+
     function updateList(){
-        list.innerHTML = skills.map(s => `<li>${s} <button class="edit">Edit</button></li>`).join('');
+        list.innerHTML = skills.map(s => `<li style="margin-bottom:2px">${s}</li>`).join('');
     }
+
+    loadSkills();
 }
 export class SkillsPanel {
   constructor(el, ws, mission, emotion){

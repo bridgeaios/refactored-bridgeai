@@ -1,8 +1,10 @@
-import os
-import json
 import asyncio
+import json
+import os
 from pathlib import Path
+
 from redis.asyncio import from_url
+
 
 class MemoryStore:
     def __init__(self):
@@ -124,7 +126,7 @@ class MemoryStore:
             state = await self._read_file_state()
             cur = state.get(key)
             try:
-                cur_i = int(cur)
+                cur_i = int(cur) if cur is not None else 0
             except Exception:
                 cur_i = 0
             cur_i += 1

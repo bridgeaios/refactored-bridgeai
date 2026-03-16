@@ -6,14 +6,13 @@ In production this would integrate with the blockchain service to mint
 and transfer tokens, persist claim timestamps to a DB, and enforce rate limits.
 """
 import time
-from typing import Dict
 
 
 class UbiService:
     def __init__(self):
         self.period = 86400  # seconds (daily)
         self.amount = 100  # BRDG tokens per claim (simulated)
-        self._last_claim: Dict[str, float] = {}  # address -> timestamp
+        self._last_claim: dict[str, float] = {}  # address -> timestamp
 
     def can_claim(self, address: str) -> bool:
         last = self._last_claim.get(address)

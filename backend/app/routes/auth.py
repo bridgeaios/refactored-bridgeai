@@ -4,17 +4,16 @@ SIWE Auth Routes — Backend signature verification, nonce replay protection, JW
 from fastapi import APIRouter, HTTPException, Request
 from pydantic import BaseModel
 
-from app.services.memory_store import MemoryStore
+from app.cortex import wrap_response
 from app.services.siwe_auth import (
-    parse_siwe_message,
-    verify_signature,
-    verify_domain,
     create_jwt,
     is_nonce_used,
+    parse_siwe_message,
     store_nonce_used,
+    verify_domain,
     verify_onchain_role,
+    verify_signature,
 )
-from app.cortex import wrap_response
 
 router = APIRouter()
 

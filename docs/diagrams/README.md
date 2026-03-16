@@ -4,6 +4,13 @@ Diagrams (draw.io / mxGraph) for Bridge AI OS. Open `.drawio`, `.drawio.xml`, or
 
 ---
 
+## System Map — sync live with Google & Draw.io
+
+- **System Map (live):** [http://localhost:4201/system-map.html](http://localhost:4201/system-map.html) — Determinator Boot Agent; lists and links all systems (Determinator, Bridge API, Frontend, Gateway, Join, Agents, Dashboard, Docs, 50 Apps, Taurus, Console 3022, Production API) with live status. **Sync:** same map is reflected in Google Drive and Draw.io; open the shared diagram in [Google Drive](https://drive.google.com/file/d/1aebwruTyIYZYe8fkOn8R9njOtcL82z0c/view?usp=sharing) or in [app.diagrams.net](https://app.diagrams.net/) (File → Open from → Google Drive), or edit **system-map.drawio.xml** in this folder and re-upload to Drive to keep in sync.
+- **system-map.drawio.xml** — Draw.io diagram of the same systems as the 4201 System Map; open in VS Code (Draw.io extension) or in app.diagrams.net. Edit here and optionally sync to Google Drive for team access.
+
+---
+
 ## BRIDGE.DRAWIO and Digital Ecosystem
 
 - **BRIDGE.DRAWIO** — Canonical Bridge AI OS architecture diagram. Edit in VS Code (hediet.vscode-drawio) or in [app.diagrams.net](https://app.diagrams.net/). Sync to [Google Drive](https://drive.google.com/drive) for team access.

@@ -3,7 +3,7 @@ Speech Communication Reasoning Layer — BRIDGE AI OS
 Never let raw speech directly trigger execution. This is the buffer.
 """
 import re
-from dataclasses import dataclass, field
+from dataclasses import dataclass
 from typing import Optional
 
 # Filler patterns (case-insensitive, whole-word)
@@ -140,7 +140,7 @@ class SpeechReasoningService:
             if hits > 0:
                 scores[intent] = hits
         if scores:
-            return max(scores, key=scores.get)
+            return max(scores, key=lambda k: scores[k])
         # Default: conversational statement
         return "conversational"
 
@@ -203,13 +203,19 @@ class SpeechReasoningService:
             sys_comp = SystemComprehensionService()
             if "detail" in lower or "operational" in lower:
                 expl = sys_comp.explain(2)
-                flow = expl.get("flow", "")
-                comps = ", ".join(expl.get("components", [])[:4])
-                return (f"Operational: {flow} Key components: {comps}.", None)
+                if isinstance(expl, dict):
+                    flow = expl.get("flow", "")
+                    comps = ", ".join(expl.get("components", [])[:4])
+                    return (f"Operational: {flow} Key components: {comps}.", None)
+                return (str(expl), None)
             if "strategic" in lower or "long-term" in lower:
                 expl = sys_comp.explain(3)
-                return (expl.get("strategic", sys_comp.explain(1)), None)
-            return (sys_comp.explain(1), None)
+                if isinstance(expl, dict):
+                    strategic = expl.get("strategic", sys_comp.explain(1))
+                    return (str(strategic), None)
+                return (str(expl), None)
+            result = sys_comp.explain(1)
+            return (str(result), None)
 
         # Identity / About — I am the Bridge. I am the Founder. I am the System. I am the Authority.
         if intent == "identity":

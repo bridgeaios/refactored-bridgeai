@@ -1,0 +1,191 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Agents — Bridge AI OS</title>
+  <script>if(typeof window.__API_BASE==="undefined")window.__API_BASE="";</script>
+  <script src="https://cdn.tailwindcss.com"></script>
+  <link rel="icon" href="/favicon.svg" type="image/svg+xml">
+  <style>
+    .agent-card { transition: transform 0.2s, box-shadow 0.2s; }
+    .agent-card:hover { transform: translateY(-2px); box-shadow: 0 10px 25px -5px rgba(0,0,0,0.2); }
+  </style>
+</head>
+<body class="bg-slate-50 font-sans antialiased">
+
+  <nav class="bg-slate-800 text-white p-4 flex flex-wrap justify-between items-center sticky top-0 z-50 shadow-lg">
+    <a href="/" class="text-xl font-bold hover:text-amber-300">Bridge AI OS</a>
+    <ul class="flex flex-wrap gap-4 mt-2 md:mt-0">
+      <li><a href="/" class="hover:text-amber-300">Digital Twin</a></li>
+      <li><a href="/executive-dashboard.html" class="hover:text-amber-300">Dashboard</a></li>
+      <li><a href="/50-applications.html" class="hover:text-amber-300">50 Applications</a></li>
+      <li><a href="/landing.html" class="hover:text-amber-300">Landing</a></li>
+      <li><a href="/gateway/" class="hover:text-amber-300">Gateway</a></li>
+      <li><a href="/join.html" class="hover:text-amber-300">Join as Agent</a></li>
+      <li><a href="/settings.html" class="hover:text-amber-300">Settings</a></li>
+      <li><a href="/docs.html" class="hover:text-amber-300">Docs</a></li>
+      <li><a href="/agents.html" class="text-amber-300 font-semibold">Agents</a></li>
+    </ul>
+  </nav>
+
+  <main class="p-4 md:p-6 max-w-6xl mx-auto space-y-8">
+    <header>
+      <h1 class="text-3xl font-bold text-slate-800">Agents & Digital Twins</h1>
+      <p class="text-slate-600 mt-1">All registered twins, replication status, and live leaderboard.</p>
+    </header>
+
+    <!-- Replication & nodes summary -->
+    <section class="grid grid-cols-1 md:grid-cols-2 gap-4">
+      <div class="bg-white p-5 rounded-lg shadow-md border border-slate-200">
+        <h2 class="text-lg font-semibold text-slate-800 mb-3">Replication Status</h2>
+        <div id="replication-status" class="text-sm text-slate-600 space-y-1">Loading…</div>
+      </div>
+      <div class="bg-white p-5 rounded-lg shadow-md border border-slate-200">
+        <h2 class="text-lg font-semibold text-slate-800 mb-3">Replication Nodes</h2>
+        <div id="replication-nodes" class="text-sm text-slate-600">Loading…</div>
+      </div>
+    </section>
+
+    <!-- All agents / twins -->
+    <section class="bg-white rounded-lg shadow-md border border-slate-200 overflow-hidden">
+      <h2 class="text-lg font-semibold text-slate-800 p-4 border-b border-slate-200">All Agents (Twins)</h2>
+      <div id="agents-list" class="p-4 grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">Loading…</div>
+    </section>
+
+    <!-- Leaderboard (from live report) -->
+    <section class="bg-white rounded-lg shadow-md border border-slate-200 overflow-hidden">
+      <h2 class="text-lg font-semibold text-slate-800 p-4 border-b border-slate-200">Leaderboard (Live)</h2>
+      <div id="leaderboard" class="p-4">Loading…</div>
+    </section>
+
+    <!-- Live report summary -->
+    <section class="bg-slate-100 p-4 rounded-lg text-sm text-slate-600">
+      <h2 class="font-semibold text-slate-800 mb-2">Live Report</h2>
+      <div id="live-report-meta">—</div>
+    </section>
+  </main>
+
+  <script>
+(function() {
+  const API_BASE = (typeof window !== 'undefined' && window.__API_BASE) ? String(window.__API_BASE).replace(/\/$/, '') : '';
+  const api = (path) => (API_BASE ? API_BASE + path : path);
+
+  async function get(path) {
+    try {
+      const r = await fetch(api(path));
+      return r.ok ? await r.json() : null;
+    } catch (e) { return null; }
+  }
+
+  function escapeHtml(s) {
+    if (s == null) return '';
+    const div = document.createElement('div');
+    div.textContent = String(s);
+    return div.innerHTML;
+  }
+
+  async function loadReplicationStatus() {
+    const data = await get('/api/replication/status');
+    const el = document.getElementById('replication-status');
+    if (!el) return;
+    if (!data) {
+      el.innerHTML = '<p class="text-red-600">Unable to load replication status</p>';
+      return;
+    }
+    el.innerHTML =
+      '<p><strong>Twin count:</strong> ' + (data.twin_count != null ? data.twin_count : '—') + '</p>' +
+      '<p><strong>Open tasks:</strong> ' + (data.open_tasks != null ? data.open_tasks : '—') + '</p>' +
+      '<p><strong>Last run:</strong> ' + (data.last_run_ts ? new Date(data.last_run_ts).toLocaleString() : '—') + '</p>' +
+      '<p><strong>Rules evaluated:</strong> ' + (data.rules_evaluated != null ? data.rules_evaluated : '—') + '</p>' +
+      '<p><strong>Twins created:</strong> ' + (data.twins_created != null ? data.twins_created : '—') + '</p>';
+  }
+
+  async function loadReplicationNodes() {
+    const data = await get('/api/replication/nodes');
+    const el = document.getElementById('replication-nodes');
+    if (!el) return;
+    if (!data || !Array.isArray(data.nodes)) {
+      el.innerHTML = '<p class="text-slate-500">No nodes or unable to load</p>';
+      return;
+    }
+    if (data.nodes.length === 0) {
+      el.innerHTML = '<p class="text-slate-500">No nodes registered</p>';
+      return;
+    }
+    el.innerHTML = '<ul class="list-disc pl-4 space-y-1">' + data.nodes.map(function(n) {
+      return '<li>' + escapeHtml(n.node_id || n.url || JSON.stringify(n)) + '</li>';
+    }).join('') + '</ul>';
+  }
+
+  async function loadAgents() {
+    const data = await get('/api/twins');
+    const el = document.getElementById('agents-list');
+    if (!el) return;
+    if (!data || !Array.isArray(data)) {
+      el.innerHTML = '<p class="text-red-600">Unable to load agents</p>';
+      return;
+    }
+    if (data.length === 0) {
+      el.innerHTML = '<p class="text-slate-500">No twins registered</p>';
+      return;
+    }
+    el.innerHTML = data.map(function(t) {
+      return '<div class="agent-card bg-slate-50 border border-slate-200 rounded-lg p-4">' +
+        '<p class="font-semibold text-slate-800">' + escapeHtml(t.name || t.id) + '</p>' +
+        '<p class="text-xs text-slate-500 mt-1">ID: ' + escapeHtml(t.id) + '</p>' +
+        '<p class="text-sm mt-2">Completed: ' + (t.completed != null ? t.completed : '—') + ' · In progress: ' + (t.in_progress != null ? t.in_progress : '—') + '</p>' +
+        '<p class="text-sm">Score: ' + (t.total_score != null ? t.total_score : '—') + ' · Trades: ' + (t.trades_executed != null ? t.trades_executed : '—') + '</p>' +
+        '</div>';
+    }).join('');
+  }
+
+  async function loadLeaderboard() {
+    const data = await get('/api/live/report');
+    const el = document.getElementById('leaderboard');
+    if (!el) return;
+    var list = (data && data.leaderboard && Array.isArray(data.leaderboard)) ? data.leaderboard : null;
+    if (!list || list.length === 0) {
+      var fallback = await get('/api/twins/leaderboard');
+      list = (fallback && Array.isArray(fallback)) ? fallback : [];
+    }
+    if (list.length === 0) {
+      el.innerHTML = '<p class="text-slate-500">No leaderboard data</p>';
+      return;
+    }
+    el.innerHTML = '<ol class="list-decimal list-inside space-y-2">' + list.map(function(t, i) {
+      var rank = t.rank != null ? t.rank : (i + 1);
+      return '<li class="flex flex-wrap gap-2 items-center">' +
+        '<span class="font-semibold text-slate-800">' + escapeHtml(t.name || t.id) + '</span>' +
+        '<span class="text-slate-500">(score: ' + (t.total_score != null ? t.total_score : (t.completed != null ? t.completed : '—')) + ')</span>' +
+        '</li>';
+    }).join('') + '</ol>';
+  }
+
+  async function loadLiveReportMeta() {
+    const data = await get('/api/live/report');
+    const el = document.getElementById('live-report-meta');
+    if (!el) return;
+    if (!data) {
+      el.textContent = 'Unable to load live report';
+      return;
+    }
+    el.innerHTML = 'Report at: ' + (data.report_at || '—') + ' · Twins in report: ' + (data.twins ? data.twins.length : 0) + ' · Leaderboard entries: ' + (data.leaderboard ? data.leaderboard.length : 0);
+  }
+
+  async function refreshAll() {
+    await loadReplicationStatus();
+    await loadReplicationNodes();
+    await loadAgents();
+    await loadLeaderboard();
+    await loadLiveReportMeta();
+  }
+
+  if (document.readyState === 'loading') document.addEventListener('DOMContentLoaded', refreshAll);
+  else refreshAll();
+
+  setInterval(refreshAll, 15000);
+})();
+  </script>
+</body>
+</html>

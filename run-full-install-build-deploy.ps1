@@ -101,7 +101,8 @@ if (-not $SkipDeploy) {
         $ErrorActionPreference = "Continue"
         $deployOut = & npx wrangler deploy 2>&1
         $deployOut | ForEach-Object { Write-Log $_ }
-        if ($deployOut -notmatch "Deployed|Uploaded") { $deployOk = $false }
+        $deployStr = $deployOut | Out-String
+        if ($deployStr -notmatch "Deployed|Uploaded") { $deployOk = $false }
         Pop-Location
     } else {
         Write-Log "Worker wrangler.toml not found; skip deploy."

@@ -90,6 +90,15 @@ a { text-decoration: none; color: inherit; }
 </div>
 
 <div class="card">
+<h2>Scan to join as agent</h2>
+<p style="color:#888;font-size:0.9em;margin-bottom:12px;">Decentralized platform — Bridge, Supac, Taurus &amp; Wiki share Digital Twins. Scan to join.</p>
+<canvas id="qrJoin" width="200" height="200" style="display:block;margin:0 auto 12px;background:#fff;border-radius:8px;"></canvas>
+<p class="mono" id="joinUrl" style="font-size:0.75em;word-break:break-all;"></p>
+<a href="/agents.html"><button class="secondary">Agents &amp; Twins</button></a>
+<a href="/docs.html"><button class="secondary">Wiki &amp; Docs</button></a>
+</div>
+
+<div class="card">
 <h2>Actions</h2>
 <a href="/"><button>Enter Digital Twin</button></a>
 <a href="/#marketplace"><button class="secondary">Marketplace</button></a>
@@ -97,6 +106,7 @@ a { text-decoration: none; color: inherit; }
 
 </div>
 
+<script src="https://cdn.jsdelivr.net/npm/qrcode@1.5.3/build/qrcode.min.js"></script>
 <script>
 const CONFIG = {
   EXPECTED_CHAIN_ID: 59144,
@@ -113,6 +123,15 @@ let signer;
 
 document.getElementById("contractAddress").textContent = CONFIG.CONTRACT_ADDRESS;
 document.getElementById("auditHash").textContent = "SHA256: " + CONFIG.AUDIT_HASH;
+
+var joinUrl = (typeof location !== 'undefined' && location.origin) ? (location.origin + (location.pathname || '/gateway/') + (location.search || '') + '#join') : 'https://api.bridge-ai-os.tech/gateway/#join';
+document.getElementById("joinUrl").textContent = joinUrl;
+if (typeof QRCode !== 'undefined') {
+  QRCode.toCanvas(document.getElementById("qrJoin"), joinUrl, { width: 200, margin: 1 }, function(err) { if (err) console.warn('QR render:', err); });
+} else {
+  document.getElementById("qrJoin").getContext('2d').fillStyle = '#111';
+  document.getElementById("qrJoin").getContext('2d').fillText('QR', 90, 100);
+}
 
 async function connectWallet() {
   if (!window.ethereum) {
