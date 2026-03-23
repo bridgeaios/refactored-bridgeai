@@ -6,6 +6,7 @@ from pathlib import Path
 from typing import Any
 
 from fastapi import FastAPI, HTTPException, Request, WebSocket, WebSocketDisconnect
+from fastapi.responses import JSONResponse
 
 
 # Load env API keys for Digital Twin: prefer explicit process env, but replace blank inherited values
@@ -155,6 +156,31 @@ async def lifespan(app: FastAPI):
 
 
 app = FastAPI(title="Bridge AI OS", lifespan=lifespan)
+
+# --- BridgeError global exception handler ---
+from app.core.errors import (  # noqa: E402
+    AuthError,
+    BridgeError,
+    EconomicGateError,
+    NetworkError,
+    NotFoundError,
+    ValidationError as BridgeValidationError,
+    error_response,
+)
+
+_BRIDGE_STATUS_MAP: dict[type, int] = {
+    NotFoundError: 404,
+    BridgeValidationError: 422,
+    EconomicGateError: 402,
+    AuthError: 401,
+    NetworkError: 503,
+}
+
+
+@app.exception_handler(BridgeError)
+async def bridge_error_handler(_request: Request, exc: BridgeError) -> JSONResponse:
+    status = _BRIDGE_STATUS_MAP.get(type(exc), 500)
+    return JSONResponse(status_code=status, content=error_response(exc))
 
 _CANONICAL_OPENAPI_PATH = Path(__file__).resolve().parents[2] / "openapi.json"
 
