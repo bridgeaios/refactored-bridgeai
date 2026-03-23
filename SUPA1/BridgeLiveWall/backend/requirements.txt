@@ -1,0 +1,17 @@
+numpy>=1.24
+fastapi
+uvicorn[standard]
+httpx
+aiohttp
+redis>=5.0.0
+pydantic
+python-multipart
+websockets
+eth-account>=0.10.0
+PyJWT>=2.8.0
+web3>=6.0.0
+pytest>=8.0.0
+pytest-asyncio>=0.24.0
+ruff>=0.6.0
+mypy>=1.11.0
+requests>=2.28.0

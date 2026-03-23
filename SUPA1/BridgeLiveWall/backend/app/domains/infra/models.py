@@ -1,0 +1,45 @@
+"""Pydantic schemas for the infra domain."""
+from __future__ import annotations
+
+from typing import Any, Optional
+
+from pydantic import BaseModel, Field
+
+
+class HealthResponse(BaseModel):
+    ok: bool = True
+    status: str = "ok"
+    service: str = "bridge-api"
+
+
+class SiweLoginRequest(BaseModel):
+    message: str
+    signature: str
+    address: str
+
+
+class SiweLoginResponse(BaseModel):
+    ok: bool
+    token: Optional[str] = None
+    message: Optional[str] = None
+
+
+class CliCommandRequest(BaseModel):
+    command: str
+    args: list[str] = Field(default_factory=list)
+    context: dict[str, Any] = Field(default_factory=dict)
+
+
+class TelemetrySnapshot(BaseModel):
+    timestamp: float
+    metrics: dict[str, Any] = Field(default_factory=dict)
+
+
+class MemoryGetRequest(BaseModel):
+    key: str
+
+
+class MemorySetRequest(BaseModel):
+    key: str
+    value: Any
+    ttl: Optional[int] = None
