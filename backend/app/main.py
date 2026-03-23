@@ -249,6 +249,15 @@ app.include_router(economy_domain_router, prefix="/api")
 from app.domains.infra.router import router as infra_domain_router  # noqa: E402
 app.include_router(infra_domain_router, prefix="/api")
 
+from app.domains.twins.router import router as twins_domain_router  # noqa: E402
+app.include_router(twins_domain_router, prefix="/api")
+
+from app.domains.governance.router import router as governance_domain_router  # noqa: E402
+app.include_router(governance_domain_router, prefix="/api")
+
+from app.domains.network.router import router as network_domain_router  # noqa: E402
+app.include_router(network_domain_router, prefix="/api")
+
 
 def _require_auth(request: Request) -> str:
     """Validate auth token for ingestion endpoints."""
