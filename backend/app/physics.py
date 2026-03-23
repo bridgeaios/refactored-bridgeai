@@ -225,6 +225,18 @@ def get_baseline_drift() -> dict:
     combined = (silence_dev + min(1, latency_dev) + min(1, econ_dev)) / 3
     if combined > DRIFT_DEVIATION_THRESHOLD:
         emit("system_drift", {"deviation": combined, "silence_dev": silence_dev, "latency_dev": latency_dev})
+    
+    # Push to Prometheus telemetry
+    try:
+        from app.services.telemetry import get_telemetry
+        _telem = get_telemetry()
+        _telem.record_drift("system", combined)
+        _telem.update_entropy(telemetry.system_entropy_score)
+        if dl:
+            _telem.update_swarm_latency(p50, dl[int(len(dl) * 0.99)] if len(dl) > 1 else p50)
+    except Exception:
+        pass  # Telemetry is optional
+    
     return {
         "silence_deviation": round(silence_dev, 4),
         "latency_deviation": round(latency_dev, 4),
@@ -566,7 +578,7 @@ def replenish_evolution_budget(amount: float, source: str = "unknown") -> None:
 # 12. Drift Detection — Immune system logic
 # =============================================================================
 
-DRIFT_THRESHOLD = float(os.environ.get("BRIDGE_DRIFT_THRESHOLD", "0.8"))
+DRIFT_THRESHOLD = float(os.environ.get("BRIDGE_DRIFT_THRESHOLD", "0.5"))
 _baseline_mission_vector = "poverty reduction, value creation, long-term compounding, integrity"
 
 
