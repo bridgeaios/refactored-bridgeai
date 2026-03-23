@@ -4,7 +4,9 @@ from pathlib import Path
 import pytest
 import requests
 
-_BACKEND_ROOT = Path(__file__).resolve().parents[1]
+# Backend root (so the subprocess can import `app.*`).
+# tests/e2e/conftest.py -> backend/tests/e2e -> backend/tests -> backend
+_BACKEND_ROOT = Path(__file__).resolve().parents[2]
 
 
 @pytest.fixture(scope="session", autouse=True)
