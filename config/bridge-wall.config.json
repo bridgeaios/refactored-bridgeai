@@ -218,6 +218,16 @@
     ]
   },
 
+  "ban": {
+    "identity": "BRIDGE AUTONOMOUS NETWORK BAN — Unified Identity Integrated with Mike",
+    "domains": ["ban.systems", "bridgeautonomous.network"],
+    "modules": {
+      "ops": { "legacy": "Integr8 AI", "subdomain": "ops.ban.systems" },
+      "agency": { "legacy": "Agency-OS", "subdomain": "agency.ban.systems" },
+      "search": { "legacy": "Finder AI", "subdomain": "search.ban.systems" },
+      "property": { "legacy": "Cornerstone", "subdomain": "property.ban.systems" }
+    }
+  },
   "integratedPlatforms": {
     "description": "Bridge, Supac, Taurus and Wiki — fully integrated; all share the same Digital Twin registry and state.",
     "bridge": {
@@ -234,7 +244,8 @@
     },
     "taurus": {
       "label": "Taurus",
-      "path": "C:\\Users\\supas\\Videos\\MM\\M TAURUS",
+      "path": "C:\\Users\\supas\\bridge-ai-os\\taurus",
+      "altPath": "C:\\Users\\supas\\Videos\\MM\\M TAURUS",
       "port": 4202,
       "baseUrl": "http://localhost:4202",
       "shareTwins": true

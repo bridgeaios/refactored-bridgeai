@@ -4,9 +4,11 @@
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>Executive Dashboard — Bridge AI OS</title>
+  <script src="/bridge-api-config.js"></script>
   <script>if(typeof window.__API_BASE==="undefined")window.__API_BASE="";</script>
   <script src="https://cdn.tailwindcss.com"></script>
   <link rel="icon" href="/favicon.svg" type="image/svg+xml">
+  <link rel="stylesheet" href="/mobile-friendly.css">
   <style>
     .card { background:#fff; border-radius:10px; box-shadow:0 1px 6px rgba(0,0,0,.07); border:1px solid #e2e8f0; padding:1.25rem; }
     .metric-val { font-size:1.8rem; font-weight:700; color:#1e293b; line-height:1; }
@@ -21,23 +23,34 @@
     .key-placeholder { color:#d97706; }
     #refresh-btn { cursor:pointer; }
   </style>
+  <link rel="stylesheet" href="/bridge-theme.css">
+  <script src="/bridge-shell.js"></script>
 </head>
 <body class="bg-slate-100 font-sans antialiased">
 
-  <nav class="bg-slate-800 text-white px-4 py-3 flex flex-wrap justify-between items-center sticky top-0 z-50 shadow-lg">
-    <a href="/" class="text-lg font-bold hover:text-amber-300">Bridge AI OS</a>
-    <ul class="flex flex-wrap gap-3 text-sm mt-1 md:mt-0">
-      <li><a href="/" class="hover:text-amber-300">Digital Twin</a></li>
-      <li><a href="/executive-dashboard.html" class="text-amber-300 font-semibold">Dashboard</a></li>
-      <li><a href="/agents.html" class="hover:text-amber-300">Agents</a></li>
-      <li><a href="/50-applications.html" class="hover:text-amber-300">50 Apps</a></li>
-      <li><a href="/gateway/" class="hover:text-amber-300">Gateway</a></li>
-      <li><a href="/join.html" class="hover:text-amber-300">Join</a></li>
-      <li><a href="/settings.html" class="hover:text-amber-300">Settings</a></li>
-      <li><a href="/docs.html" class="hover:text-amber-300">Docs</a></li>
-      <li><a href="http://localhost:4201/system-map.html" target="_blank" class="hover:text-amber-300">System Map</a></li>
-    </ul>
-    <button id="refresh-btn" class="ml-4 text-slate-400 hover:text-amber-300 text-lg" title="Refresh">↻</button>
+  <nav class="bridge-nav bg-slate-800 text-white px-4 py-3 flex flex-wrap justify-between items-center sticky top-0 z-50 shadow-lg">
+    <a href="/" class="bridge-nav-brand text-lg font-bold hover:text-amber-300">Bridge AI OS</a>
+    <button class="bridge-nav-toggle" aria-label="Toggle menu">☰</button>
+    <div class="bridge-nav-links">
+      <ul class="flex flex-wrap gap-3 text-sm mt-1 md:mt-0">
+        <li><a href="/" class="hover:text-amber-300">Digital Twin</a></li>
+        <li><a href="/dashboards.html" class="hover:text-amber-300">Dashboards</a></li>
+        <li><a href="/executive-dashboard.html" class="text-amber-300 font-semibold">Executive</a></li>
+        <li><a href="/agents.html" class="hover:text-amber-300">Agents</a></li>
+        <li><a href="/cfo.html" class="hover:text-amber-300">CFO</a></li>
+        <li><a href="/50-applications.html" class="hover:text-amber-300">50 Apps</a></li>
+        <li><a href="/gateway/" class="hover:text-amber-300">Gateway</a></li>
+        <li><a href="/join.html" class="hover:text-amber-300">Join</a></li>
+        <li><a href="/settings.html" class="hover:text-amber-300">Settings</a></li>
+        <li><a href="/docs.html" class="hover:text-amber-300">Docs</a></li>
+        <li><a href="/network-dashboard.html" class="hover:text-amber-300">Network</a></li>
+        <li><a href="/ban-live-wall.html" class="hover:text-amber-300">Live Wall</a></li>
+        <li><a href="/ban-ops-core.html" class="hover:text-amber-300">BAN Ops</a></li>
+        <li><a href="/status.html" class="hover:text-amber-300">Status</a></li>
+        <li><a href="http://localhost:4201/system-map.html" target="_blank" class="hover:text-amber-300">System Map</a></li>
+      </ul>
+    </div>
+    <button id="refresh-btn" class="ml-2 md:ml-4 text-slate-400 hover:text-amber-300 text-lg min-w-[44px] min-h-[44px] flex items-center justify-center" title="Refresh">↻</button>
   </nav>
 
   <main class="p-4 md:p-6 max-w-7xl mx-auto space-y-6">
@@ -126,6 +139,19 @@
       <div id="projects-list" class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3 text-sm">Loading…</div>
     </div>
 
+    <!-- Economic Control (w·P scoring, risk/capital gates) -->
+    <div class="card">
+      <h2 class="font-semibold text-slate-800 mb-3">Economic Control <span class="text-slate-400 text-sm font-normal">— canonical w·P, risk & capital gates</span></h2>
+      <div class="grid grid-cols-2 sm:grid-cols-5 gap-3 mb-3">
+        <div><div class="metric-val text-lg" id="econ-impact">—</div><div class="metric-label">impact</div></div>
+        <div><div class="metric-val text-lg" id="econ-revenue">—</div><div class="metric-label">revenue</div></div>
+        <div><div class="metric-val text-lg" id="econ-risk">—</div><div class="metric-label">risk</div></div>
+        <div><div class="metric-val text-lg" id="econ-latency">—</div><div class="metric-label">latency</div></div>
+        <div><div class="metric-val text-lg" id="econ-trust">—</div><div class="metric-label">trust</div></div>
+      </div>
+      <div id="econ-status" class="text-xs text-slate-500">score = w·P(task) · risk/capital gates enforced</div>
+    </div>
+
     <!-- Skills + Marketplace -->
     <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
       <div class="card">
@@ -133,7 +159,7 @@
         <div id="skills-list" class="text-sm text-slate-600 max-h-56 overflow-y-auto space-y-1">Loading…</div>
       </div>
       <div class="card">
-        <h2 class="font-semibold text-slate-800 mb-3">Open Marketplace Tasks</h2>
+        <h2 class="font-semibold text-slate-800 mb-3">Open Marketplace Tasks <span class="text-slate-400 text-xs font-normal">(priority-ordered)</span></h2>
         <div id="marketplace-list" class="text-sm text-slate-600 max-h-56 overflow-y-auto space-y-2">Loading…</div>
       </div>
     </div>
@@ -260,18 +286,33 @@
     }).join('');
   }
 
+  async function loadEcon() {
+    const data = await get('/api/econ/weights');
+    if (!data || !data.weights) return;
+    const w = data.weights;
+    const set = (id, v) => { const e = document.getElementById(id); if (e) e.textContent = (v != null && !isNaN(Number(v))) ? Number(v).toFixed(2) : '—'; };
+    set('econ-impact', w.impact);
+    set('econ-revenue', w.revenue);
+    set('econ-risk', w.risk);
+    set('econ-latency', w.latency);
+    set('econ-trust', w.trust);
+  }
+
   async function loadMarketplace() {
-    const data = await get('/api/marketplace/tasks');
+    const data = await get('/api/marketplace/tasks?twin_id=system');
     const el = document.getElementById('marketplace-list');
     if (!el) return;
     const tasks = Array.isArray(data) ? data : [];
     const open = tasks.filter(t => t.status === 'open');
     if (open.length === 0) { el.innerHTML = '<p class="text-slate-400">No open tasks</p>'; return; }
-    el.innerHTML = open.slice(0, 20).map(t => `
-      <div class="border border-slate-100 rounded p-2">
+    el.innerHTML = open.slice(0, 20).map(t => {
+      const score = t._priority_score ?? t._priority_live;
+      const scoreStr = score != null ? ` · score ${u(score, 2)}` : '';
+      return `<div class="border border-slate-100 rounded p-2">
         <div class="font-medium">${esc(t.desc || t.title || t.description || '(no title)')}</div>
-        <div class="text-xs text-slate-400">${esc(t.type || 'task')} · ${u(t.reward || 0)} BRDG</div>
-      </div>`).join('');
+        <div class="text-xs text-slate-400">${esc(t.type || 'task')} · ${u(t.reward || 0)} BRDG${scoreStr}</div>
+      </div>`;
+    }).join('');
   }
 
   async function loadKeys() {
@@ -393,7 +434,7 @@
 
     await Promise.all([
       loadRevenue(), loadMouse(), loadMission(), loadProjects(),
-      loadSkills(), loadMarketplace(), loadKeys(), loadUbi(), loadTreasury()
+      loadSkills(), loadMarketplace(), loadKeys(), loadUbi(), loadTreasury(), loadEcon()
     ]);
 
     const lu = document.getElementById('last-updated');
@@ -409,5 +450,6 @@
   setInterval(refreshAll, 20000);
 })();
   </script>
+  <script src="/bridge-nav.js"></script>
 </body>
 </html>

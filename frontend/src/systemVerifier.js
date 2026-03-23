@@ -12,22 +12,22 @@ const WS_HEARTBEAT_TIMEOUT_MS = 5000;
  * @returns {Promise<boolean>} apiStatus
  */
 async function checkApi(apiBase) {
-  const url = `${apiBase}/api/mission/board`.replace(/\/+/g, '/');
+  const url = `${apiBase}/api/health`.replace(/\/+/g, '/');
   try {
     const res = await fetch(url);
     if (res.status !== 200) {
-      console.error('[systemVerifier] API mission/board returned', res.status);
+      console.error('[systemVerifier] API health returned', res.status);
       return false;
     }
     const ct = (res.headers.get('content-type') || '').toLowerCase();
     const isJson = ct.includes('application/json') || ct.includes('text/json');
     if (!isJson) {
-      console.error('[systemVerifier] API mission/board did not return JSON');
+      console.error('[systemVerifier] API health did not return JSON');
       return false;
     }
     const data = await res.json();
     if (data === null || typeof data !== 'object') {
-      console.error('[systemVerifier] API mission/board returned invalid JSON');
+      console.error('[systemVerifier] API health returned invalid JSON');
       return false;
     }
     return true;

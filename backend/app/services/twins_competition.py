@@ -20,23 +20,23 @@ class Twin:
     skills_learned: list = field(default_factory=list)  # [{task_id, name, tags, verified}]
 
 
-# Pool of auto-generated tasks for the Bridge
+# Pool of auto-generated tasks for the Bridge (ordered by reward for priority routing)
 AUTO_TASK_POOL = [
-    {"desc": "Improve mission board UX", "reward": 10, "tags": ["frontend", "ux"]},
-    {"desc": "Add SDG metric visualization", "reward": 15, "tags": ["frontend", "sdg"]},
-    {"desc": "Optimize avatar rendering", "reward": 12, "tags": ["babylon", "perf"]},
-    {"desc": "Fix CORS for twin endpoints", "reward": 8, "tags": ["backend", "api"]},
-    {"desc": "Implement TTS fallback", "reward": 14, "tags": ["voice", "accessibility"]},
-    {"desc": "Add wallet connect flow", "reward": 18, "tags": ["wallet", "blockchain"]},
-    {"desc": "Document API contracts", "reward": 6, "tags": ["docs", "openapi"]},
-    {"desc": "Reduce bundle size", "reward": 11, "tags": ["build", "perf"]},
-    {"desc": "Add emotion compute tests", "reward": 9, "tags": ["backend", "tests"]},
-    {"desc": "Improve speech embodiment", "reward": 16, "tags": ["voice", "embodiment"]},
-    {"desc": "Bridge system comprehension", "reward": 20, "tags": ["meta", "architecture"]},
-    {"desc": "UBI claim flow UX", "reward": 7, "tags": ["frontend", "ubi"]},
-    {"desc": "BossBots signal display", "reward": 13, "tags": ["frontend", "trading"]},
-    {"desc": "Cognitive twin evolve loop", "reward": 17, "tags": ["twin", "learning"]},
-    {"desc": "Mission backlog sync", "reward": 5, "tags": ["mission", "sync"]},
+    {"desc": "Bridge system comprehension", "reward": 20, "urgency": 1.0, "tags": ["meta", "architecture"]},
+    {"desc": "Add wallet connect flow", "reward": 18, "urgency": 0.95, "tags": ["wallet", "blockchain"]},
+    {"desc": "Cognitive twin evolve loop", "reward": 17, "urgency": 0.9, "tags": ["twin", "learning"]},
+    {"desc": "Improve speech embodiment", "reward": 16, "urgency": 0.9, "tags": ["voice", "embodiment"]},
+    {"desc": "Add SDG metric visualization", "reward": 15, "urgency": 0.95, "tags": ["frontend", "sdg"]},
+    {"desc": "Implement TTS fallback", "reward": 14, "urgency": 0.9, "tags": ["voice", "accessibility"]},
+    {"desc": "BossBots signal display", "reward": 13, "urgency": 0.85, "tags": ["frontend", "trading"]},
+    {"desc": "Optimize avatar rendering", "reward": 12, "urgency": 0.9, "tags": ["babylon", "perf"]},
+    {"desc": "Reduce bundle size", "reward": 11, "urgency": 0.85, "tags": ["build", "perf"]},
+    {"desc": "Improve mission board UX", "reward": 10, "urgency": 0.9, "tags": ["frontend", "ux"]},
+    {"desc": "Add emotion compute tests", "reward": 9, "urgency": 0.8, "tags": ["backend", "tests"]},
+    {"desc": "Fix CORS for twin endpoints", "reward": 8, "urgency": 0.85, "tags": ["backend", "api"]},
+    {"desc": "UBI claim flow UX", "reward": 7, "urgency": 0.9, "tags": ["frontend", "ubi"]},
+    {"desc": "Document API contracts", "reward": 6, "urgency": 0.8, "tags": ["docs", "openapi"]},
+    {"desc": "Mission backlog sync", "reward": 5, "urgency": 0.75, "tags": ["mission", "sync"]},
 ]
 
 
@@ -109,23 +109,56 @@ class TwinsCompetitionService:
         return results
 
     def auto_add_task(self, marketplace) -> Optional[dict]:
-        """Pick a random task from pool and add to marketplace."""
-        pick = random.choice(AUTO_TASK_POOL)
-        task = marketplace.add_task(
-            {"desc": pick["desc"], "reward": pick["reward"], "tags": pick.get("tags", [])}
-        )
+        """Pick from pool (priority-weighted: prefer higher reward). Add to marketplace."""
+        from app.services.priority_routing import compute_priority_score, passes_threshold
+        # Prefer higher-priority tasks: sort by reward desc, pick from top 5
+        pool = sorted(AUTO_TASK_POOL, key=lambda x: float(x.get("reward", 0)), reverse=True)
+        top = pool[:5]
+        pick = random.choice(top)
+        payload = {
+            "desc": pick["desc"],
+            "reward": pick["reward"],
+            "urgency": float(pick.get("urgency", 1.0)),
+            "tags": pick.get("tags", []),
+        }
+        score, _ = compute_priority_score(payload, trust=0.5)
+        if not passes_threshold(score):
+            return None
+        return marketplace.add_task(payload)
+
+    def allocate_top_task(self, twin_id: str, marketplace) -> Optional[dict]:
+        """
+        Allocate top-priority task to twin. No random. No manual override.
+        Execution = argmax(priority_score).
+        """
+        if twin_id not in self.twins:
+            return None
+        top = marketplace.get_top_task_for_twin(twin_id)
+        if not top:
+            return None
+        task_id = top.get("id")
+        task = marketplace.accept_task(int(task_id), f"twin:{twin_id}")
+        if task:
+            twin = self.twins[twin_id]
+            twin.in_progress += 1
+            skill = {
+                "task_id": task.get("id"),
+                "name": task.get("desc", "Task"),
+                "tags": task.get("tags", []),
+                "verified": False,
+            }
+            if not any(s.get("task_id") == skill["task_id"] for s in twin.skills_learned):
+                twin.skills_learned.append(skill)
         return task
 
     def allocate_task(self, task_id: int, twin_id: str, marketplace) -> Optional[dict]:
-        """Allocate a task to a twin (accept on their behalf). Auto-add to skills learned."""
+        """Legacy: allocate specific task. Prefer allocate_top_task for canonical flow."""
         if twin_id not in self.twins:
             return None
-        twin = self.twins[twin_id]
-        # Use twin_id as "wallet" for internal allocation
         task = marketplace.accept_task(int(task_id), f"twin:{twin_id}")
         if task:
+            twin = self.twins[twin_id]
             twin.in_progress += 1
-            # Auto-input received task to skills learned (verified on completion)
             skill = {
                 "task_id": task.get("id"),
                 "name": task.get("desc", "Task"),

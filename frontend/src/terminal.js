@@ -1,4 +1,4 @@
-import { WS_BASE } from './config.js';
+import { API_BASE, WS_BASE } from './config.js';
 
 function map_emotion_to_color(emotion){
     const colors = {"neutral":"#FFFFFF","focused":"#00FF00","confident":"#FFFF00","alert":"#FF0000","reflective":"#0000FF","concerned":"#FF00FF"};
@@ -32,6 +32,40 @@ export function initTerminal(){
     const terminal = document.getElementById('terminal');
     const ws = new WebSocket(`${WS_BASE}/ws/mission`);
     let lastUserMsgEl = null;
+
+    async function apiGet(path) {
+        try {
+            const r = await fetch(`${API_BASE}${path}`);
+            if (!r.ok) return { ok: false, status: r.status, data: null };
+            return { ok: true, status: r.status, data: await r.json() };
+        } catch (e) {
+            return { ok: false, status: 0, data: { error: String(e) } };
+        }
+    }
+
+    async function apiPost(path, body) {
+        try {
+            const r = await fetch(`${API_BASE}${path}`, {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify(body || {}),
+            });
+            const data = await r.json().catch(() => null);
+            return { ok: r.ok, status: r.status, data };
+        } catch (e) {
+            return { ok: false, status: 0, data: { error: String(e) } };
+        }
+    }
+
+    function appendLine(text, { color = '#9effb8', topic = null } = {}) {
+        const p = document.createElement('p');
+        p.style.color = color;
+        p.textContent = text;
+        if (topic) appendTopicBadge(p, topic);
+        terminal.insertBefore(p, terminal.querySelector('input'));
+        terminal.scrollTop = terminal.scrollHeight;
+        return p;
+    }
 
     ws.onopen = () => console.log('WebSocket connected');
     ws.onmessage = (event) => {
@@ -70,10 +104,20 @@ export function initTerminal(){
             requestAnimationFrame(doWork);
         }
     };
-    ws.onerror = () => { if (!window._wsErrorLogged) { window._wsErrorLogged = true; console.warn('Terminal: Backend WebSocket (8081) offline'); } };
+    ws.onerror = () => {
+        if (!window._wsErrorLogged) {
+            window._wsErrorLogged = true;
+            console.warn(`Terminal: Backend WebSocket offline (${WS_BASE})`);
+        }
+    };
     ws.onclose = () => setTimeout(() => initTerminal(), 15000);
 
     terminal.innerHTML = '<p style="color:#8cf;">Bridge AI OS — I am the Bridge. I am the Authority. Twins share one XML.</p>';
+
+    // Action bar: makes "missions / board / skills / UBI / CLI" explicit (no guessing).
+    const actionBar = document.createElement('div');
+    actionBar.style.cssText = 'margin-top:10px;display:flex;flex-wrap:wrap;gap:8px;align-items:center;';
+
     const voiceBtn = document.createElement('button');
     voiceBtn.textContent = '🔊 Speak';
     voiceBtn.style.cssText = 'margin-left:8px;padding:6px 12px;background:#2a6;color:#fff;border:none;border-radius:4px;cursor:pointer;font-size:13px;';
@@ -81,7 +125,61 @@ export function initTerminal(){
         if (window.speak) window.speak('I am the Bridge. I am the Founder. I am the System. I am the Authority. The backend is human. How can I help you today?');
         else console.warn('Voice not ready');
     };
-    terminal.appendChild(voiceBtn);
+    actionBar.appendChild(voiceBtn);
+
+    function mkBtn(label, onClick, css) {
+        const b = document.createElement('button');
+        b.textContent = label;
+        b.type = 'button';
+        b.style.cssText = css || 'padding:6px 10px;background:#111827;color:#e2e8f0;border:1px solid #334155;border-radius:8px;cursor:pointer;font-size:12px;';
+        b.onclick = onClick;
+        return b;
+    }
+
+    const btnMissions = mkBtn('Missions', () => {
+        try {
+            window.dispatchEvent(new CustomEvent('bridge:tab', { detail: { tab: 'missions' } }));
+        } catch (_) {}
+        appendLine('Opened Missions tab.', { color: '#8cf', topic: 'Commands' });
+    });
+    const btnBoard = mkBtn('Fetch board', async () => {
+        appendLine('Fetching mission board…', { color: '#cfe', topic: 'Commands' });
+        const r = await apiGet('/api/mission/board');
+        if (!r.ok) return appendLine(`Mission board unavailable (${r.status})`, { color: '#f88', topic: 'System' });
+        appendLine(`Mission board: backlog=${r.data.backlog} in_progress=${r.data.in_progress} review=${r.data.review} done=${r.data.done}`, { color: '#9effb8', topic: 'General' });
+    });
+    const btnSkills = mkBtn('List skills', async () => {
+        appendLine('Fetching skills…', { color: '#cfe', topic: 'Commands' });
+        const r = await apiGet('/api/skills');
+        if (!r.ok) return appendLine(`Skills unavailable (${r.status})`, { color: '#f88', topic: 'System' });
+        const count = r.data.count ?? (Array.isArray(r.data.skills) ? r.data.skills.length : 0);
+        appendLine(`Skills: ${count}`, { color: '#9effb8', topic: 'General' });
+    });
+    const btnClaim = mkBtn('Claim UBI', async () => {
+        const address = prompt('Enter wallet address for UBI claim');
+        if (!address) return;
+        appendLine(`Claiming UBI for ${address}…`, { color: '#cfe', topic: 'Commands' });
+        const r = await apiPost('/api/ubi/claim', { address });
+        if (!r.ok) return appendLine(`UBI claim failed (${r.status}): ${(r.data && (r.data.detail || r.data.error)) || 'unknown'}`, { color: '#f88', topic: 'System' });
+        const amt = (r.data && (r.data.amount || r.data.amt || r.data.payout || r.data.paid)) ?? r.data;
+        appendLine(`UBI claim result: ${JSON.stringify(amt)}`, { color: '#9effb8', topic: 'General' });
+    }, 'padding:6px 10px;background:#1f2937;color:#e2e8f0;border:1px solid #14b8a6;border-radius:8px;cursor:pointer;font-size:12px;');
+
+    const btnRunAudit = mkBtn('Run audit', async () => {
+        const s = await apiGet('/api/cli/status');
+        if (!s.ok || !s.data?.enabled) return appendLine('CLI runner is locked. Open Status → Smart Debug to enable.', { color: '#fb923c', topic: 'System' });
+        const r = await apiPost('/api/cli/enqueue', { cmd_id: 'audit:wall', args: [] });
+        if (!r.ok) return appendLine(`Queue failed (${r.status})`, { color: '#f88', topic: 'System' });
+        appendLine(`Queued audit job: ${r.data?.job?.id || 'ok'}`, { color: '#8cf', topic: 'Commands' });
+    });
+
+    actionBar.appendChild(btnMissions);
+    actionBar.appendChild(btnBoard);
+    actionBar.appendChild(btnSkills);
+    actionBar.appendChild(btnClaim);
+    actionBar.appendChild(btnRunAudit);
+    terminal.appendChild(actionBar);
+
     const input = document.createElement('input');
     input.id = 'terminal-prompt';
     input.name = 'terminal-prompt';

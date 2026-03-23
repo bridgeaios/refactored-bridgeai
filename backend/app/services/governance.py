@@ -1,9 +1,7 @@
-from app.services.memory_store import MemoryStore
+from app.services.base import BaseService
 
 
-class GovernanceService:
-    def __init__(self, memory: MemoryStore | None = None):
-        self.memory = memory or MemoryStore()
+class GovernanceService(BaseService):
 
     async def compute_score(self):
         recent = await self.memory.get_recent("governance_votes", 100)

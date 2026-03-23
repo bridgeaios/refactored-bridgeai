@@ -1,0 +1,11 @@
+{
+  "ai": "generic",
+  "ai_commands_dir": ".specify\\commands",
+  "ai_skills": false,
+  "branch_numbering": "sequential",
+  "here": true,
+  "offline": false,
+  "preset": null,
+  "script": "ps",
+  "speckit_version": "0.3.2"
+}

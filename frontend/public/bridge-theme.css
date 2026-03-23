@@ -1,0 +1,502 @@
+/* ============================================================
+   BRIDGE AI OS — GLOBAL THEME
+   Derived from SVG geometry: pillars · beam · signal · nodes
+   Source of truth for all UI surfaces.
+   ============================================================ */
+
+/* ─── 1. DESIGN TOKENS ───────────────────────────────────── */
+:root {
+  /* Core backgrounds */
+  --bg-0:             #000000;
+  --bg-1:             #0A0A0A;
+  --bg-2:             #1A1A1A;
+
+  /* Signal */
+  --signal-red:       #FF0033;
+  --signal-red-soft:  #FF1A4D;
+  --signal-glow:      rgba(255, 0, 51, 0.35);
+
+  /* Text */
+  --text-primary:     #FFFFFF;
+  --text-secondary:   #A0A0A0;
+  --text-muted:       #666666;
+
+  /* State */
+  --alive:            #00FF88;
+  --degraded:         #FFAA00;
+  --offline:          #FF0033;
+
+  /* Surfaces */
+  --border:           #2A2A2A;
+  --card-bg:          #111111;
+
+  /* Effects */
+  --glow-red:         0 0 12px var(--signal-glow), 0 0 24px rgba(255,0,51,0.15);
+  --glow-soft:        0 0 6px rgba(255,255,255,0.05);
+
+  /* Radius */
+  --radius-sm:        4px;
+  --radius-md:        8px;
+
+  /* Spacing */
+  --gap:              12px;
+}
+
+/* ─── 2. GLOBAL BASE ─────────────────────────────────────── */
+*, *::before, *::after {
+  box-sizing: border-box;
+}
+
+html {
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+}
+
+body {
+  margin: 0;
+  background: radial-gradient(circle at 50% 0%, #0A0A0A, #000000) !important;
+  background-color: var(--bg-0) !important;
+  color: var(--text-primary) !important;
+  font-family: Inter, system-ui, sans-serif;
+  letter-spacing: 0.02em;
+}
+
+a {
+  color: inherit;
+  text-decoration: none;
+}
+
+/* ─── 3. TYPOGRAPHY ──────────────────────────────────────── */
+.h1 {
+  font-size: 48px;
+  font-weight: 700;
+  letter-spacing: -0.02em;
+  line-height: 1.1;
+}
+
+.h2 {
+  font-size: 28px;
+  font-weight: 600;
+  letter-spacing: -0.01em;
+  line-height: 1.2;
+}
+
+.label {
+  font-size: 12px;
+  color: var(--text-muted);
+  text-transform: uppercase;
+  letter-spacing: 0.1em;
+}
+
+.mono {
+  font-family: "JetBrains Mono", "Fira Code", monospace;
+}
+
+/* ─── 4. LAYOUT GRID ─────────────────────────────────────── */
+.grid {
+  display: grid;
+  grid-template-columns: repeat(12, 1fr);
+  gap: var(--gap);
+}
+
+.center-span {
+  grid-column: 3 / span 8;
+}
+
+/* ─── 5. CARDS ───────────────────────────────────────────── */
+.card {
+  background: var(--card-bg) !important;
+  border: 1px solid var(--border) !important;
+  border-radius: var(--radius-md) !important;
+  padding: 16px !important;
+  box-shadow: var(--glow-soft) !important;
+  transition: border-color 0.2s ease, box-shadow 0.2s ease !important;
+}
+
+.card:hover {
+  border-color: var(--signal-red) !important;
+  box-shadow: var(--glow-red) !important;
+}
+
+/* ─── 6. BUTTONS ─────────────────────────────────────────── */
+.btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  padding: 10px 16px;
+  border-radius: var(--radius-sm);
+  border: 1px solid var(--border);
+  background: transparent;
+  color: var(--text-primary);
+  font-family: inherit;
+  font-size: 14px;
+  cursor: pointer;
+  transition: all 0.2s ease;
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+}
+
+.btn:hover {
+  border-color: var(--signal-red-soft);
+}
+
+.btn-primary {
+  background: var(--signal-red) !important;
+  border-color: var(--signal-red) !important;
+  color: #fff !important;
+}
+
+.btn-primary:hover {
+  box-shadow: var(--glow-red) !important;
+  filter: brightness(1.1) !important;
+}
+
+.btn-ghost {
+  background: transparent !important;
+  border-color: var(--border) !important;
+}
+
+.btn-ghost:hover {
+  border-color: var(--signal-red-soft) !important;
+  color: var(--signal-red-soft) !important;
+}
+
+/* ─── 7. STATUS SYSTEM ───────────────────────────────────── */
+.status {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  font-size: 12px;
+  padding: 4px 8px;
+  border-radius: var(--radius-sm);
+  font-family: "JetBrains Mono", monospace;
+  text-transform: uppercase;
+  letter-spacing: 0.08em;
+}
+
+.status.alive {
+  color: var(--alive);
+}
+
+.status.degraded {
+  color: var(--degraded);
+}
+
+.status.offline {
+  color: var(--offline);
+}
+
+.status.alive::before,
+.status.degraded::before,
+.status.offline::before {
+  content: '';
+  width: 6px;
+  height: 6px;
+  border-radius: 50%;
+  background: currentColor;
+  flex-shrink: 0;
+}
+
+/* ─── 8. SIGNAL LINE ─────────────────────────────────────── */
+.signal-line {
+  height: 2px;
+  background: linear-gradient(
+    90deg,
+    transparent,
+    var(--signal-red),
+    transparent
+  );
+  animation: signal-pulse 2s infinite linear;
+}
+
+@keyframes signal-pulse {
+  0%   { opacity: 0.2; transform: scaleX(0.8); }
+  50%  { opacity: 1;   transform: scaleX(1.2); }
+  100% { opacity: 0.2; transform: scaleX(0.8); }
+}
+
+/* ─── 9. NODE SYSTEM ─────────────────────────────────────── */
+.node {
+  width: 10px;
+  height: 10px;
+  background: var(--signal-red-soft);
+  border-radius: 50%;
+  box-shadow: var(--glow-red);
+  flex-shrink: 0;
+}
+
+.node-row {
+  display: flex;
+  align-items: center;
+  gap: var(--gap);
+}
+
+/* ─── 10. PANEL HEADER (bridge beam) ─────────────────────── */
+.panel-header {
+  height: 4px;
+  width: 100%;
+  background: var(--signal-red);
+  box-shadow: var(--glow-red);
+}
+
+/* ─── 11. TERMINAL / CLI ─────────────────────────────────── */
+.terminal {
+  background: #050505 !important;
+  border: 1px solid var(--border) !important;
+  border-radius: var(--radius-md) !important;
+  font-family: "JetBrains Mono", "Fira Code", monospace !important;
+  font-size: 13px !important;
+  padding: 12px !important;
+  color: var(--text-secondary) !important;
+  line-height: 1.6 !important;
+}
+
+.terminal .cursor,
+.terminal .prompt {
+  color: var(--signal-red) !important;
+}
+
+.terminal .output-line {
+  color: var(--text-secondary);
+}
+
+/* ─── 12. NAV OVERRIDES (bridge brand nav) ───────────────── */
+.bridge-nav {
+  background: rgba(0, 0, 0, 0.85) !important;
+  border-bottom: 1px solid var(--border) !important;
+  backdrop-filter: blur(8px) !important;
+}
+
+.bridge-nav-brand {
+  color: var(--text-primary) !important;
+  font-weight: 700 !important;
+  letter-spacing: 0.08em !important;
+  text-transform: uppercase !important;
+}
+
+.bridge-nav-brand:hover {
+  color: var(--signal-red) !important;
+}
+
+.bridge-nav-links a {
+  color: var(--text-secondary) !important;
+  transition: color 0.15s ease !important;
+}
+
+.bridge-nav-links a:hover,
+.bridge-nav-links a.active,
+.bridge-nav-links .text-amber-300 {
+  color: var(--signal-red-soft) !important;
+}
+
+/* ─── 13. TAILWIND SURFACE OVERRIDES ─────────────────────── */
+/* Override slate backgrounds → Bridge AI OS blacks */
+.bg-slate-950, .bg-slate-900, .bg-slate-800 {
+  background-color: var(--bg-0) !important;
+}
+
+.bg-slate-900\/60, .bg-slate-900\/80 {
+  background-color: rgba(0, 0, 0, 0.6) !important;
+}
+
+.border-slate-800, .border-slate-700 {
+  border-color: var(--border) !important;
+}
+
+/* Override amber → signal-red for accent elements */
+.text-amber-300, .text-amber-400 {
+  color: var(--signal-red-soft) !important;
+}
+
+.hover\:text-amber-300:hover, .hover\:text-amber-400:hover {
+  color: var(--signal-red-soft) !important;
+}
+
+.bg-amber-500, .bg-amber-400 {
+  background-color: var(--signal-red) !important;
+}
+
+/* ─── 14. TABLE SYSTEM ───────────────────────────────────── */
+table {
+  border-collapse: collapse;
+  width: 100%;
+}
+
+th {
+  font-size: 11px;
+  text-transform: uppercase;
+  letter-spacing: 0.1em;
+  color: var(--text-muted);
+  border-bottom: 1px solid var(--border);
+  padding: 8px 12px;
+  text-align: left;
+  font-weight: 600;
+}
+
+td {
+  padding: 10px 12px;
+  border-bottom: 1px solid rgba(42, 42, 42, 0.5);
+  font-size: 13px;
+  color: var(--text-secondary);
+}
+
+tr:hover td {
+  background: rgba(255, 0, 51, 0.03);
+  color: var(--text-primary);
+}
+
+/* ─── 15. INPUT / FORM ───────────────────────────────────── */
+input, select, textarea {
+  background: var(--bg-2) !important;
+  border: 1px solid var(--border) !important;
+  border-radius: var(--radius-sm) !important;
+  color: var(--text-primary) !important;
+  font-family: inherit !important;
+  font-size: 14px !important;
+  padding: 8px 12px !important;
+  outline: none !important;
+  transition: border-color 0.15s ease !important;
+}
+
+input:focus, select:focus, textarea:focus {
+  border-color: var(--signal-red) !important;
+  box-shadow: 0 0 0 2px rgba(255, 0, 51, 0.15) !important;
+}
+
+input::placeholder, textarea::placeholder {
+  color: var(--text-muted) !important;
+}
+
+/* ─── 16. SCROLLBAR ──────────────────────────────────────── */
+::-webkit-scrollbar {
+  width: 6px;
+  height: 6px;
+}
+
+::-webkit-scrollbar-track {
+  background: var(--bg-1);
+}
+
+::-webkit-scrollbar-thumb {
+  background: var(--border);
+  border-radius: 3px;
+}
+
+::-webkit-scrollbar-thumb:hover {
+  background: var(--signal-red);
+}
+
+/* ─── 17. SELECTION ──────────────────────────────────────── */
+::selection {
+  background: rgba(255, 0, 51, 0.25);
+  color: #fff;
+}
+
+/* ─── 18. UTILITY CLASSES ────────────────────────────────── */
+.text-signal { color: var(--signal-red) !important; }
+.text-signal-soft { color: var(--signal-red-soft) !important; }
+.text-alive  { color: var(--alive) !important; }
+.text-degraded { color: var(--degraded) !important; }
+.text-offline { color: var(--offline) !important; }
+
+.bg-card     { background: var(--card-bg) !important; }
+.bg-elevated { background: var(--bg-2) !important; }
+
+.border-signal { border-color: var(--signal-red) !important; }
+.glow-red      { box-shadow: var(--glow-red) !important; }
+
+.divider {
+  height: 1px;
+  background: var(--border);
+  margin: var(--gap) 0;
+}
+
+/* ─── 19. ANIMATION UTILITIES ────────────────────────────── */
+@keyframes flicker {
+  0%, 100% { opacity: 1; }
+  92%       { opacity: 1; }
+  93%       { opacity: 0.4; }
+  94%       { opacity: 1; }
+}
+
+.flicker { animation: flicker 4s infinite; }
+
+@keyframes blink {
+  0%, 100% { opacity: 1; }
+  50%       { opacity: 0; }
+}
+
+.blink { animation: blink 1s step-end infinite; }
+
+/* ─── 20. MEDIA: MOBILE ──────────────────────────────────── */
+@media (max-width: 768px) {
+  .center-span { grid-column: 1 / -1; }
+  .h1 { font-size: 32px; }
+  .h2 { font-size: 22px; }
+}
+
+/* ─── 21. LIGHT-THEME NEUTRALIZATION ────────────────────── */
+/* Tailwind light backgrounds → Bridge AI OS dark surfaces   */
+.bg-slate-50  { background-color: var(--bg-1)    !important; }
+.bg-slate-100 { background-color: var(--bg-2)    !important; }
+.bg-white     { background-color: var(--card-bg) !important; }
+.bg-slate-200 { background-color: var(--bg-2)    !important; }
+
+/* Tailwind light text → Bridge AI OS text hierarchy */
+.text-slate-900,
+.text-slate-950,
+.text-black    { color: var(--text-primary)   !important; }
+
+.text-slate-800,
+.text-slate-700 { color: var(--text-secondary) !important; }
+
+.text-slate-600,
+.text-slate-500,
+.text-gray-600,
+.text-gray-500  { color: var(--text-muted)     !important; }
+
+/* Light borders → system border */
+.border-slate-200,
+.border-slate-300,
+.border-gray-200,
+.border-gray-300 { border-color: var(--border) !important; }
+
+/* Light shadows → glow-soft */
+.shadow-sm  { box-shadow: var(--glow-soft) !important; }
+.shadow-md  { box-shadow: 0 4px 12px rgba(0,0,0,0.4) !important; }
+.shadow-lg  { box-shadow: 0 8px 24px rgba(0,0,0,0.5) !important; }
+.shadow-xl  { box-shadow: 0 12px 40px rgba(0,0,0,0.6) !important; }
+
+/* Code blocks in docs → terminal style */
+code {
+  background: var(--bg-2)       !important;
+  color: var(--signal-red-soft) !important;
+  border-radius: var(--radius-sm);
+  padding: 2px 6px;
+  font-family: "JetBrains Mono", monospace;
+  font-size: 0.88em;
+}
+
+pre {
+  background: #050505 !important;
+  border: 1px solid var(--border) !important;
+  border-radius: var(--radius-md);
+  padding: 12px 16px;
+  overflow-x: auto;
+  color: var(--text-secondary) !important;
+  font-family: "JetBrains Mono", monospace;
+  font-size: 13px;
+  line-height: 1.6;
+}
+
+/* Table headers in docs → system style */
+thead { background: var(--bg-2) !important; }
+thead th { color: var(--text-muted) !important; }
+
+/* Form labels and selects on light pages */
+label { color: var(--text-secondary) !important; }
+
+/* Hover states that referenced light colours */
+.hover\:bg-slate-100:hover { background-color: var(--bg-2) !important; }
+.hover\:bg-slate-50:hover  { background-color: var(--bg-1) !important; }
+.hover\:text-slate-800:hover { color: var(--text-primary) !important; }

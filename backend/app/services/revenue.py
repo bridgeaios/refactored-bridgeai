@@ -6,7 +6,9 @@ UNIFIED: All calls to collect() also route to TreasuryService via an optional
 on_collect callback. Set this at startup in runtime.py.
 """
 from __future__ import annotations
-from typing import Any, Callable, Coroutine
+
+from collections.abc import Coroutine
+from typing import Any, Callable
 
 # Split ratios: UBI, Treasury, Ops, Founder (must sum to 1.0)
 DISTRIBUTION_SPLIT = {

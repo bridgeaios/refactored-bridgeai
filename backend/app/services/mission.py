@@ -1,9 +1,7 @@
-from app.services.memory_store import MemoryStore
+from app.services.base import BaseService
 
 
-class MissionService:
-    def __init__(self, memory: MemoryStore | None = None):
-        self.memory = memory or MemoryStore()
+class MissionService(BaseService):
 
     async def get_counts(self):
         recent = await self.memory.get_recent("mission_board", 50)

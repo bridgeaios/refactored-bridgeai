@@ -1,0 +1,128 @@
+{
+  "v1_canonical_path_count": 29,
+  "runtime_path_count": 109,
+  "v2_public_path_count": 75,
+  "internal_path_count": 38,
+  "promoted_runtime_paths": [
+    "/api/audit/drift",
+    "/api/auth/siwe",
+    "/api/capabilities",
+    "/api/econ/weights",
+    "/api/founder-todo",
+    "/api/health/extended",
+    "/api/live/map",
+    "/api/live/report",
+    "/api/projects",
+    "/api/projects/register",
+    "/api/projects/{project_id}",
+    "/api/projects/{project_id}/heartbeat",
+    "/api/replication/nodes",
+    "/api/replication/status",
+    "/api/reputation/top",
+    "/api/sensors/mouse",
+    "/api/sensors/wifi",
+    "/api/skills/definitions",
+    "/api/skills/learn-from-youtube",
+    "/api/skills/youtube-recommend/{skill_id}",
+    "/api/skills/youtube-search",
+    "/api/state/reducers",
+    "/api/state/snapshot",
+    "/api/status",
+    "/api/svg-build/history",
+    "/api/swarm/health",
+    "/api/system/comprehension",
+    "/api/system/comprehension/check-alignment",
+    "/api/system/comprehension/explain",
+    "/api/system/comprehension/operational-model",
+    "/api/system/comprehension/role-awareness",
+    "/api/system/comprehension/skill",
+    "/api/telemetry",
+    "/api/telemetry/events/svg-build",
+    "/api/treasury/controls",
+    "/api/treasury/ledger",
+    "/api/treasury/rails",
+    "/api/treasury/status",
+    "/api/treasury/summary",
+    "/api/tts/available",
+    "/api/twin/env-keys",
+    "/api/twins",
+    "/api/twins/leaderboard",
+    "/api/user/settings",
+    "/api/wiki/registry",
+    "/health"
+  ],
+  "retained_internal_paths": [
+    "/api/cli/enqueue",
+    "/api/cli/history",
+    "/api/cli/queue/next",
+    "/api/cli/report",
+    "/api/cli/status",
+    "/api/demand/pump",
+    "/api/econ/circuit-breaker",
+    "/api/econ/reset-breaker",
+    "/api/econ/weights",
+    "/api/founder-todo/{obj_id}/complete",
+    "/api/google-sheets/{spreadsheet_id}/append",
+    "/api/google-sheets/{spreadsheet_id}/info",
+    "/api/google-sheets/{spreadsheet_id}/read",
+    "/api/google-sheets/{spreadsheet_id}/write",
+    "/api/ingest/goassl",
+    "/api/ingest/skills",
+    "/api/ingest/status",
+    "/api/ingest/tasks",
+    "/api/marketplace/complete",
+    "/api/marketplace/pledge",
+    "/api/orchestrate/directives",
+    "/api/payments/webhook/crypto",
+    "/api/payments/webhook/paypal",
+    "/api/payments/webhook/paystack",
+    "/api/payments/webhook/{rail}",
+    "/api/projects/{project_id}",
+    "/api/replication/register",
+    "/api/sensors/mouse",
+    "/api/sensors/wifi",
+    "/api/system/comprehension/evolve",
+    "/api/telemetry/events",
+    "/api/treasury/collect",
+    "/api/treasury/disburse",
+    "/api/treasury/ingest",
+    "/api/twins/allocate",
+    "/api/twins/auto-add",
+    "/api/twins/teach",
+    "/api/ubi/distribute"
+  ],
+  "method_split": {
+    "/api/econ/weights": {
+      "public": [
+        "get"
+      ],
+      "internal": [
+        "post"
+      ]
+    },
+    "/api/projects/{project_id}": {
+      "public": [
+        "get"
+      ],
+      "internal": [
+        "delete"
+      ]
+    },
+    "/api/sensors/mouse": {
+      "public": [
+        "get"
+      ],
+      "internal": [
+        "post"
+      ]
+    },
+    "/api/sensors/wifi": {
+      "public": [
+        "get"
+      ],
+      "internal": [
+        "post"
+      ]
+    }
+  }
+}

@@ -1,0 +1,132 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>BAN Ops Core — Bridge Autonomous Network</title>
+  <link rel="icon" href="/favicon.svg" type="image/svg+xml">
+  <script src="/bridge-api-config.js"></script>
+  <script>if(typeof window.__API_BASE==="undefined")window.__API_BASE="";</script>
+  <link rel="stylesheet" href="/mobile-friendly.css">
+  <style>
+    body { background: #0A0A0A; color: #fafafa; font-family: system-ui, sans-serif; margin: 0; padding: 16px; min-height: 100vh; }
+    nav { display: flex; flex-wrap: wrap; gap: 12px; align-items: center; margin-bottom: 24px; padding-bottom: 16px; border-bottom: 1px solid rgba(255,255,255,0.1); }
+    nav a { color: #22d3ee; text-decoration: none; }
+    nav a:hover { color: #fff; }
+    h1 { font-size: 1.5rem; margin-bottom: 24px; }
+    .grid { display: grid; grid-template-columns: 1fr; gap: 24px; }
+    @media (min-width: 768px) { .grid { grid-template-columns: 1fr 1fr; } }
+    .card { background: rgba(255,255,255,0.03); border: 1px solid rgba(255,255,255,0.08); border-radius: 8px; overflow: hidden; }
+    .card-title { padding: 12px; font-size: 0.75rem; text-transform: uppercase; letter-spacing: 1px; color: #22d3ee; }
+    .card svg, .card object { width: 100%; height: auto; display: block; }
+    /* Animated Mechanica Core hero */
+    .mechanica-hero {
+      position: relative;
+      margin-bottom: 32px;
+      border-radius: 12px;
+      overflow: hidden;
+      border: 1px solid rgba(0,229,255,0.2);
+      background: linear-gradient(180deg, rgba(0,229,255,0.03) 0%, transparent 50%, rgba(255,43,43,0.03) 100%);
+      animation: heroGlow 4s ease-in-out infinite;
+    }
+    @keyframes heroGlow {
+      0%,100% { box-shadow: 0 0 24px rgba(0,229,255,0.15), inset 0 0 60px rgba(0,229,255,0.02); }
+      50% { box-shadow: 0 0 40px rgba(0,229,255,0.25), inset 0 0 80px rgba(0,229,255,0.04); }
+    }
+    .mechanica-hero::before {
+      content: '';
+      position: absolute;
+      inset: 0;
+      background: repeating-linear-gradient(0deg, transparent, transparent 2px, rgba(0,245,255,0.02) 2px, rgba(0,245,255,0.02) 4px);
+      pointer-events: none;
+      animation: scanlines 8s linear infinite;
+    }
+    @keyframes scanlines { to { background-position: 0 8px; } }
+    .mechanica-hero-inner {
+      position: relative;
+      padding: 24px;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      gap: 16px;
+    }
+    .mechanica-hero object {
+      max-width: 280px;
+      height: auto;
+      animation: corePulse 3s ease-in-out infinite;
+    }
+    @keyframes corePulse {
+      0%,100% { opacity: 1; transform: scale(1); }
+      50% { opacity: 0.95; transform: scale(1.02); }
+    }
+    .mechanica-hero-title {
+      font-size: 1.25rem;
+      font-weight: 700;
+      letter-spacing: 0.15em;
+      color: #00E5FF;
+      text-shadow: 0 0 20px rgba(0,229,255,0.5);
+      animation: titleFlicker 6s ease-in-out infinite;
+    }
+    @keyframes titleFlicker {
+      0%,90%,100% { opacity: 1; }
+      95% { opacity: 0.85; }
+    }
+    .mechanica-hero-sub {
+      font-size: 0.7rem;
+      color: rgba(255,43,43,0.8);
+      letter-spacing: 0.2em;
+    }
+  </style>
+  <link rel="stylesheet" href="/bridge-theme.css">
+  <script src="/bridge-shell.js"></script>
+</head>
+<body>
+  <nav class="bridge-nav flex flex-wrap gap-3 items-center">
+    <a href="/" class="bridge-nav-brand">Bridge AI OS</a>
+    <button class="bridge-nav-toggle" aria-label="Toggle menu" style="color:#22d3ee">☰</button>
+    <div class="bridge-nav-links">
+      <ul class="flex flex-wrap gap-3 mt-2 md:mt-0" style="list-style:none;padding:0;margin:0">
+        <li><a href="/ban-live-wall.html">Live Wall</a></li>
+        <li><a href="/network-dashboard.html">Network</a></li>
+        <li><a href="/executive-dashboard.html">Dashboard</a></li>
+        <li><a href="/status.html">Status</a></li>
+      </ul>
+    </div>
+  </nav>
+
+  <div style="display:flex;justify-content:space-between;align-items:center;flex-wrap:wrap;gap:12px;margin-bottom:24px">
+    <h1 style="margin:0">BAN Ops Core — Mechanica & Execution</h1>
+    <span id="api-status" style="font-size:12px;padding:6px 12px;border-radius:8px;background:rgba(255,255,255,0.05)">API: …</span>
+  </div>
+
+  <section class="mechanica-hero" aria-label="BAN.ops Mechanica Core animated splash">
+    <div class="mechanica-hero-inner">
+      <object data="/assets/ban-ops-mechanica-core.svg" type="image/svg+xml" width="280" height="280" aria-hidden="true"></object>
+      <div class="mechanica-hero-title">BAN.ops // MECHANICA CORE</div>
+      <div class="mechanica-hero-sub">Central data hub · Cyan & Red orbits</div>
+    </div>
+  </section>
+
+  <div class="grid">
+    <div class="card">
+      <div class="card-title">BAN.OPs // MECHANICA CORE</div>
+      <object data="/assets/ban-ops-mechanica-core.svg" type="image/svg+xml" width="400" height="400"></object>
+    </div>
+    <div class="card">
+      <div class="card-title">BAN.OPS // AUTONOMOUS EXECUTION CORE</div>
+      <object data="/assets/ban-ops-execution-core.svg" type="image/svg+xml" width="400" height="400"></object>
+    </div>
+  </div>
+
+  <script>
+    (function(){
+      var API = (typeof window.__API_BASE !== 'undefined' && window.__API_BASE) ? window.__API_BASE : '';
+      fetch((API || '') + '/api/health').then(function(r){return r.json();}).then(function(d){
+        var el = document.getElementById('api-status');
+        if(el){ el.textContent = 'API: ' + (d.status||d.ok ? '● Online' : '○ Offline'); el.style.background = (d.status||d.ok) ? 'rgba(34,197,94,0.2)' : 'rgba(239,68,68,0.2)'; el.style.color = (d.status||d.ok) ? '#22c55e' : '#ef4444'; }
+      }).catch(function(){ var el = document.getElementById('api-status'); if(el){ el.textContent = 'API: ○ Offline'; el.style.background = 'rgba(239,68,68,0.2)'; el.style.color = '#ef4444'; } });
+    })();
+  </script>
+  <script src="/bridge-nav.js"></script>
+</body>
+</html>

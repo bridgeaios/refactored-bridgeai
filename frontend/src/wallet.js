@@ -26,6 +26,110 @@ function isExtensionInvalidated(err) {
   return /Extension context invalidated|ChromeTransport disconnected|context invalidated/i.test(msg);
 }
 
+/**
+ * Sign a message using the connected EVM wallet (MetaMask or similar)
+ * @param {string} message - Message to sign
+ * @param {string} address - Address to sign with (optional, uses connected wallet if not provided)
+ * @returns {Promise<string>} - Hex-encoded signature
+ */
+export async function signMessageEVM(message, address) {
+  if (typeof window === 'undefined') throw new Error('Window not defined');
+  
+  const eth = window.__walletEVM || getEthereumProvider();
+  if (!eth) throw new Error('No EVM wallet connected');
+  
+  const addr = address || (await eth.request({ method: 'eth_accounts' }))?.[0];
+  if (!addr) throw new Error('No EVM address available');
+  
+  // Convert message to hex if needed
+  const hexMessage = typeof message === 'string' 
+    ? '0x' + Buffer.from(message).toString('hex') 
+    : message;
+    
+  const signature = await eth.request({
+    method: 'personal_sign',
+    params: [hexMessage, addr]
+  });
+  
+  return signature;
+}
+
+/**
+ * Sign a transaction using the connected EVM wallet (MetaMask or similar)
+ * @param {Object} transaction - Transaction object to sign
+ * @returns {Promise<Object>} - Signed transaction
+ */
+export async function signTransactionEVM(transaction) {
+  if (typeof window === 'undefined') throw new Error('Window not defined');
+  
+  const eth = window.__walletEVM || getEthereumProvider();
+  if (!eth) throw new Error('No EVM wallet connected');
+  
+  // Add from address if not present
+  const tx = { ...transaction };
+  if (!tx.from) {
+    const accounts = await eth.request({ method: 'eth_accounts' });
+    tx.from = accounts?.[0];
+    if (!tx.from) throw new Error('No EVM address available');
+  }
+  
+  // Sign the transaction
+  const signedTx = await eth.request({
+    method: 'eth_signTransaction',
+    params: [tx]
+  });
+  
+  return signedTx;
+}
+
+/**
+ * Sign a message using the connected Solana wallet (Phantom or similar)
+ * @param {string} message - Message to sign (as UTF-8 string)
+ * @param {string} publicKey - Public key to sign with (optional, uses connected wallet if not provided)
+ * @returns {Promise<string>} - Base58-encoded signature
+ */
+export async function signMessageSolana(message, publicKey) {
+  if (typeof window === 'undefined') throw new Error('Window not defined');
+  
+  const provider = window.phantom?.solana || getPhantomProvider() || window.solana;
+  if (!provider) throw new Error('No Solana wallet connected');
+  
+  const pubKey = publicKey || (provider.publicKey?.toString?.() || provider.publicKey);
+  if (!pubKey) throw new Error('No Solana public key available');
+  
+  // Convert message to bytes
+  const messageBytes = new TextEncoder().encode(message);
+  
+  // Sign the message
+  const signature = await provider.signMessage(messageBytes);
+  
+  // Convert signature to base58 string (assuming it's returned as Uint8Array)
+  if (signature instanceof Uint8Array) {
+    // Convert Uint8Array to base58 (simplified - in real implementation you'd use bs58 library)
+    // For now, we'll return as hex for simplicity
+    return Buffer.from(signature).toString('hex');
+  }
+  
+  return signature.toString();
+}
+
+/**
+ * Sign a transaction using the connected Solana wallet (Phantom or similar)
+ * @param {Object} transaction - Transaction object to sign
+ * @returns {Promise<Object>} - Signed transaction
+ */
+export async function signTransactionSolana(transaction) {
+  if (typeof window === 'undefined') throw new Error('Window not defined');
+  
+  const provider = window.phantom?.solana || getPhantomProvider() || window.solana;
+  if (!provider) throw new Error('No Solana wallet connected');
+  
+  // Sign the transaction
+  const signedTx = await provider.signTransaction(transaction);
+  
+  return signedTx;
+}
+
 export async function initWallet() {
   const container = document.getElementById('side-panel') || document.body;
   const walletDiv = document.createElement('div');

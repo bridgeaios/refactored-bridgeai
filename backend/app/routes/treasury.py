@@ -12,6 +12,7 @@ Payment webhooks (Paystack, PayPal) POST to:
 All flows auto-split into: UBI 40% · Treasury 30% · Ops 20% · Founder 10%
 """
 import json
+import os
 
 from fastapi import APIRouter, HTTPException, Request
 
@@ -20,18 +21,46 @@ from app.services.payment_rails import PaymentRails
 
 router = APIRouter()
 
+def _treasury_writes_allowed(request: Request | None = None) -> tuple[bool, str]:
+    """
+    Guard for *manual CFO controls* over treasury HTTP endpoints.
+
+    Allowed when ANY of the following is true:
+    - ENV=local
+    - BRIDGE_ALLOW_TREASURY_WRITES=1 (or true)
+    - CFO_TOKEN is set AND request header X-CFO-Token matches
+    """
+    env = (os.getenv("ENV") or os.getenv("NODE_ENV") or "").strip().lower()
+    if env == "local":
+        return True, "env_local"
+    allow_flag = (os.getenv("BRIDGE_ALLOW_TREASURY_WRITES") or "").strip().lower()
+    if allow_flag in ("1", "true", "yes", "on"):
+        return True, "allow_flag"
+    token = (os.getenv("CFO_TOKEN") or "").strip()
+    if token:
+        hdr = ""
+        if request is not None:
+            hdr = (request.headers.get("X-CFO-Token") or request.headers.get("x-cfo-token") or "").strip()
+        if hdr and hdr == token:
+            return True, "token"
+        return False, "token_required"
+    return False, "disabled"
+
 
 # ------------------------------------------------------------------
 # Treasury core
 # ------------------------------------------------------------------
 
 @router.post("/treasury/collect")
-async def treasury_collect(payload: dict):
+async def treasury_collect(payload: dict, request: Request):
     """
     Collect revenue from any project into the unified treasury.
     Required: amount (float)
     Optional: currency (default BRDG), source_project, method, type, meta
     """
+    allowed, reason = _treasury_writes_allowed(request)
+    if not allowed:
+        raise HTTPException(status_code=403, detail=f"treasury writes disabled ({reason})")
     amount = payload.get("amount")
     if not amount:
         raise HTTPException(status_code=400, detail="amount required")
@@ -67,12 +96,15 @@ async def treasury_ledger(limit: int = 50):
 
 
 @router.post("/treasury/disburse")
-async def treasury_disburse(payload: dict):
+async def treasury_disburse(payload: dict, request: Request):
     """
     Record a treasury disbursement from a bucket.
     Required: bucket (ubi|treasury|ops|founder), amount, destination
     Optional: authorized_by
     """
+    allowed, reason = _treasury_writes_allowed(request)
+    if not allowed:
+        raise HTTPException(status_code=403, detail=f"treasury writes disabled ({reason})")
     bucket = payload.get("bucket")
     amount = payload.get("amount")
     destination = payload.get("destination", "")
@@ -92,6 +124,33 @@ async def treasury_disburse(payload: dict):
     if not result.get("ok"):
         raise HTTPException(status_code=400, detail=result.get("reason", "disburse failed"))
     return result
+
+
+@router.get("/treasury/controls")
+async def treasury_controls(request: Request):
+    """
+    Status endpoint for CFO UI to determine whether controls are armed.
+    This does NOT enable anything; it only reports current policy.
+    """
+    allowed, reason = _treasury_writes_allowed(request)
+    token_configured = bool((os.getenv("CFO_TOKEN") or "").strip())
+    return {
+        "ok": True,
+        "writes_allowed": bool(allowed),
+        "mode": reason,
+        "token_configured": token_configured,
+        "observed_env": {
+            "ENV": os.getenv("ENV"),
+            "NODE_ENV": os.getenv("NODE_ENV"),
+            "BRIDGE_ALLOW_TREASURY_WRITES": os.getenv("BRIDGE_ALLOW_TREASURY_WRITES"),
+            "CFO_TOKEN_set": bool((os.getenv("CFO_TOKEN") or "").strip()),
+        },
+        "enablement": {
+            "env_local": "Set ENV=local",
+            "allow_flag": "Set BRIDGE_ALLOW_TREASURY_WRITES=1",
+            "token": "Set CFO_TOKEN and send X-CFO-Token header",
+        },
+    }
 
 
 @router.get("/treasury/rails")

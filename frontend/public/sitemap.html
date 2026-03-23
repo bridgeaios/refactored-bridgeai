@@ -1,0 +1,184 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Site Index — Bridge AI OS</title>
+  <meta name="description" content="Full site index and page directory for Bridge AI OS — Autonomous Systems, DeFi, Agents, Treasury, Network.">
+  <script src="/bridge-api-config.js"></script>
+  <script>if(typeof window.__API_BASE==="undefined")window.__API_BASE="";if(typeof window.__WS_BASE==="undefined")window.__WS_BASE="";</script>
+  <link rel="icon" href="/favicon.svg" type="image/svg+xml">
+  <link rel="stylesheet" href="/bridge-theme.css">
+  <script src="/bridge-shell.js"></script>
+</head>
+<body>
+
+  <!-- Shell injects nav above; page content below -->
+  <div style="background:#000;min-height:100vh;">
+
+    <!-- Hero -->
+    <div class="bshell-sitemap-hero">
+      <div class="panel-header" style="max-width:80px;margin:0 auto 20px;"></div>
+      <h1>Site Index</h1>
+      <p>Complete directory of all Bridge AI OS surfaces, tools, and interfaces.</p>
+      <div style="display:flex;align-items:center;justify-content:center;gap:16px;margin-top:20px;">
+        <span id="sm-api-dot" class="bshell-status-dot" title="API Status"></span>
+        <span id="sm-api-label" style="font-size:12px;color:#444;font-family:monospace;">checking…</span>
+        <span style="color:#2A2A2A">|</span>
+        <span style="font-size:12px;color:#444;" id="sm-page-count">— pages</span>
+      </div>
+    </div>
+
+    <!-- Dynamic sections (rendered by JS below) -->
+    <div id="sm-content"></div>
+
+    <!-- Anatomical Visualizations — separate section -->
+    <div class="bshell-sitemap-section">
+      <div class="bshell-sitemap-section-head">
+        <div class="bshell-sitemap-section-title">◑ Embodied Visualizations</div>
+        <div class="bshell-sitemap-section-divider"></div>
+      </div>
+      <div class="bshell-sitemap-grid">
+        <a href="/anatomical_face.html" class="bshell-sitemap-card">
+          <div class="bshell-sitemap-card-icon">◑</div>
+          <div class="bshell-sitemap-card-title">Anatomical Face</div>
+          <div class="bshell-sitemap-card-path">/anatomical_face.html</div>
+          <div class="bshell-sitemap-card-desc">Procedural anatomical face — Babylon.js 3D scene</div>
+        </a>
+        <a href="/anatomical_face_facs.html" class="bshell-sitemap-card">
+          <div class="bshell-sitemap-card-icon">◑</div>
+          <div class="bshell-sitemap-card-title">FACS Morph System</div>
+          <div class="bshell-sitemap-card-path">/anatomical_face_facs.html</div>
+          <div class="bshell-sitemap-card-desc">Facial Action Coding System morph targets</div>
+        </a>
+        <a href="/anatomical_face_vector_muscle.html" class="bshell-sitemap-card">
+          <div class="bshell-sitemap-card-icon">◑</div>
+          <div class="bshell-sitemap-card-title">Vector Muscle</div>
+          <div class="bshell-sitemap-card-path">/anatomical_face_vector_muscle.html</div>
+          <div class="bshell-sitemap-card-desc">Vector-based muscle simulation system</div>
+        </a>
+        <a href="/anatomical_face_tension_balanced.html" class="bshell-sitemap-card">
+          <div class="bshell-sitemap-card-icon">◑</div>
+          <div class="bshell-sitemap-card-title">Tension Balanced</div>
+          <div class="bshell-sitemap-card-path">/anatomical_face_tension_balanced.html</div>
+          <div class="bshell-sitemap-card-desc">Tension-balanced facial rig</div>
+        </a>
+        <a href="/anatomical_face_constrained_system.html" class="bshell-sitemap-card">
+          <div class="bshell-sitemap-card-icon">◑</div>
+          <div class="bshell-sitemap-card-title">Constrained System</div>
+          <div class="bshell-sitemap-card-path">/anatomical_face_constrained_system.html</div>
+          <div class="bshell-sitemap-card-desc">Elastic constrained face simulation</div>
+        </a>
+        <a href="/anatomical_face_embodied.html" class="bshell-sitemap-card">
+          <div class="bshell-sitemap-card-icon">◑</div>
+          <div class="bshell-sitemap-card-title">Embodied / Stress Memory</div>
+          <div class="bshell-sitemap-card-path">/anatomical_face_embodied.html</div>
+          <div class="bshell-sitemap-card-desc">Embodied face with stress memory model</div>
+        </a>
+      </div>
+    </div>
+
+    <!-- Tech stack section -->
+    <div class="bshell-sitemap-section">
+      <div class="bshell-sitemap-section-head">
+        <div class="bshell-sitemap-section-title">▦ Infrastructure</div>
+        <div class="bshell-sitemap-section-divider"></div>
+      </div>
+      <div class="bshell-sitemap-grid">
+        <div class="bshell-sitemap-card" style="cursor:default;">
+          <div class="bshell-sitemap-card-icon">◎</div>
+          <div class="bshell-sitemap-card-title">Frontend Dev Server</div>
+          <div class="bshell-sitemap-card-path">localhost:3020</div>
+          <div class="bshell-sitemap-card-desc">Vite dev server · Main app + static pages · API proxy → :8000</div>
+        </div>
+        <div class="bshell-sitemap-card" style="cursor:default;">
+          <div class="bshell-sitemap-card-icon">◆</div>
+          <div class="bshell-sitemap-card-title">Backend API</div>
+          <div class="bshell-sitemap-card-path">localhost:8000</div>
+          <div class="bshell-sitemap-card-desc">FastAPI backend · REST + WebSocket · Spine + Revenue + Agents</div>
+        </div>
+        <a href="http://localhost:5173/" target="_blank" rel="noopener" class="bshell-sitemap-card">
+          <div class="bshell-sitemap-card-icon">◧</div>
+          <div class="bshell-sitemap-card-title">DeFi Frontend</div>
+          <div class="bshell-sitemap-card-path">localhost:5173</div>
+          <div class="bshell-sitemap-card-desc">React SPA · Lending · Staking · DEX · Treasury</div>
+          <div class="bshell-sitemap-card-ext">External</div>
+        </a>
+        <div class="bshell-sitemap-card" style="cursor:default;">
+          <div class="bshell-sitemap-card-icon">⬡</div>
+          <div class="bshell-sitemap-card-title">Linea Mainnet</div>
+          <div class="bshell-sitemap-card-path">Chain ID: 59144</div>
+          <div class="bshell-sitemap-card-desc">L2 EVM chain · Sovereign gateway · SIWE auth</div>
+        </div>
+      </div>
+    </div>
+
+  </div>
+
+  <script>
+  (function() {
+    // Wait for shell to expose PAGES/GROUPS
+    function render() {
+      var shell = window.__BRIDGE_SHELL;
+      if (!shell) return;
+      var PAGES = shell.PAGES, GROUPS = shell.GROUPS;
+      var content = document.getElementById('sm-content');
+      if (!content) return;
+
+      // Page count — 6 anatomical viz pages + 4 infra entries listed statically below
+      var STATIC_PAGES = 6 + 4;
+      var countEl = document.getElementById('sm-page-count');
+      if (countEl) countEl.textContent = (PAGES.length + STATIC_PAGES) + ' pages total';
+
+      var html = '';
+      GROUPS.forEach(function(g) {
+        var pages = PAGES.filter(function(p){ return p.group === g.key; });
+        var cards = pages.map(function(p) {
+          var ext = p.external ? '<div class="bshell-sitemap-card-ext">External Port</div>' : '';
+          var target = p.external ? ' target="_blank" rel="noopener"' : '';
+          return '<a href="' + p.path + '" class="bshell-sitemap-card"' + target + '>' +
+            '<div class="bshell-sitemap-card-icon">' + p.icon + '</div>' +
+            '<div class="bshell-sitemap-card-title">' + p.label + '</div>' +
+            '<div class="bshell-sitemap-card-path">' + p.path + '</div>' +
+            '<div class="bshell-sitemap-card-desc">' + p.desc + '</div>' +
+            ext +
+            '</a>';
+        }).join('');
+
+        html += '<div class="bshell-sitemap-section">' +
+          '<div class="bshell-sitemap-section-head">' +
+          '<div class="bshell-sitemap-section-title">' + g.glyph + ' ' + g.label + '</div>' +
+          '<div class="bshell-sitemap-section-divider"></div>' +
+          '</div>' +
+          '<div class="bshell-sitemap-grid">' + cards + '</div>' +
+          '</div>';
+      });
+
+      content.innerHTML = html;
+    }
+
+    // API status
+    function pingApi() {
+      var dot = document.getElementById('sm-api-dot');
+      var label = document.getElementById('sm-api-label');
+      if (!dot || !label) return;
+      fetch('/api/mission/board').then(function(r) {
+        dot.className = 'bshell-status-dot ' + (r.ok ? 'alive' : 'degraded');
+        label.textContent = r.ok ? 'API Online' : 'API Degraded';
+      }).catch(function() {
+        dot.className = 'bshell-status-dot offline';
+        label.textContent = 'API Offline — stub mode';
+      });
+    }
+
+    if (document.readyState === 'loading') {
+      document.addEventListener('DOMContentLoaded', function(){ setTimeout(render, 50); pingApi(); });
+    } else {
+      setTimeout(render, 50);
+      pingApi();
+    }
+  })();
+  </script>
+
+</body>
+</html>

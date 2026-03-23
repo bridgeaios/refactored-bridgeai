@@ -1,0 +1,1000 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+  <link rel="icon" href="/favicon.svg" type="image/svg+xml">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Autonomous Network Operating System | Bridge AI</title>
+    <style>
+        :root {
+            --primary-cyan: #00f5ff;
+            --primary-amber: #ffaa00;
+            --primary-red: #ff3366;
+            --bg-dark: #0a0e14;
+            --bg-panel: rgba(10, 20, 35, 0.85);
+            --glass-border: rgba(0, 245, 255, 0.2);
+            --text-primary: #e0f7ff;
+            --text-secondary: #7aa4c4;
+            --current-theme: var(--primary-cyan);
+        }
+
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+
+        body {
+            font-family: 'Segoe UI', 'Roboto Mono', monospace;
+            background: var(--bg-dark);
+            color: var(--text-primary);
+            min-height: 100vh;
+            overflow: hidden;
+            background-image:
+                radial-gradient(ellipse at 50% 50%, rgba(0, 60, 80, 0.3) 0%, transparent 70%),
+                linear-gradient(0deg, rgba(0, 20, 30, 0.9) 0%, transparent 2px);
+        }
+
+        .dashboard-container {
+            display: grid;
+            grid-template-columns: 320px 1fr 300px;
+            grid-template-rows: 60px 1fr 200px;
+            gap: 12px;
+            padding: 12px;
+            height: 100vh;
+            position: relative;
+        }
+
+        .scanlines {
+            position: fixed;
+            top: 0; left: 0; right: 0; bottom: 0;
+            background: repeating-linear-gradient(
+                0deg,
+                transparent,
+                transparent 2px,
+                rgba(0, 245, 255, 0.015) 2px,
+                rgba(0, 245, 255, 0.015) 4px
+            );
+            pointer-events: none;
+            z-index: 1000;
+            animation: scanlineMove 8s linear infinite;
+        }
+
+        @keyframes scanlineMove {
+            0% { transform: translateY(0); }
+            100% { transform: translateY(4px); }
+        }
+
+        .header-panel {
+            grid-column: 1 / -1;
+            background: var(--bg-panel);
+            border: 1px solid var(--glass-border);
+            border-radius: 8px;
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            padding: 0 24px;
+            backdrop-filter: blur(10px);
+            box-shadow: 0 4px 30px rgba(0, 245, 255, 0.1);
+        }
+
+        .header-title {
+            font-size: 18px;
+            font-weight: 700;
+            letter-spacing: 2px;
+            text-transform: uppercase;
+            background: linear-gradient(90deg, var(--current-theme), #fff);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            animation: titleGlow 2s ease-in-out infinite alternate;
+        }
+
+        @keyframes titleGlow {
+            0% { filter: drop-shadow(0 0 5px var(--current-theme)); }
+            100% { filter: drop-shadow(0 0 20px var(--current-theme)); }
+        }
+
+        .status-indicators {
+            display: flex;
+            gap: 20px;
+            align-items: center;
+        }
+
+        .status-badge {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            padding: 6px 14px;
+            background: rgba(0, 245, 255, 0.1);
+            border-radius: 20px;
+            font-size: 12px;
+            border: 1px solid var(--glass-border);
+        }
+
+        .status-dot {
+            width: 8px;
+            height: 8px;
+            border-radius: 50%;
+            background: var(--current-theme);
+            box-shadow: 0 0 10px var(--current-theme);
+            animation: pulse 1.5s ease-in-out infinite;
+        }
+
+        .status-dot.offline { background: var(--primary-red); animation: none; }
+
+        @keyframes pulse {
+            0%, 100% { opacity: 1; transform: scale(1); }
+            50% { opacity: 0.6; transform: scale(0.8); }
+        }
+
+        .panel {
+            background: var(--bg-panel);
+            border: 1px solid var(--glass-border);
+            border-radius: 8px;
+            backdrop-filter: blur(12px);
+            box-shadow:
+                0 8px 32px rgba(0, 0, 0, 0.4),
+                inset 0 1px 0 rgba(255, 255, 255, 0.05);
+            overflow: hidden;
+            transition: all 0.3s ease;
+        }
+
+        .panel:hover {
+            border-color: var(--current-theme);
+            box-shadow:
+                0 8px 32px rgba(0, 0, 0, 0.4),
+                0 0 20px rgba(0, 245, 255, 0.15);
+        }
+
+        .panel-header {
+            padding: 12px 16px;
+            border-bottom: 1px solid var(--glass-border);
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            cursor: pointer;
+        }
+
+        .panel-title {
+            font-size: 11px;
+            font-weight: 600;
+            letter-spacing: 1.5px;
+            text-transform: uppercase;
+            color: var(--current-theme);
+        }
+
+        .panel-toggle {
+            width: 20px;
+            height: 20px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            transition: transform 0.3s ease;
+        }
+
+        .panel.collapsed .panel-toggle { transform: rotate(180deg); }
+        .panel.collapsed .panel-content { display: none; }
+
+        .panel-content {
+            padding: 16px;
+            height: calc(100% - 45px);
+            overflow-y: auto;
+        }
+
+        .metrics-grid {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 12px;
+        }
+
+        .metric-card {
+            background: rgba(0, 245, 255, 0.05);
+            border: 1px solid rgba(0, 245, 255, 0.1);
+            border-radius: 6px;
+            padding: 12px;
+        }
+
+        .metric-label {
+            font-size: 10px;
+            color: var(--text-secondary);
+            text-transform: uppercase;
+            letter-spacing: 1px;
+            margin-bottom: 6px;
+        }
+
+        .metric-value {
+            font-size: 24px;
+            font-weight: 700;
+            color: var(--current-theme);
+            text-shadow: 0 0 15px var(--current-theme);
+        }
+
+        .metric-bar {
+            height: 4px;
+            background: rgba(0, 245, 255, 0.1);
+            border-radius: 2px;
+            margin-top: 8px;
+            overflow: hidden;
+        }
+
+        .metric-bar-fill {
+            height: 100%;
+            background: linear-gradient(90deg, var(--current-theme), transparent);
+            border-radius: 2px;
+            transition: width 0.5s ease;
+        }
+
+        .network-visualization {
+            grid-column: 2;
+            grid-row: 2 / 4;
+            position: relative;
+        }
+
+        .network-svg {
+            width: 100%;
+            height: 100%;
+        }
+
+        .agent-node {
+            cursor: pointer;
+            transition: transform 0.3s ease;
+        }
+
+        .agent-node:hover { transform: scale(1.1); }
+
+        .connection-line {
+            stroke-dasharray: 5, 5;
+            animation: dash 20s linear infinite;
+        }
+
+        @keyframes dash { to { stroke-dashoffset: -1000; } }
+
+        .merkle-tree {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            gap: 8px;
+        }
+
+        .merkle-level {
+            display: flex;
+            gap: 16px;
+            justify-content: center;
+        }
+
+        .merkle-node {
+            width: 60px;
+            height: 28px;
+            background: rgba(0, 245, 255, 0.1);
+            border: 1px solid var(--current-theme);
+            border-radius: 4px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 8px;
+            font-family: monospace;
+            animation: hashPulse 2s ease-in-out infinite;
+        }
+
+        @keyframes hashPulse {
+            0%, 100% { background: rgba(0, 245, 255, 0.1); }
+            50% { background: rgba(0, 245, 255, 0.3); }
+        }
+
+        .event-log {
+            font-family: 'Roboto Mono', monospace;
+            font-size: 11px;
+            line-height: 1.6;
+            max-height: 140px;
+            overflow-y: auto;
+        }
+
+        .event-entry {
+            padding: 4px 8px;
+            border-left: 2px solid var(--current-theme);
+            margin-bottom: 4px;
+            background: rgba(0, 245, 255, 0.02);
+            animation: eventFadeIn 0.3s ease;
+        }
+
+        @keyframes eventFadeIn {
+            from { opacity: 0; transform: translateX(-10px); }
+            to { opacity: 1; transform: translateX(0); }
+        }
+
+        .event-timestamp { color: var(--text-secondary); font-size: 9px; }
+        .event-type { color: var(--current-theme); font-weight: 600; }
+
+        .agent-monitor { display: flex; flex-direction: column; gap: 10px; }
+
+        .agent-card {
+            background: rgba(0, 245, 255, 0.05);
+            border: 1px solid rgba(0, 245, 255, 0.1);
+            border-radius: 6px;
+            padding: 10px;
+        }
+
+        .agent-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 8px;
+        }
+
+        .agent-name {
+            font-size: 12px;
+            font-weight: 600;
+            color: var(--current-theme);
+        }
+
+        .agent-status {
+            width: 6px;
+            height: 6px;
+            border-radius: 50%;
+            background: #00ff88;
+            box-shadow: 0 0 8px #00ff88;
+        }
+
+        .agent-status.warning { background: var(--primary-amber); box-shadow: 0 0 8px var(--primary-amber); }
+        .agent-status.critical { background: var(--primary-red); box-shadow: 0 0 8px var(--primary-red); }
+
+        .agent-latency { font-size: 10px; color: var(--text-secondary); margin-bottom: 6px; }
+
+        .task-progress {
+            height: 3px;
+            background: rgba(0, 245, 255, 0.1);
+            border-radius: 2px;
+            overflow: hidden;
+        }
+
+        .task-progress-fill {
+            height: 100%;
+            background: linear-gradient(90deg, var(--current-theme), #00ff88);
+            transition: width 0.3s ease;
+        }
+
+        .security-panel .security-item {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            padding: 8px 0;
+            border-bottom: 1px solid rgba(0, 245, 255, 0.1);
+        }
+
+        .security-label { font-size: 11px; color: var(--text-secondary); }
+        .security-value { font-size: 12px; font-weight: 600; color: #00ff88; }
+        .security-value.warning { color: var(--primary-amber); }
+        .security-value.critical { color: var(--primary-red); }
+
+        .websocket-panel .ws-status {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            margin-bottom: 12px;
+        }
+
+        .ws-indicator {
+            width: 10px;
+            height: 10px;
+            border-radius: 50%;
+            background: #00ff88;
+            animation: wsBlink 1s ease-in-out infinite;
+        }
+
+        .ws-indicator.offline { background: var(--primary-red); animation: none; }
+
+        @keyframes wsBlink {
+            0%, 100% { opacity: 1; }
+            50% { opacity: 0.4; }
+        }
+
+        .ws-stats { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; }
+
+        .ws-stat {
+            background: rgba(0, 245, 255, 0.05);
+            padding: 8px;
+            border-radius: 4px;
+            text-align: center;
+        }
+
+        .ws-stat-value { font-size: 16px; font-weight: 700; color: var(--current-theme); }
+        .ws-stat-label { font-size: 9px; color: var(--text-secondary); }
+
+        .minimap {
+            position: fixed;
+            bottom: 20px;
+            right: 20px;
+            width: 180px;
+            height: 120px;
+            background: var(--bg-panel);
+            border: 1px solid var(--glass-border);
+            border-radius: 6px;
+            overflow: hidden;
+        }
+
+        .minimap-viewport {
+            position: absolute;
+            border: 2px solid var(--current-theme);
+            background: rgba(0, 245, 255, 0.1);
+            pointer-events: none;
+        }
+
+        .theme-selector { display: flex; gap: 8px; }
+
+        .theme-btn {
+            width: 24px;
+            height: 24px;
+            border-radius: 50%;
+            border: 2px solid transparent;
+            cursor: pointer;
+            transition: transform 0.2s ease;
+        }
+
+        .theme-btn:hover { transform: scale(1.2); }
+        .theme-btn.active { border-color: #fff; }
+
+        .theme-cyan { background: var(--primary-cyan); }
+        .theme-amber { background: var(--primary-amber); }
+        .theme-red { background: var(--primary-red); }
+
+        ::-webkit-scrollbar { width: 4px; }
+        ::-webkit-scrollbar-track { background: rgba(0, 245, 255, 0.05); }
+        ::-webkit-scrollbar-thumb { background: var(--current-theme); border-radius: 2px; }
+        @media (max-width: 768px) {
+            body { overflow-y: auto; overflow-x: hidden; }
+            .dashboard-container { grid-template-columns: 1fr; grid-template-rows: auto; gap: 8px; padding: 8px; height: auto; min-height: 100vh; }
+            .network-visualization { min-height: 220px; }
+            .header-panel { flex-wrap: wrap; padding: 12px; gap: 8px; }
+            .header-title { font-size: 13px; }
+            .status-indicators { flex-wrap: wrap; gap: 8px; }
+            .metrics-grid { grid-template-columns: 1fr; }
+            .merkle-level { flex-wrap: wrap; gap: 8px; justify-content: center; }
+            .minimap { width: 100px; height: 70px; bottom: 8px; right: 8px; }
+        }
+        @media (pointer: coarse) { button, .theme-btn { min-height: 44px; min-width: 44px; } }
+    </style>
+    <link rel="stylesheet" href="/mobile-friendly.css">
+  <link rel="stylesheet" href="/bridge-theme.css">
+  <script src="/bridge-shell.js"></script>
+</head>
+<body>
+    <div class="scanlines"></div>
+    <nav class="bridge-nav" style="position:sticky;top:0;z-index:100;background:var(--bg-panel);border-bottom:1px solid var(--glass-border);padding:8px 12px;display:flex;flex-wrap:wrap;align-items:center;gap:12px">
+        <a href="/" class="bridge-nav-brand" style="color:var(--current-theme);font-weight:700">Bridge AI</a>
+        <button class="bridge-nav-toggle" aria-label="Toggle menu" style="color:var(--current-theme);background:transparent;border:1px solid var(--glass-border);border-radius:6px;padding:8px 12px">☰</button>
+        <div class="bridge-nav-links">
+            <ul style="list-style:none;padding:0;margin:0;display:flex;flex-wrap:wrap;gap:12px;font-size:13px">
+                <li><a href="/dashboards.html" style="color:var(--text-secondary)">Dashboards</a></li>
+                <li><a href="/executive-dashboard.html" style="color:var(--text-secondary)">Executive</a></li>
+                <li><a href="/cfo.html" style="color:var(--text-secondary)">CFO</a></li>
+                <li><a href="/agents.html" style="color:var(--text-secondary)">Agents</a></li>
+                <li><a href="/status.html" style="color:var(--text-secondary)">Status</a></li>
+            </ul>
+        </div>
+    </nav>
+    <div class="dashboard-container">
+        <div class="header-panel">
+            <div class="header-title">Autonomous Network Operating System | Bridge AI</div>
+            <div class="status-indicators">
+                <div class="status-badge">
+                    <div class="status-dot" id="systemStatus"></div>
+                    <span id="systemStatusText">Connecting...</span>
+                </div>
+                <div class="status-badge">
+                    <span id="nodeCount">0 Nodes</span>
+                </div>
+                <div class="status-badge">
+                    <span id="uptime">Uptime: --:--:--</span>
+                </div>
+                <div class="theme-selector">
+                    <div class="theme-btn theme-cyan active" data-theme="cyan" onclick="setTheme('cyan')"></div>
+                    <div class="theme-btn theme-amber" data-theme="amber" onclick="setTheme('amber')"></div>
+                    <div class="theme-btn theme-red" data-theme="red" onclick="setTheme('red')"></div>
+                </div>
+            </div>
+        </div>
+
+        <div class="panel" id="leftPanel">
+            <div class="panel-header" onclick="togglePanel('leftPanel')">
+                <span class="panel-title">System Metrics</span>
+                <span class="panel-toggle">&#9660;</span>
+            </div>
+            <div class="panel-content">
+                <div class="metrics-grid">
+                    <div class="metric-card">
+                        <div class="metric-label">Health Score</div>
+                        <div class="metric-value" id="cpuValue">--</div>
+                        <div class="metric-bar"><div class="metric-bar-fill" id="cpuBar" style="width: 0%"></div></div>
+                    </div>
+                    <div class="metric-card">
+                        <div class="metric-label">Worker Utilization</div>
+                        <div class="metric-value" id="memValue">--</div>
+                        <div class="metric-bar"><div class="metric-bar-fill" id="memBar" style="width: 0%"></div></div>
+                    </div>
+                    <div class="metric-card">
+                        <div class="metric-label">Queue Latency</div>
+                        <div class="metric-value" id="netValue">-- ms</div>
+                        <div class="metric-bar"><div class="metric-bar-fill" id="netBar" style="width: 0%"></div></div>
+                    </div>
+                    <div class="metric-card">
+                        <div class="metric-label">State Version</div>
+                        <div class="metric-value" id="connValue">--</div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <div class="panel network-visualization">
+            <div class="panel-header">
+                <span class="panel-title">Network Topology</span>
+            </div>
+            <div class="panel-content">
+                <svg class="network-svg" viewBox="0 0 800 500" id="networkSvg">
+                    <defs>
+                        <filter id="glow" x="-50%" y="-50%" width="200%" height="200%">
+                            <feGaussianBlur stdDeviation="3" result="coloredBlur"/>
+                            <feMerge>
+                                <feMergeNode in="coloredBlur"/>
+                                <feMergeNode in="SourceGraphic"/>
+                            </feMerge>
+                        </filter>
+                        <filter id="coreGlow" x="-100%" y="-100%" width="300%" height="300%">
+                            <feGaussianBlur stdDeviation="8" result="blur"/>
+                            <feFlood flood-color="#00f5ff" flood-opacity="0.8"/>
+                            <feComposite in2="blur" operator="in"/>
+                            <feMerge>
+                                <feMergeNode/>
+                                <feMergeNode in="SourceGraphic"/>
+                            </feMerge>
+                        </filter>
+                        <filter id="bloom" x="-50%" y="-50%" width="200%" height="200%">
+                            <feGaussianBlur stdDeviation="4" result="blur"/>
+                            <feMerge>
+                                <feMergeNode in="blur"/>
+                                <feMergeNode in="SourceGraphic"/>
+                            </feMerge>
+                        </filter>
+                        <radialGradient id="coreGrad" cx="50%" cy="50%" r="50%">
+                            <stop offset="0%" stop-color="#00f5ff"/>
+                            <stop offset="100%" stop-color="#003344"/>
+                        </radialGradient>
+                    </defs>
+                    <g id="connections"></g>
+                    <g id="particles"></g>
+                    <g id="agents"></g>
+                    <circle class="central-core" cx="400" cy="250" r="30" fill="url(#coreGrad)" filter="url(#coreGlow)"/>
+                </svg>
+            </div>
+        </div>
+
+        <div class="panel" id="rightTopPanel">
+            <div class="panel-header" onclick="togglePanel('rightTopPanel')">
+                <span class="panel-title">Merkle / State Hash</span>
+                <span class="panel-toggle">&#9660;</span>
+            </div>
+            <div class="panel-content">
+                <div class="merkle-tree" id="merkleTree"></div>
+            </div>
+        </div>
+
+        <div class="panel">
+            <div class="panel-header">
+                <span class="panel-title">Event Stream (Live)</span>
+            </div>
+            <div class="panel-content">
+                <div class="event-log" id="eventLog"></div>
+            </div>
+        </div>
+
+        <div class="panel">
+            <div class="panel-header">
+                <span class="panel-title">Agent Monitor</span>
+            </div>
+            <div class="panel-content">
+                <div class="agent-monitor" id="agentMonitor"></div>
+            </div>
+        </div>
+
+        <div class="panel">
+            <div class="panel-header">
+                <span class="panel-title">Security / Audit</span>
+            </div>
+            <div class="panel-content security-panel">
+                <div class="security-item">
+                    <span class="security-label">Drift Score</span>
+                    <span class="security-value" id="encStatus">--</span>
+                </div>
+                <div class="security-item">
+                    <span class="security-label">Governance</span>
+                    <span class="security-value" id="fwStatus">--</span>
+                </div>
+                <div class="security-item">
+                    <span class="security-label">Critical Keys</span>
+                    <span class="security-value" id="threatStatus">--</span>
+                </div>
+                <div class="security-item">
+                    <span class="security-label">Report At</span>
+                    <span class="security-value" id="auditStatus">--</span>
+                </div>
+            </div>
+        </div>
+
+        <div class="panel">
+            <div class="panel-header">
+                <span class="panel-title">API Status</span>
+            </div>
+            <div class="panel-content websocket-panel">
+                <div class="ws-status">
+                    <div class="ws-indicator" id="wsIndicator"></div>
+                    <span id="wsState">Polling</span>
+                </div>
+                <div class="ws-stats">
+                    <div class="ws-stat">
+                        <div class="ws-stat-value" id="msgCount">0</div>
+                        <div class="ws-stat-label">Polls</div>
+                    </div>
+                    <div class="ws-stat">
+                        <div class="ws-stat-value" id="reconnectCount">0</div>
+                        <div class="ws-stat-label">Errors</div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <div class="minimap">
+        <svg viewBox="0 0 800 500" width="100%" height="100%">
+            <defs>
+                <pattern id="grid" width="40" height="40" patternUnits="userSpaceOnUse">
+                    <path d="M 40 0 L 0 0 0 40" fill="none" stroke="rgba(0,245,255,0.1)" stroke-width="0.5"/>
+                </pattern>
+            </defs>
+            <rect width="800" height="500" fill="url(#grid)"/>
+            <g id="minimapConnections" opacity="0.5"></g>
+            <g id="minimapAgents"></g>
+            <circle cx="400" cy="250" r="8" fill="#00f5ff"/>
+        </svg>
+    </div>
+
+    <script src="/bridge-api-config.js"></script>
+    <script>
+        const API_BASE = (typeof window !== 'undefined' && window.__API_BASE) ? String(window.__API_BASE).replace(/\/$/, '') : (function(){
+            const u = new URL(location.href);
+            if (u.hostname === 'localhost' || u.hostname === '127.0.0.1') {
+                return (u.port === '3020' || u.port === '5173' || u.port === '3000') ? 'http://localhost:8000' : (u.protocol + '//' + u.host);
+            }
+            return u.protocol + '//' + u.hostname + ':8000';
+        })();
+
+        const themes = {
+            cyan: { primary: '#00f5ff', rgb: '0, 245, 255' },
+            amber: { primary: '#ffaa00', rgb: '255, 170, 0' },
+            red: { primary: '#ff3366', rgb: '255, 51, 102' }
+        };
+
+        let state = {
+            theme: 'cyan',
+            cpu: 0,
+            memory: 0,
+            network: 0,
+            connections: 0,
+            uptime: 0,
+            polls: 0,
+            errors: 0,
+            agents: [],
+            events: [],
+            merkleRoot: '--------',
+            stateHash: '',
+            stateVersion: 0,
+            online: false,
+            liveReport: null,
+            swarmHealth: null,
+            healthExtended: null,
+            drift: null,
+            envKeys: null
+        };
+
+        function setTheme(themeName) {
+            state.theme = themeName;
+            const theme = themes[themeName];
+            document.documentElement.style.setProperty('--current-theme', theme.primary);
+            document.querySelectorAll('.theme-btn').forEach(function(btn) {
+                btn.classList.toggle('active', btn.dataset.theme === themeName);
+            });
+            updateNetworkVisualization();
+        }
+
+        function togglePanel(panelId) {
+            document.getElementById(panelId).classList.toggle('collapsed');
+        }
+
+        function addEvent(type, message) {
+            const timestamp = new Date().toISOString().substr(11, 12);
+            state.events.unshift({ type: type, message: message, timestamp: timestamp });
+            if (state.events.length > 50) state.events.pop();
+            renderEvents();
+        }
+
+        function renderEvents() {
+            const log = document.getElementById('eventLog');
+            let html = '';
+            state.events.slice(0, 15).forEach(function(e) {
+                html += '<div class="event-entry">' +
+                    '<span class="event-timestamp">[' + e.timestamp + ']</span> ' +
+                    '<span class="event-type">' + e.type + '</span> ' +
+                    (e.message || '') +
+                    '</div>';
+            });
+            log.innerHTML = html || '<div class="event-entry"><span class="event-timestamp">--</span> Awaiting data...</div>';
+        }
+
+        async function fetchApi(path) {
+            try {
+                const r = await fetch(API_BASE + path, { credentials: 'omit' });
+                if (!r.ok) throw new Error(r.status);
+                return await r.json();
+            } catch (e) {
+                state.errors++;
+                throw e;
+            }
+        }
+
+        async function pollApi() {
+            try {
+                state.liveReport = await fetchApi('/api/live/report');
+                state.online = true;
+                state.polls++;
+                document.getElementById('systemStatus').classList.remove('offline');
+                document.getElementById('systemStatusText').textContent = 'System Online';
+                document.getElementById('wsIndicator').classList.remove('offline');
+                document.getElementById('wsState').textContent = 'Connected';
+
+                const twins = state.liveReport.twins || [];
+                state.agents = twins.map(function(t, i) {
+                    const angle = (i * 360 / Math.max(1, twins.length)) * Math.PI / 180;
+                    const orbitRadius = 150;
+                    return {
+                        id: (t.id || t.name || 'twin-' + i).substring(0, 12),
+                        x: 400 + Math.cos(angle) * orbitRadius,
+                        y: 250 + Math.sin(angle) * orbitRadius,
+                        orbitAngle: angle,
+                        orbitRadius: orbitRadius,
+                        latency: 20 + Math.floor(Math.random() * 30),
+                        taskProgress: Math.floor(Math.random() * 80),
+                        status: 'online',
+                        score: t.score || 0
+                    };
+                });
+
+                if (twins.length === 0) {
+                    state.agents = [{ id: 'Bridge', x: 400, y: 250, orbitAngle: 0, orbitRadius: 0, latency: 5, taskProgress: 100, status: 'online', score: 0 }];
+                }
+
+                state.stateHash = (state.liveReport.state_hash || '').substring(0, 16) || '--------';
+                state.stateVersion = state.liveReport.state_version || 0;
+                state.merkleRoot = state.stateHash;
+
+                addEvent('LIVE_REPORT', 'v' + state.stateVersion + ' | ' + twins.length + ' twins');
+            } catch (e) {
+                state.online = false;
+                document.getElementById('systemStatus').classList.add('offline');
+                document.getElementById('systemStatusText').textContent = 'Offline';
+                document.getElementById('wsIndicator').classList.add('offline');
+                document.getElementById('wsState').textContent = 'Disconnected';
+                addEvent('API_ERROR', e.message || 'Failed to reach Bridge API');
+            }
+
+            try {
+                state.swarmHealth = await fetchApi('/api/swarm/health');
+            } catch (_) {}
+
+            try {
+                state.healthExtended = await fetchApi('/api/health/extended');
+            } catch (_) {}
+
+            try {
+                state.drift = await fetchApi('/api/audit/drift');
+            } catch (_) {}
+
+            try {
+                state.envKeys = await fetchApi('/api/twin/env-keys');
+            } catch (_) {}
+        }
+
+        function updateMetrics() {
+            const h = state.healthExtended;
+            const s = state.swarmHealth;
+
+            let healthScore = 0.5;
+            if (h && typeof h.health_score === 'number') healthScore = h.health_score * 100;
+            else if (s && typeof s.health_score === 'number') healthScore = s.health_score * 100;
+
+            let utilization = 55;
+            if (s && typeof s.worker_utilization === 'number') utilization = s.worker_utilization * 100;
+
+            let latency = 0;
+            if (s && typeof s.queue_latency_ms === 'number') latency = s.queue_latency_ms;
+            const latencyPct = Math.min(100, latency / 2);
+
+            state.cpu = healthScore;
+            state.memory = utilization;
+            state.network = latency;
+            state.connections = state.stateVersion || 0;
+
+            document.getElementById('cpuValue').textContent = healthScore.toFixed(1) + '%';
+            document.getElementById('cpuBar').style.width = healthScore + '%';
+            document.getElementById('memValue').textContent = utilization.toFixed(0) + '%';
+            document.getElementById('memBar').style.width = utilization + '%';
+            document.getElementById('netValue').textContent = latency.toFixed(0) + ' ms';
+            document.getElementById('netBar').style.width = latencyPct + '%';
+            document.getElementById('connValue').textContent = state.stateVersion;
+
+            state.uptime++;
+            const hours = Math.floor(state.uptime / 3600).toString().padStart(2, '0');
+            const mins = Math.floor((state.uptime % 3600) / 60).toString().padStart(2, '0');
+            const secs = (state.uptime % 60).toString().padStart(2, '0');
+            document.getElementById('uptime').textContent = 'Uptime: ' + hours + ':' + mins + ':' + secs;
+
+            document.getElementById('nodeCount').textContent = state.agents.length + ' Nodes';
+            document.getElementById('msgCount').textContent = state.polls;
+            document.getElementById('reconnectCount').textContent = state.errors;
+        }
+
+        function updateMerkleTree() {
+            const tree = document.getElementById('merkleTree');
+            const hash = state.merkleRoot || '--------';
+            tree.innerHTML = '';
+            const levels = [
+                [hash.substring(0, 8), hash.substring(8, 16)],
+                [hash.substring(0, 4), hash.substring(4, 8)],
+                [hash]
+            ];
+            levels.forEach(function(levelHashes) {
+                const levelDiv = document.createElement('div');
+                levelDiv.className = 'merkle-level';
+                levelHashes.forEach(function(h) {
+                    const node = document.createElement('div');
+                    node.className = 'merkle-node';
+                    node.textContent = h || '----';
+                    levelDiv.appendChild(node);
+                });
+                tree.appendChild(levelDiv);
+            });
+        }
+
+        function updateAgents() {
+            state.agents.forEach(function(agent) {
+                agent.orbitAngle += 0.002;
+                if (agent.orbitRadius > 0) {
+                    agent.x = 400 + Math.cos(agent.orbitAngle) * agent.orbitRadius;
+                    agent.y = 250 + Math.sin(agent.orbitAngle) * agent.orbitRadius;
+                }
+            });
+
+            const monitor = document.getElementById('agentMonitor');
+            let html = '';
+            state.agents.slice(0, 6).forEach(function(agent) {
+                html += '<div class="agent-card">' +
+                    '<div class="agent-header">' +
+                    '<span class="agent-name">' + agent.id + '</span>' +
+                    '<div class="agent-status ' + agent.status + '"></div>' +
+                    '</div>' +
+                    '<div class="agent-latency">Latency: ' + (agent.latency || 0) + 'ms | Score: ' + (agent.score || 0) + '</div>' +
+                    '<div class="task-progress">' +
+                    '<div class="task-progress-fill" style="width: ' + (agent.taskProgress || 0) + '%"></div>' +
+                    '</div>' +
+                    '</div>';
+            });
+            monitor.innerHTML = html || '<div class="agent-card"><span class="agent-name">No agents</span></div>';
+        }
+
+        function updateNetworkVisualization() {
+            const theme = themes[state.theme];
+            const svg = document.getElementById('networkSvg');
+            const connectionsG = document.getElementById('connections');
+            const particlesG = document.getElementById('particles');
+            const agentsG = document.getElementById('agents');
+
+            connectionsG.innerHTML = '';
+            particlesG.innerHTML = '';
+            agentsG.innerHTML = '';
+
+            state.agents.forEach(function(agent) {
+                if (agent.orbitRadius <= 0) return;
+                const line = document.createElementNS('http://www.w3.org/2000/svg', 'line');
+                line.setAttribute('x1', '400');
+                line.setAttribute('y1', '250');
+                line.setAttribute('x2', agent.x);
+                line.setAttribute('y2', agent.y);
+                line.setAttribute('stroke', 'rgba(' + theme.rgb + ', 0.3)');
+                line.setAttribute('stroke-width', '2');
+                line.setAttribute('class', 'connection-line');
+                connectionsG.appendChild(line);
+            });
+
+            for (let i = 0; i < state.agents.length; i++) {
+                const nextIdx = (i + 1) % state.agents.length;
+                const a = state.agents[i];
+                const b = state.agents[nextIdx];
+                if (a.orbitRadius > 0 && b.orbitRadius > 0) {
+                    const line = document.createElementNS('http://www.w3.org/2000/svg', 'line');
+                    line.setAttribute('x1', a.x);
+                    line.setAttribute('y1', a.y);
+                    line.setAttribute('x2', b.x);
+                    line.setAttribute('y2', b.y);
+                    line.setAttribute('stroke', 'rgba(' + theme.rgb + ', 0.2)');
+                    line.setAttribute('stroke-width', '1');
+                    connectionsG.appendChild(line);
+                }
+            }
+
+            state.agents.forEach(function(agent) {
+                const g = document.createElementNS('http://www.w3.org/2000/svg', 'g');
+                g.setAttribute('class', 'agent-node');
+                g.setAttribute('transform', 'translate(' + agent.x + ', ' + agent.y + ')');
+
+                const circle = document.createElementNS('http://www.w3.org/2000/svg', 'circle');
+                circle.setAttribute('r', '18');
+                circle.setAttribute('fill', 'rgba(' + theme.rgb + ', 0.2)');
+                circle.setAttribute('stroke', theme.primary);
+                circle.setAttribute('stroke-width', '2');
+                circle.setAttribute('filter', 'url(#bloom)');
+
+                const innerCircle = document.createElementNS('http://www.w3.org/2000/svg', 'circle');
+                innerCircle.setAttribute('r', '8');
+                innerCircle.setAttribute('fill', theme.primary);
+
+                const label = document.createElementNS('http://www.w3.org/2000/svg', 'text');
+                label.setAttribute('y', '32');
+                label.setAttribute('text-anchor', 'middle');
+                label.setAttribute('fill', theme.primary);
+                label.setAttribute('font-size', '10');
+                label.setAttribute('font-family', 'monospace');
+                label.textContent = agent.id;
+
+                g.appendChild(circle);
+                g.appendChild(innerCircle);
+                g.appendChild(label);
+                agentsG.appendChild(g);
+            });
+
+            document.getElementById('minimapConnections').innerHTML = connectionsG.innerHTML;
+            document.getElementById('minimapAgents').innerHTML = agentsG.innerHTML;
+        }
+
+        function updateSecurity() {
+            const d = state.drift;
+            const k = state.envKeys;
+
+            document.getElementById('encStatus').textContent = d ? (d.drift_score || 0).toFixed(4) : '--';
+            document.getElementById('encStatus').className = 'security-value' + ((d && d.should_trigger_governance) ? ' warning' : '');
+
+            document.getElementById('fwStatus').textContent = (d && d.should_trigger_governance) ? 'Trigger' : 'Stable';
+            document.getElementById('fwStatus').className = 'security-value' + ((d && d.should_trigger_governance) ? ' critical' : '');
+
+            const criticalMissing = (k && k.summary && k.summary.criticalMissing) || 0;
+            document.getElementById('threatStatus').textContent = criticalMissing === 0 ? 'OK' : (criticalMissing + ' missing');
+            document.getElementById('threatStatus').className = 'security-value' + (criticalMissing > 0 ? ' warning' : '');
+
+            document.getElementById('auditStatus').textContent = (state.liveReport && state.liveReport.report_at) ? state.liveReport.report_at.substr(11, 8) : '--';
+        }
+
+        function animate() {
+            updateMetrics();
+            updateAgents();
+            updateNetworkVisualization();
+            updateMerkleTree();
+            updateSecurity();
+            requestAnimationFrame(animate);
+        }
+
+        async function init() {
+            addEvent('SYSTEM_INIT', 'Connecting to Bridge API at ' + API_BASE);
+            await pollApi();
+            addEvent('AGENTS_LOADED', state.agents.length + ' twins/nodes');
+            updateMerkleTree();
+            setInterval(pollApi, 5000);
+            animate();
+        }
+
+        document.addEventListener('DOMContentLoaded', init);
+    </script>
+    <script src="/bridge-nav.js"></script>
+</body>
+</html>

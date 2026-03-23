@@ -1,0 +1,419 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>CFO — Treasury & Financial Controls — Bridge AI OS</title>
+  <script src="/bridge-api-config.js"></script>
+  <script>if(typeof window.__API_BASE==="undefined")window.__API_BASE="";</script>
+  <script src="https://cdn.tailwindcss.com"></script>
+  <link rel="icon" href="/favicon.svg" type="image/svg+xml">
+  <link rel="stylesheet" href="/mobile-friendly.css">
+  <style>
+    .card { background:#fff; border-radius:12px; box-shadow:0 1px 10px rgba(0,0,0,.06); border:1px solid #e2e8f0; padding:1.1rem; }
+    .metric-val { font-size:1.65rem; font-weight:800; color:#0f172a; line-height:1; }
+    .metric-label { font-size:.72rem; text-transform:uppercase; letter-spacing:.08em; color:#94a3b8; margin-top:.35rem; }
+    .badge { display:inline-block; padding:2px 10px; border-radius:999px; font-size:.72rem; font-weight:700; }
+    .badge-green { background:#dcfce7; color:#166534; }
+    .badge-amber { background:#fef3c7; color:#92400e; }
+    .badge-red { background:#fee2e2; color:#991b1b; }
+    .mono { font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, "Liberation Mono", "Courier New", monospace; }
+    .btn { padding:.55rem .85rem; border-radius:.6rem; font-weight:700; font-size:.9rem; }
+    .btn-primary { background:#0f172a; color:#fff; }
+    .btn-primary:hover { background:#111827; }
+    .btn-outline { border:1px solid #cbd5e1; color:#0f172a; background:#fff; }
+    .btn-outline:hover { background:#f8fafc; }
+  </style>
+  <link rel="stylesheet" href="/bridge-theme.css">
+  <script src="/bridge-shell.js"></script>
+</head>
+<body class="bg-slate-100 font-sans antialiased">
+
+  <nav class="bridge-nav bg-slate-800 text-white px-4 py-3 flex flex-wrap justify-between items-center sticky top-0 z-50 shadow-lg">
+    <a href="/" class="bridge-nav-brand text-lg font-bold hover:text-amber-300">Bridge AI OS</a>
+    <button class="bridge-nav-toggle" aria-label="Toggle menu">☰</button>
+    <div class="bridge-nav-links">
+      <ul class="flex flex-wrap gap-3 text-sm mt-1 md:mt-0">
+        <li><a href="/" class="hover:text-amber-300">Digital Twin</a></li>
+        <li><a href="/dashboards.html" class="hover:text-amber-300">Dashboards</a></li>
+        <li><a href="/executive-dashboard.html" class="hover:text-amber-300">Executive</a></li>
+        <li><a href="/agents.html" class="hover:text-amber-300">Agents</a></li>
+        <li><a href="/network-dashboard.html" class="hover:text-amber-300">Network</a></li>
+        <li><a href="/cfo.html" class="text-amber-300 font-semibold">CFO</a></li>
+        <li><a href="/50-applications.html" class="hover:text-amber-300">50 Apps</a></li>
+        <li><a href="/gateway/" class="hover:text-amber-300">Gateway</a></li>
+        <li><a href="/join.html" class="hover:text-amber-300">Join</a></li>
+        <li><a href="/settings.html" class="hover:text-amber-300">Settings</a></li>
+        <li><a href="/docs.html" class="hover:text-amber-300">Docs</a></li>
+        <li><a href="/status.html" class="hover:text-amber-300">Status</a></li>
+        <li><a href="http://localhost:4201/system-map.html" target="_blank" class="hover:text-amber-300">System Map</a></li>
+      </ul>
+    </div>
+    <button id="refresh-btn" class="ml-2 md:ml-4 text-slate-400 hover:text-amber-300 text-lg min-w-[44px] min-h-[44px] flex items-center justify-center" title="Refresh">↻</button>
+  </nav>
+
+  <main class="p-4 md:p-6 max-w-7xl mx-auto space-y-6">
+    <div class="flex flex-wrap items-center justify-between gap-3">
+      <div>
+        <h1 class="text-2xl font-extrabold text-slate-900">CFO Breakdown</h1>
+        <p class="text-slate-500 text-sm mt-0.5">Unified treasury, ledger, buckets, rails, and financial controls · <span id="last-updated" class="text-slate-400">—</span></p>
+      </div>
+      <div class="flex items-center gap-2">
+        <span id="controls-badge" class="badge badge-amber">Controls: checking…</span>
+      </div>
+    </div>
+
+    <!-- KPI Row -->
+    <section class="grid grid-cols-2 sm:grid-cols-4 lg:grid-cols-6 gap-4">
+      <div class="card text-center">
+        <div class="metric-val" id="kpi-total">—</div>
+        <div class="metric-label">Total Collected (BRDG)</div>
+      </div>
+      <div class="card text-center">
+        <div class="metric-val" id="kpi-tx">—</div>
+        <div class="metric-label">Transactions</div>
+      </div>
+      <div class="card text-center">
+        <div class="metric-val" id="kpi-ubi">—</div>
+        <div class="metric-label">UBI Bucket</div>
+      </div>
+      <div class="card text-center">
+        <div class="metric-val" id="kpi-treasury">—</div>
+        <div class="metric-label">Treasury Bucket</div>
+      </div>
+      <div class="card text-center">
+        <div class="metric-val" id="kpi-ops">—</div>
+        <div class="metric-label">Ops Bucket</div>
+      </div>
+      <div class="card text-center">
+        <div class="metric-val" id="kpi-founder">—</div>
+        <div class="metric-label">Founder Bucket</div>
+      </div>
+    </section>
+
+    <!-- Breakdown panels -->
+    <section class="grid grid-cols-1 lg:grid-cols-3 gap-4">
+      <div class="card">
+        <div class="flex items-center justify-between mb-2">
+          <h2 class="font-bold text-slate-900">Breakdown by Project</h2>
+        </div>
+        <div id="by-project" class="text-sm text-slate-700 space-y-1">Loading…</div>
+      </div>
+      <div class="card">
+        <div class="flex items-center justify-between mb-2">
+          <h2 class="font-bold text-slate-900">Breakdown by Rail/Method</h2>
+        </div>
+        <div id="by-method" class="text-sm text-slate-700 space-y-1">Loading…</div>
+      </div>
+      <div class="card">
+        <div class="flex items-center justify-between mb-2">
+          <h2 class="font-bold text-slate-900">Breakdown by Currency</h2>
+        </div>
+        <div id="by-currency" class="text-sm text-slate-700 space-y-1">Loading…</div>
+      </div>
+    </section>
+
+    <!-- Ledger + Controls -->
+    <section class="grid grid-cols-1 xl:grid-cols-3 gap-4">
+      <div class="card xl:col-span-2 overflow-hidden">
+        <div class="flex flex-wrap items-center justify-between gap-3 mb-3">
+          <div>
+            <h2 class="font-bold text-slate-900">Treasury Ledger</h2>
+            <p class="text-xs text-slate-500 mt-0.5">Single audit trail. Most recent first.</p>
+          </div>
+          <div class="flex items-center gap-2">
+            <label class="text-xs text-slate-600">Limit
+              <select id="ledger-limit" class="ml-1 text-sm border border-slate-300 rounded px-2 py-1 bg-white">
+                <option>25</option>
+                <option selected>50</option>
+                <option>100</option>
+                <option>200</option>
+              </select>
+            </label>
+            <button id="ledger-refresh" class="btn btn-outline">Refresh</button>
+          </div>
+        </div>
+        <div class="overflow-x-auto">
+          <table class="min-w-full text-sm">
+            <thead>
+              <tr class="text-xs text-slate-500 border-b border-slate-200">
+                <th class="py-2 text-left font-semibold">Time</th>
+                <th class="py-2 text-left font-semibold">Type</th>
+                <th class="py-2 text-left font-semibold">Project</th>
+                <th class="py-2 text-left font-semibold">Method</th>
+                <th class="py-2 text-right font-semibold">BRDG</th>
+                <th class="py-2 text-right font-semibold">UBI</th>
+                <th class="py-2 text-right font-semibold">Treasury</th>
+                <th class="py-2 text-right font-semibold">Ops</th>
+                <th class="py-2 text-right font-semibold">Founder</th>
+              </tr>
+            </thead>
+            <tbody id="ledger-body" class="divide-y divide-slate-100">
+              <tr><td class="py-3 text-slate-500" colspan="9">Loading…</td></tr>
+            </tbody>
+          </table>
+        </div>
+      </div>
+
+      <div class="card">
+        <h2 class="font-bold text-slate-900">CFO Controls</h2>
+        <p class="text-xs text-slate-500 mt-0.5">Disabled by default. Enable via ENV/local flag or CFO token.</p>
+
+        <div class="mt-3">
+          <label class="text-xs text-slate-600">CFO Token (optional)
+            <input id="cfo-token" type="password" placeholder="X-CFO-Token" class="mt-1 w-full rounded border border-slate-300 px-3 py-2 text-sm" />
+          </label>
+          <div class="mt-2 flex items-center gap-2">
+            <button id="save-token" class="btn btn-outline">Save token</button>
+            <button id="clear-token" class="btn btn-outline">Clear</button>
+          </div>
+          <div id="token-hint" class="mt-2 text-xs text-slate-500">—</div>
+        </div>
+
+        <hr class="my-4 border-slate-200" />
+
+        <div>
+          <h3 class="font-semibold text-slate-900">Collect (manual)</h3>
+          <div class="mt-2 grid grid-cols-1 gap-2">
+            <input id="collect-amount" type="number" min="0" step="0.01" placeholder="Amount" class="rounded border border-slate-300 px-3 py-2 text-sm" />
+            <div class="grid grid-cols-2 gap-2">
+              <input id="collect-currency" type="text" value="BRDG" class="rounded border border-slate-300 px-3 py-2 text-sm" />
+              <input id="collect-method" type="text" value="manual" class="rounded border border-slate-300 px-3 py-2 text-sm" />
+            </div>
+            <input id="collect-project" type="text" value="cfo" class="rounded border border-slate-300 px-3 py-2 text-sm" />
+            <button id="collect-btn" class="btn btn-primary">Collect to Treasury</button>
+            <div id="collect-result" class="text-xs text-slate-600">—</div>
+          </div>
+        </div>
+
+        <hr class="my-4 border-slate-200" />
+
+        <div>
+          <h3 class="font-semibold text-slate-900">Disburse (manual)</h3>
+          <div class="mt-2 grid grid-cols-1 gap-2">
+            <div class="grid grid-cols-2 gap-2">
+              <select id="disburse-bucket" class="rounded border border-slate-300 px-3 py-2 text-sm bg-white">
+                <option value="ubi">ubi</option>
+                <option value="treasury">treasury</option>
+                <option value="ops">ops</option>
+                <option value="founder">founder</option>
+              </select>
+              <input id="disburse-amount" type="number" min="0" step="0.01" placeholder="Amount BRDG" class="rounded border border-slate-300 px-3 py-2 text-sm" />
+            </div>
+            <input id="disburse-destination" type="text" placeholder="Destination (wallet / bank / memo)" class="rounded border border-slate-300 px-3 py-2 text-sm" />
+            <button id="disburse-btn" class="btn btn-primary">Disburse</button>
+            <div id="disburse-result" class="text-xs text-slate-600">—</div>
+          </div>
+        </div>
+
+      </div>
+    </section>
+  </main>
+
+  <script>
+(function() {
+  const API_BASE = (typeof window !== 'undefined' && window.__API_BASE) ? String(window.__API_BASE).replace(/\/$/, '') : '';
+  const api = (path) => (API_BASE ? API_BASE + path : path);
+  const TOKEN_KEY = 'bridge_cfo_token';
+
+  function esc(s) { const d=document.createElement('div'); d.textContent = (s==null?'':String(s)); return d.innerHTML; }
+  function num(v, d=2) { const x=Number(v); return Number.isFinite(x) ? x.toFixed(d) : '—'; }
+
+  function getToken() {
+    try { return sessionStorage.getItem(TOKEN_KEY) || ''; } catch(_) { return ''; }
+  }
+  function setToken(t) {
+    try { if (t) sessionStorage.setItem(TOKEN_KEY, t); else sessionStorage.removeItem(TOKEN_KEY); } catch(_) {}
+  }
+  function headers() {
+    const h = { 'Content-Type': 'application/json' };
+    const t = getToken();
+    if (t) h['X-CFO-Token'] = t;
+    return h;
+  }
+
+  async function get(path) {
+    try { const r = await fetch(api(path), { headers: headers() }); return r.ok ? await r.json() : null; } catch { return null; }
+  }
+  async function post(path, body) {
+    try {
+      const r = await fetch(api(path), { method:'POST', headers: headers(), body: JSON.stringify(body||{}) });
+      const data = await r.json().catch(() => ({}));
+      return { ok: r.ok, status: r.status, data };
+    } catch (e) { return { ok:false, status:0, data:{ detail: 'network_error' } }; }
+  }
+
+  function setControlsBadge(mode, allowed) {
+    const el = document.getElementById('controls-badge');
+    if (!el) return;
+    if (allowed) { el.className = 'badge badge-green'; el.textContent = 'Controls: ENABLED (' + mode + ')'; }
+    else { el.className = 'badge badge-amber'; el.textContent = 'Controls: DISABLED (' + mode + ')'; }
+  }
+
+  function setControlsEnabled(enabled) {
+    ['collect-btn','disburse-btn'].forEach(id => {
+      const b = document.getElementById(id);
+      if (b) b.disabled = !enabled;
+      if (b) b.style.opacity = enabled ? '1' : '0.5';
+      if (b) b.style.cursor = enabled ? 'pointer' : 'not-allowed';
+    });
+  }
+
+  async function loadControls() {
+    const c = await get('/api/treasury/controls');
+    const tokenInput = document.getElementById('cfo-token');
+    const hint = document.getElementById('token-hint');
+    if (tokenInput) tokenInput.value = getToken();
+    if (!c) {
+      setControlsBadge('offline', false);
+      setControlsEnabled(false);
+      if (hint) hint.textContent = 'Backend offline or controls endpoint unavailable.';
+      return;
+    }
+    setControlsBadge(c.mode || 'unknown', !!c.writes_allowed);
+    // If token is configured server-side, we can enable controls when token present even if writes_allowed=false (token_required).
+    const hasToken = !!getToken();
+    const enabled = !!c.writes_allowed || (c.mode === 'token_required' && hasToken);
+    setControlsEnabled(enabled);
+    if (hint) {
+      hint.textContent = c.writes_allowed
+        ? 'Controls are enabled by policy.'
+        : (c.mode === 'token_required'
+            ? 'Token required. Set CFO_TOKEN on backend and provide X-CFO-Token here.'
+            : 'Controls disabled. Enable via ENV=local or BRIDGE_ALLOW_TREASURY_WRITES=1, or configure CFO_TOKEN.');
+    }
+  }
+
+  function renderPairs(obj, containerId) {
+    const el = document.getElementById(containerId);
+    if (!el) return;
+    const o = obj && typeof obj === 'object' ? obj : {};
+    const keys = Object.keys(o);
+    if (!keys.length) { el.innerHTML = '<span class="text-slate-400">—</span>'; return; }
+    el.innerHTML = keys.sort((a,b)=>Number(o[b])-Number(o[a])).map(k => {
+      return '<div class="flex justify-between gap-4"><span>' + esc(k) + '</span><span class="mono">' + num(o[k], 3) + '</span></div>';
+    }).join('');
+  }
+
+  function renderLedger(entries) {
+    const body = document.getElementById('ledger-body');
+    if (!body) return;
+    const list = Array.isArray(entries) ? entries : [];
+    if (!list.length) {
+      body.innerHTML = '<tr><td class="py-3 text-slate-500" colspan="9">No ledger entries</td></tr>';
+      return;
+    }
+    body.innerHTML = list.map(e => {
+      const split = e.split || {};
+      const ts = (e.ts || '').slice(11,19) || '—';
+      return '<tr>' +
+        '<td class="py-2 pr-3 text-slate-500 mono">' + esc(ts) + '</td>' +
+        '<td class="py-2 pr-3">' + esc(e.type || '—') + '</td>' +
+        '<td class="py-2 pr-3">' + esc(e.source_project || e.project || '—') + '</td>' +
+        '<td class="py-2 pr-3 text-slate-600">' + esc(e.method || '—') + '</td>' +
+        '<td class="py-2 text-right mono">' + num(e.amount_brdg, 3) + '</td>' +
+        '<td class="py-2 text-right mono">' + num(split.ubi, 3) + '</td>' +
+        '<td class="py-2 text-right mono">' + num(split.treasury, 3) + '</td>' +
+        '<td class="py-2 text-right mono">' + num(split.ops, 3) + '</td>' +
+        '<td class="py-2 text-right mono">' + num(split.founder, 3) + '</td>' +
+      '</tr>';
+    }).join('');
+  }
+
+  async function loadAll() {
+    const [status, ledger] = await Promise.all([
+      get('/api/treasury/status'),
+      (async () => {
+        const lim = document.getElementById('ledger-limit');
+        const n = lim ? Number(lim.value || 50) : 50;
+        return get('/api/treasury/ledger?limit=' + encodeURIComponent(String(n)));
+      })(),
+    ]);
+
+    if (status) {
+      document.getElementById('kpi-total').textContent = num(status.total_collected_brdg, 2);
+      document.getElementById('kpi-tx').textContent = String(status.total_tx ?? '—');
+      document.getElementById('kpi-ubi').textContent = num(status.buckets?.ubi, 2);
+      document.getElementById('kpi-treasury').textContent = num(status.buckets?.treasury, 2);
+      document.getElementById('kpi-ops').textContent = num(status.buckets?.ops, 2);
+      document.getElementById('kpi-founder').textContent = num(status.buckets?.founder, 2);
+      renderPairs(status.by_project, 'by-project');
+      renderPairs(status.by_method, 'by-method');
+      renderPairs(status.by_currency, 'by-currency');
+    }
+    if (ledger && Array.isArray(ledger.entries)) renderLedger(ledger.entries);
+    const lu = document.getElementById('last-updated');
+    if (lu) lu.textContent = 'Updated ' + new Date().toLocaleTimeString();
+  }
+
+  function wireControls() {
+    const tokenInput = document.getElementById('cfo-token');
+    document.getElementById('save-token')?.addEventListener('click', function() {
+      const t = (tokenInput?.value || '').trim();
+      setToken(t);
+      loadControls();
+    });
+    document.getElementById('clear-token')?.addEventListener('click', function() {
+      setToken('');
+      if (tokenInput) tokenInput.value = '';
+      loadControls();
+    });
+
+    document.getElementById('collect-btn')?.addEventListener('click', async function() {
+      const amount = Number(document.getElementById('collect-amount')?.value || 0);
+      const currency = (document.getElementById('collect-currency')?.value || 'BRDG').trim().toUpperCase();
+      const method = (document.getElementById('collect-method')?.value || 'manual').trim();
+      const source_project = (document.getElementById('collect-project')?.value || 'cfo').trim();
+      const out = document.getElementById('collect-result');
+      if (!amount || amount <= 0) { if (out) out.innerHTML = '<span class="text-red-600">Enter a valid amount</span>'; return; }
+      if (out) out.textContent = 'Collecting…';
+      const res = await post('/api/treasury/collect', { amount, currency, source_project, method, type: 'manual' });
+      if (!res.ok) {
+        if (out) out.innerHTML = '<span class="text-red-600">Failed (' + res.status + '): ' + esc(res.data.detail || 'error') + '</span>';
+      } else {
+        if (out) out.innerHTML = '<span class="text-green-700 font-semibold">Collected.</span>';
+      }
+      await loadAll();
+      await loadControls();
+    });
+
+    document.getElementById('disburse-btn')?.addEventListener('click', async function() {
+      const bucket = (document.getElementById('disburse-bucket')?.value || 'ubi').trim();
+      const amount = Number(document.getElementById('disburse-amount')?.value || 0);
+      const destination = (document.getElementById('disburse-destination')?.value || '').trim();
+      const out = document.getElementById('disburse-result');
+      if (!amount || amount <= 0) { if (out) out.innerHTML = '<span class="text-red-600">Enter a valid amount</span>'; return; }
+      if (!destination) { if (out) out.innerHTML = '<span class="text-red-600">Destination required</span>'; return; }
+      if (out) out.textContent = 'Disbursing…';
+      const res = await post('/api/treasury/disburse', { bucket, amount, destination, authorized_by: 'cfo_ui' });
+      if (!res.ok) {
+        if (out) out.innerHTML = '<span class="text-red-600">Failed (' + res.status + '): ' + esc(res.data.detail || 'error') + '</span>';
+      } else {
+        if (out) out.innerHTML = '<span class="text-green-700 font-semibold">Disbursed.</span>';
+      }
+      await loadAll();
+      await loadControls();
+    });
+
+    document.getElementById('ledger-refresh')?.addEventListener('click', loadAll);
+    document.getElementById('refresh-btn')?.addEventListener('click', async function() { await loadAll(); await loadControls(); });
+  }
+
+  function boot() {
+    // Load stored token into field.
+    const tokenInput = document.getElementById('cfo-token');
+    if (tokenInput) tokenInput.value = getToken();
+    wireControls();
+    loadControls();
+    loadAll();
+    setInterval(function() { loadAll(); loadControls(); }, 20000);
+  }
+
+  if (document.readyState === 'loading') document.addEventListener('DOMContentLoaded', boot);
+  else boot();
+})();
+  </script>
+  <script src="/bridge-nav.js"></script>
+</body>
+</html>
+

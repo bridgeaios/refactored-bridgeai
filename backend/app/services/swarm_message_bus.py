@@ -12,7 +12,7 @@ import json
 import logging
 from datetime import datetime
 from enum import Enum
-from typing import Any, Optional
+from typing import Optional
 
 import redis.asyncio as redis
 from pydantic import BaseModel

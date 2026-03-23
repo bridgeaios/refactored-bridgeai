@@ -1,0 +1,328 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>BAN Live Wall — Bridge Autonomous Network</title>
+  <script src="/bridge-api-config.js"></script>
+  <script>if(typeof window.__API_BASE==="undefined")window.__API_BASE="";</script>
+  <script src="https://cdn.tailwindcss.com"></script>
+  <link rel="icon" href="/favicon.svg" type="image/svg+xml">
+  <link rel="stylesheet" href="/mobile-friendly.css">
+  <link href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;600;700&family=Space+Grotesk:wght@400;500;600;700&display=swap" rel="stylesheet">
+  <style>
+    :root {
+      --ban-black: #0a0a0a;
+      --ban-red: #dc2626;
+      --ban-red-dim: #b91c1c;
+      --ban-white: #fafafa;
+      --ban-cyan: #22d3ee;
+      --ban-cyan-dim: #06b6d4;
+    }
+    body { font-family: 'Space Grotesk', sans-serif; background: var(--ban-black); color: var(--ban-white); }
+    .mono { font-family: 'JetBrains Mono', ui-monospace, monospace; }
+    .ban-accent { color: var(--ban-cyan); }
+    .ban-authority { color: var(--ban-red); }
+    .ban-card { background: rgba(255,255,255,0.03); border: 1px solid rgba(255,255,255,0.08); border-radius: 8px; }
+    .ban-module { border-left: 3px solid var(--ban-cyan); }
+    .ban-module.ops { border-left-color: var(--ban-red); }
+    .status-ok { color: #22c55e; }
+    .status-warn { color: #eab308; }
+    .status-fail { color: var(--ban-red); }
+    #refresh-btn { cursor: pointer; }
+    @keyframes pulse-cyan { 0%,100%{ opacity:1 } 50%{ opacity:0.6 } }
+    .pulse { animation: pulse-cyan 2s ease-in-out infinite; }
+  </style>
+  <link rel="stylesheet" href="/bridge-theme.css">
+  <script src="/bridge-shell.js"></script>
+</head>
+<body class="antialiased min-h-screen">
+
+  <nav class="bridge-nav bg-black/90 border-b border-white/10 px-4 py-3 flex flex-wrap justify-between items-center sticky top-0 z-50">
+    <a href="/" class="bridge-nav-brand text-lg font-bold text-white hover:text-cyan-400">BAN</a>
+    <button class="bridge-nav-toggle text-slate-400" aria-label="Toggle menu">☰</button>
+    <div class="bridge-nav-links">
+      <ul class="flex flex-wrap gap-4 text-sm mt-1 md:mt-0">
+        <li><a href="/" class="text-slate-400 hover:text-cyan-400">Digital Twin</a></li>
+        <li><a href="/dashboards.html" class="text-slate-400 hover:text-cyan-400">Dashboards</a></li>
+        <li><a href="/executive-dashboard.html" class="text-slate-400 hover:text-cyan-400">Executive</a></li>
+        <li><a href="/network-dashboard.html" class="text-slate-400 hover:text-cyan-400">Network</a></li>
+        <li><a href="/ban-ops-core.html" class="text-slate-400 hover:text-cyan-400">BAN Ops</a></li>
+        <li><a href="/ban-live-wall.html" class="text-cyan-400 font-semibold">Live Wall</a></li>
+        <li><a href="/status.html" class="text-slate-400 hover:text-cyan-400">Status</a></li>
+        <li><a href="http://localhost:4202" target="_blank" class="text-slate-400 hover:text-cyan-400">Taurus</a></li>
+      </ul>
+    </div>
+    <button id="refresh-btn" class="ml-2 text-slate-400 hover:text-cyan-400 text-lg min-w-[44px] min-h-[44px] flex items-center justify-center" title="Refresh">↻</button>
+  </nav>
+
+  <main class="p-4 md:p-6 max-w-7xl mx-auto space-y-6">
+
+    <!-- System identity banner -->
+    <header class="ban-card p-6 text-center border-cyan-500/20">
+      <h1 class="text-2xl md:text-3xl font-bold text-white tracking-tight">
+        BRIDGE AUTONOMOUS NETWORK <span class="ban-authority">BAN</span>
+      </h1>
+      <p class="text-cyan-400 mt-2 text-lg">Unified Identity Integrated with Mike</p>
+      <p class="text-slate-500 text-sm mt-1">No fragmentation — single deployable AI infrastructure organism</p>
+      <div class="flex flex-wrap justify-center gap-4 mt-4 text-xs">
+        <span class="mono text-slate-500">ban.systems</span>
+        <span class="mono text-slate-500">bridgeautonomous.network</span>
+        <span id="last-updated" class="mono text-slate-500">—</span>
+      </div>
+    </header>
+
+    <!-- Architecture layers -->
+    <section class="ban-card p-4">
+      <h2 class="text-sm font-semibold text-cyan-400 uppercase tracking-wider mb-3">System Architecture</h2>
+      <div class="grid grid-cols-1 md:grid-cols-3 gap-4">
+        <div class="ban-module ops p-3 rounded">
+          <div class="font-semibold text-red-400">Ryan Layer</div>
+          <div class="text-xs text-slate-400 mt-0.5">System design & architectural authority</div>
+        </div>
+        <div class="ban-module p-3 rounded">
+          <div class="font-semibold text-cyan-400">Marvin Layer</div>
+          <div class="text-xs text-slate-400 mt-0.5">Intent understanding, signal & UX</div>
+        </div>
+        <div class="ban-module p-3 rounded">
+          <div class="font-semibold text-cyan-400">Mike Layer</div>
+          <div class="text-xs text-slate-400 mt-0.5">Execution at scale — BAN.ops backbone</div>
+        </div>
+      </div>
+    </section>
+
+    <!-- BAN module stack -->
+    <section class="ban-card p-4">
+      <h2 class="text-sm font-semibold text-cyan-400 uppercase tracking-wider mb-3">Unified Module Stack</h2>
+      <div class="grid grid-cols-2 md:grid-cols-4 lg:grid-cols-8 gap-3">
+        <div class="ban-module ops p-3 rounded" title="Integr8 AI → BAN.ops">
+          <div class="font-mono text-sm font-semibold text-red-400">BAN.ops</div>
+          <div class="text-xs text-slate-500">AI infrastructure</div>
+          <span id="mod-ops" class="status-ok text-xs">●</span>
+        </div>
+        <div class="ban-module p-3 rounded" title="Agency-OS → BAN.agency">
+          <div class="font-mono text-sm font-semibold text-cyan-400">BAN.agency</div>
+          <div class="text-xs text-slate-500">Agency OS</div>
+          <span id="mod-agency" class="status-ok text-xs">●</span>
+        </div>
+        <div class="ban-module p-3 rounded" title="Finder AI → BAN.search">
+          <div class="font-mono text-sm font-semibold text-cyan-400">BAN.search</div>
+          <div class="text-xs text-slate-500">AI discovery</div>
+          <span id="mod-search" class="status-ok text-xs">●</span>
+        </div>
+        <div class="ban-module p-3 rounded" title="Cornerstone → BAN.property">
+          <div class="font-mono text-sm font-semibold text-cyan-400">BAN.property</div>
+          <div class="text-xs text-slate-500">Real estate</div>
+          <span id="mod-property" class="status-ok text-xs">●</span>
+        </div>
+        <div class="ban-module p-3 rounded">
+          <div class="font-mono text-sm font-semibold text-cyan-400">BAN.core</div>
+          <div class="text-xs text-slate-500">Orchestration</div>
+          <span id="mod-core" class="status-ok text-xs">●</span>
+        </div>
+        <div class="ban-module p-3 rounded">
+          <div class="font-mono text-sm font-semibold text-cyan-400">BAN.health</div>
+          <div class="text-xs text-slate-500">EHSA / Hospital</div>
+          <span id="mod-health" class="status-ok text-xs">●</span>
+        </div>
+        <div class="ban-module p-3 rounded">
+          <div class="font-mono text-sm font-semibold text-cyan-400">BAN.security</div>
+          <div class="text-xs text-slate-500">Auth & authz</div>
+          <span id="mod-security" class="status-ok text-xs">●</span>
+        </div>
+        <div class="ban-module p-3 rounded">
+          <div class="font-mono text-sm font-semibold text-cyan-400">BAN.signal</div>
+          <div class="text-xs text-slate-500">UX & identity</div>
+          <span id="mod-signal" class="status-ok text-xs">●</span>
+        </div>
+      </div>
+    </section>
+
+    <!-- BAN Ops Core Visualizations -->
+    <section class="ban-card p-4">
+      <h2 class="text-sm font-semibold text-cyan-400 uppercase tracking-wider mb-3">BAN Ops Core</h2>
+      <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+        <div class="rounded-lg overflow-hidden border border-white/10">
+          <img src="/assets/ban-ops-mechanica-core.svg" alt="BAN.OPs Mechanica Core" class="w-full h-auto max-h-[400px] object-contain"/>
+          <div class="p-2 text-center text-xs text-slate-500">MECHANICA CORE</div>
+        </div>
+        <div class="rounded-lg overflow-hidden border border-white/10">
+          <img src="/assets/ban-ops-execution-core.svg" alt="BAN.OPS Autonomous Execution Core" class="w-full h-auto max-h-[400px] object-contain"/>
+          <div class="p-2 text-center text-xs text-slate-500">AUTONOMOUS EXECUTION CORE</div>
+        </div>
+      </div>
+    </section>
+
+    <!-- SVG build orchestration -->
+    <section class="ban-card p-4">
+      <h2 class="text-sm font-semibold text-cyan-400 uppercase tracking-wider mb-3">SVG Build Orchestration</h2>
+      <div class="grid grid-cols-1 md:grid-cols-3 gap-4">
+        <div>
+          <div class="text-xs text-slate-500 uppercase mb-1">Build Status</div>
+          <div id="svg-status" class="font-mono text-lg status-ok">—</div>
+        </div>
+        <div>
+          <div class="text-xs text-slate-500 uppercase mb-1">Merkle Root</div>
+          <div id="svg-merkle" class="font-mono text-xs text-cyan-400 break-all">—</div>
+        </div>
+        <div>
+          <div class="text-xs text-slate-500 uppercase mb-1">Files / Last Build</div>
+          <div id="svg-files" class="font-mono">—</div>
+        </div>
+      </div>
+      <div class="mt-4">
+        <div class="text-xs text-slate-500 uppercase mb-2">Last 5 Builds (E:\A\logs)</div>
+        <div id="svg-builds" class="font-mono text-xs text-slate-400 space-y-1 max-h-24 overflow-y-auto">—</div>
+      </div>
+    </section>
+
+    <!-- Backend & frontend health -->
+    <section class="ban-card p-4">
+      <h2 class="text-sm font-semibold text-cyan-400 uppercase tracking-wider mb-3">System Connectivity</h2>
+      <div class="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-4 gap-4">
+        <div>
+          <div class="text-xs text-slate-500">Backend API</div>
+          <div id="health-backend" class="font-mono text-sm mt-0.5 status-warn">Checking…</div>
+          <div class="text-xs text-slate-600">localhost:8000</div>
+        </div>
+        <div>
+          <div class="text-xs text-slate-500">Frontend</div>
+          <div id="health-frontend" class="font-mono text-sm mt-0.5 status-warn">Checking…</div>
+          <div class="text-xs text-slate-600">:3020 / :3010</div>
+        </div>
+        <div>
+          <div class="text-xs text-slate-500">State Version</div>
+          <div id="state-version" class="font-mono text-sm mt-0.5">—</div>
+        </div>
+        <div>
+          <div class="text-xs text-slate-500">Telemetry</div>
+          <div id="telemetry-status" class="font-mono text-sm mt-0.5 status-warn">—</div>
+        </div>
+      </div>
+    </section>
+
+    <!-- Live map summary -->
+    <section class="ban-card p-4">
+      <h2 class="text-sm font-semibold text-cyan-400 uppercase tracking-wider mb-3">Live Map (GET /api/live/map)</h2>
+      <div id="live-map-summary" class="font-mono text-xs text-slate-400 max-h-40 overflow-y-auto">Loading…</div>
+    </section>
+
+  </main>
+
+  <script>
+(function() {
+  const API_BASE = (typeof window !== 'undefined' && window.__API_BASE) ? String(window.__API_BASE).replace(/\/$/, '') : '';
+  const api = (path) => (API_BASE ? API_BASE + path : path);
+
+  async function get(path) {
+    try {
+      const r = await fetch(api(path));
+      return r.ok ? await r.json() : null;
+    } catch { return null; }
+  }
+
+  function esc(s) {
+    if (s == null) return '';
+    const d = document.createElement('div'); d.textContent = String(s); return d.innerHTML;
+  }
+
+  function setEl(id, content, cls) {
+    const el = document.getElementById(id);
+    if (!el) return;
+    el.textContent = content;
+    if (cls) { el.className = cls; }
+  }
+
+  async function loadHealth() {
+    try {
+      const r = await fetch(api('/api/health'));
+      const ok = r && r.ok;
+      setEl('health-backend', ok ? '● OK' : '✗ Offline', ok ? 'font-mono text-sm mt-0.5 status-ok' : 'font-mono text-sm mt-0.5 status-fail');
+      return ok;
+    } catch {
+      setEl('health-backend', '✗ Offline', 'font-mono text-sm mt-0.5 status-fail');
+      return false;
+    }
+  }
+
+  async function loadFrontendHealth() {
+    try {
+      const r = await fetch(window.location.origin + '/');
+      const ok = r && r.ok;
+      setEl('health-frontend', ok ? '● OK (this host)' : '—', 'font-mono text-sm mt-0.5 ' + (ok ? 'status-ok' : 'status-warn'));
+    } catch {
+      setEl('health-frontend', '—', 'font-mono text-sm mt-0.5 status-warn');
+    }
+  }
+
+  async function loadLiveMap() {
+    const data = await get('/api/live/map');
+    if (!data) {
+      setEl('live-map-summary', 'Unable to connect to /api/live/map');
+      return null;
+    }
+    document.getElementById('last-updated').textContent = 'Updated ' + new Date().toLocaleTimeString();
+    setEl('state-version', data.state_version ?? '—', 'font-mono text-sm mt-0.5');
+
+    const svg = data.svg_build;
+    if (svg && svg.payload) {
+      const p = svg.payload;
+      setEl('svg-status', p.event === 'svg_build_completed' ? '● Complete' : (p.event || '—'), 'font-mono text-lg status-ok');
+      setEl('svg-merkle', (p.merkle_root || '—').slice(0, 48) + '…', 'font-mono text-xs text-cyan-400 break-all');
+      setEl('svg-files', (p.files ?? '—') + ' files', 'font-mono');
+      setEl('telemetry-status', '● Connected', 'font-mono text-sm mt-0.5 status-ok');
+    } else {
+      setEl('svg-status', 'No build yet', 'font-mono text-lg status-warn');
+      setEl('svg-merkle', '—', 'font-mono text-xs text-cyan-400 break-all');
+      setEl('svg-files', '—', 'font-mono');
+    }
+
+    const summary = [
+      'ok: ' + data.ok,
+      'state_version: ' + (data.state_version ?? '—'),
+      'twins: ' + (Array.isArray(data.twins) ? data.twins.length : 0),
+      'services: ' + (Array.isArray(data.services) ? data.services.length : 0),
+      'svg_build: ' + (svg ? 'present' : 'none')
+    ].join('\n');
+    setEl('live-map-summary', summary);
+
+    return data;
+  }
+
+  async function loadSvgBuilds() {
+    const [telem, history] = await Promise.all([
+      get('/api/telemetry/events/svg-build'),
+      get('/api/svg-build/history?limit=5'),
+    ]);
+    const el = document.getElementById('svg-builds');
+    if (!el) return;
+    const parts = [];
+    if (telem?.svg_build?.payload) {
+      const p = telem.svg_build.payload;
+      parts.push(`Latest: ${p.files ?? '?'} files · ${(p.merkle_root || '').slice(0, 12)}…`);
+    }
+    if (history?.builds?.length) {
+      history.builds.forEach(b => {
+        parts.push(`${b.file} · ${b.modified?.slice(0, 19) || '—'}`);
+      });
+    }
+    el.innerHTML = parts.length ? parts.map(p => `<div>${esc(p)}</div>`).join('') : 'No builds yet. Run: pwsh -File E:\\A\\run-svg-build.ps1';
+  }
+
+  async function refresh() {
+    await Promise.all([
+      loadHealth(),
+      loadLiveMap(),
+      loadSvgBuilds()
+    ]);
+    loadFrontendHealth();
+  }
+
+  document.getElementById('refresh-btn')?.addEventListener('click', refresh);
+  refresh();
+  setInterval(refresh, 15000);
+})();
+  </script>
+  <script src="/bridge-nav.js"></script>
+</body>
+</html>

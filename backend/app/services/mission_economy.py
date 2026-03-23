@@ -15,6 +15,7 @@ from decimal import Decimal
 from enum import Enum
 from typing import Optional
 
+
 from pydantic import BaseModel
 
 
@@ -91,7 +92,7 @@ class MissionEconomyService:
         description: str,
         tier: MissionTier,
         creator_id: str,
-        required_skills: list[str] = None,
+        required_skills: Optional[list[str]] = None,
     ) -> Mission:
         """Create a new mission."""
         config = MISSION_TIERS[tier]

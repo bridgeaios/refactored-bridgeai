@@ -1,0 +1,41 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">
+
+  <!-- Core -->
+  <url><loc>/</loc><changefreq>daily</changefreq><priority>1.0</priority></url>
+  <url><loc>/landing.html</loc><changefreq>weekly</changefreq><priority>0.9</priority></url>
+  <url><loc>/dashboards.html</loc><changefreq>daily</changefreq><priority>0.9</priority></url>
+  <url><loc>/sitemap.html</loc><changefreq>weekly</changefreq><priority>0.8</priority></url>
+
+  <!-- Ops -->
+  <url><loc>/status.html</loc><changefreq>always</changefreq><priority>0.9</priority></url>
+  <url><loc>/executive-dashboard.html</loc><changefreq>daily</changefreq><priority>0.8</priority></url>
+  <url><loc>/network-dashboard.html</loc><changefreq>daily</changefreq><priority>0.8</priority></url>
+  <url><loc>/control-plane.html</loc><changefreq>daily</changefreq><priority>0.8</priority></url>
+
+  <!-- Finance -->
+  <url><loc>/cfo.html</loc><changefreq>daily</changefreq><priority>0.8</priority></url>
+  <url><loc>/corporate.html</loc><changefreq>weekly</changefreq><priority>0.7</priority></url>
+
+  <!-- Network -->
+  <url><loc>/agents.html</loc><changefreq>daily</changefreq><priority>0.8</priority></url>
+  <url><loc>/ban-live-wall.html</loc><changefreq>always</changefreq><priority>0.8</priority></url>
+  <url><loc>/ban-ops-core.html</loc><changefreq>daily</changefreq><priority>0.7</priority></url>
+  <url><loc>/digital-twin-console.html</loc><changefreq>daily</changefreq><priority>0.8</priority></url>
+  <url><loc>/gateway/</loc><changefreq>weekly</changefreq><priority>0.9</priority></url>
+
+  <!-- System -->
+  <url><loc>/docs.html</loc><changefreq>weekly</changefreq><priority>0.8</priority></url>
+  <url><loc>/settings.html</loc><changefreq>monthly</changefreq><priority>0.6</priority></url>
+  <url><loc>/join.html</loc><changefreq>weekly</changefreq><priority>0.7</priority></url>
+  <url><loc>/50-applications.html</loc><changefreq>weekly</changefreq><priority>0.7</priority></url>
+
+  <!-- Visualizations -->
+  <url><loc>/anatomical_face.html</loc><changefreq>monthly</changefreq><priority>0.5</priority></url>
+  <url><loc>/anatomical_face_facs.html</loc><changefreq>monthly</changefreq><priority>0.5</priority></url>
+  <url><loc>/anatomical_face_vector_muscle.html</loc><changefreq>monthly</changefreq><priority>0.5</priority></url>
+  <url><loc>/anatomical_face_tension_balanced.html</loc><changefreq>monthly</changefreq><priority>0.5</priority></url>
+  <url><loc>/anatomical_face_constrained_system.html</loc><changefreq>monthly</changefreq><priority>0.5</priority></url>
+  <url><loc>/anatomical_face_embodied.html</loc><changefreq>monthly</changefreq><priority>0.5</priority></url>
+
+</urlset>

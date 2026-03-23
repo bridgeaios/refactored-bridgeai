@@ -57,9 +57,14 @@ class MemoryStore:
 
     async def _write_file_state(self, state: dict) -> None:
         await self._ensure_file()
+        self._file_path.parent.mkdir(parents=True, exist_ok=True)
         tmp = self._file_path.with_suffix(self._file_path.suffix + ".tmp")
-        tmp.write_text(json.dumps(state, ensure_ascii=False), encoding="utf-8")
-        tmp.replace(self._file_path)
+        tmp.parent.mkdir(parents=True, exist_ok=True)
+        payload = json.dumps(state, ensure_ascii=False)
+        tmp.write_text(payload, encoding="utf-8")
+        if not tmp.exists():
+            raise FileNotFoundError(f"temporary state file was not created: {tmp}")
+        os.replace(tmp, self._file_path)
 
     async def append(self, key: str, value):
         if self._r:
@@ -133,3 +138,4 @@ class MemoryStore:
             state[key] = cur_i
             await self._write_file_state(state)
             return cur_i
+

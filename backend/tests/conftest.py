@@ -21,6 +21,22 @@ def mock_memory():
     mock.get = AsyncMock(return_value=None)
     mock.set = AsyncMock(return_value=True)
     mock.delete = AsyncMock(return_value=True)
+    # Treasury relies on append + get_recent for ledger.
+    _ledger: list[dict] = []
+
+    async def _append(key, value):
+        _ledger.append(value)
+        return True
+
+    async def _get_recent(key, limit):
+        try:
+            lim = int(limit)
+        except Exception:
+            lim = 50
+        return _ledger[-lim:]
+
+    mock.append = AsyncMock(side_effect=_append)
+    mock.get_recent = AsyncMock(side_effect=_get_recent)
     return mock
 
 

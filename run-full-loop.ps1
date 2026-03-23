@@ -39,8 +39,13 @@ if (-not $SkipInstall) {
 # --- 2. Add to boot ---
 if (-not $SkipBoot) {
     Write-Host "`n=== 2. Add to boot ===" -ForegroundColor Magenta
-    & (Join-Path $projectRoot "install-startup.ps1")
-    if ($LASTEXITCODE -ne 0) { Write-Host "Install-startup failed." -ForegroundColor Red; exit 1 }
+    try {
+        & (Join-Path $projectRoot "install-startup.ps1")
+        if (-not $?) { Write-Host "Install-startup failed." -ForegroundColor Red; exit 1 }
+    } catch {
+        Write-Host "Install-startup failed: $($_.Exception.Message)" -ForegroundColor Red
+        exit 1
+    }
 }
 
 # --- 3. Audit → Fix (apply-keys) → re-Audit until critical=0 or max rounds ---

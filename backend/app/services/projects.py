@@ -136,6 +136,8 @@ class ProjectsService:
             {"id": "bridge-frontend", "label": "Digital Twin Frontend", "type": "frontend", "baseUrl": "http://localhost:3020", "health": None, "port": 3020},
             {"id": "determinator", "label": "Determinator Boot Agent", "type": "auth", "baseUrl": "http://localhost:4201", "health": None, "port": 4201},
             {"id": "bridge-auth", "label": "Bridge Auth", "type": "auth", "baseUrl": "http://localhost:3030", "health": "/health", "port": 3030},
+            {"id": "bridge-backend", "label": "Bridge Backend", "type": "service", "baseUrl": "http://localhost:3001", "health": "/health", "port": 3001},
+            {"id": "svg-engine", "label": "SVG Skill Engine", "type": "service", "baseUrl": "http://localhost:7070", "health": "/health", "port": 7070},
             {"id": "taurus", "label": "Taurus Showcase", "type": "service", "baseUrl": "http://localhost:4202", "health": "/health", "port": 4202},
         ]
         for svc in core_services:
@@ -150,3 +152,5 @@ class ProjectsService:
 
 def _now() -> str:
     return time.strftime("%Y-%m-%dT%H:%M:%SZ", time.gmtime())
+
+

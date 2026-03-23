@@ -37,7 +37,7 @@ export const APPLICATIONS = [
   // 21–30 Business & Enterprise
   { id: 21, category: 'business', title: 'Autonomous Customer Support', value: '$80B', deploy: ['AI agents + speech embodiment'] },
   { id: 22, category: 'business', title: 'Autonomous Sales Agents', value: '$50B', deploy: ['AI negotiation bots'] },
-  { id: 23, category: 'business', title: 'AI Marketplaces', value: '$100B+', deploy: ['Bridge marketplace module'] },
+  { id: 23, category: 'business', title: 'AI Marketplaces', value: '$100B+', deploy: ['Bridge marketplace module', 'canonical w·P scoring', 'risk/capital gates'] },
   { id: 24, category: 'business', title: 'Corporate Digital Twins', value: '$60B', deploy: ['enterprise simulation'] },
   { id: 25, category: 'business', title: 'Supply Chain Optimization', value: '$90B', deploy: ['supply chain twins'] },
   { id: 26, category: 'business', title: 'Autonomous Finance Agents', value: '$35B', deploy: ['AI trading bots'] },
@@ -65,7 +65,7 @@ export const APPLICATIONS = [
   { id: 46, category: 'consumer', title: 'Gaming AI NPC Ecosystems', value: '$40B', deploy: ['digital twin NPCs'] },
   { id: 47, category: 'consumer', title: 'Smart Home AI Orchestration', value: '$60B', deploy: ['IoT + automation agents'] },
   { id: 48, category: 'consumer', title: 'AI Personal Finance Advisors', value: '$35B', deploy: ['financial agents'] },
-  { id: 49, category: 'consumer', title: 'Decentralized Work Platforms', value: '$100B', deploy: ['AI marketplace'] },
+  { id: 49, category: 'consumer', title: 'Decentralized Work Platforms', value: '$100B', deploy: ['AI marketplace', 'w·P task allocation'] },
   { id: 50, category: 'consumer', title: 'Global AI Agent Economy', value: '$220B+', deploy: ['millions of autonomous agents'] },
 ];
 
@@ -83,6 +83,7 @@ export const BRIDGE_WINS_PILLARS = [
   'AI agents',
   'digital twins',
   'marketplace economy',
+  'canonical w·P scoring',
   'sensor ingestion',
   'edge compute',
   'deterministic orchestration',

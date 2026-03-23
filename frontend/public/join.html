@@ -4,8 +4,11 @@
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>Join as Agent — Bridge AI OS · Supac · Taurus · Wiki</title>
+  <script src="/bridge-api-config.js"></script>
+  <script>if(typeof window.__API_BASE==="undefined")window.__API_BASE="";</script>
   <link rel="icon" href="/favicon.svg" type="image/svg+xml">
   <script src="https://cdn.jsdelivr.net/npm/qrcode@1.5.3/build/qrcode.min.js"></script>
+  <link rel="stylesheet" href="/mobile-friendly.css">
   <style>
     body { background: #0b0f1a; color: #fff; font-family: system-ui, sans-serif; margin: 0; padding: 24px; text-align: center; }
     .container { max-width: 560px; margin: 0 auto; }
@@ -22,14 +25,30 @@
     .btn.sec { background: #7b61ff; color: #fff; }
     .platforms { color: #aaa; font-size: 0.9rem; margin-top: 20px; }
   </style>
+  <link rel="stylesheet" href="/bridge-theme.css">
+  <script src="/bridge-shell.js"></script>
 </head>
 <body>
+  <nav class="bridge-nav" style="background:rgba(11,15,26,0.95);padding:12px 16px;display:flex;flex-wrap:wrap;align-items:center;gap:12px;border-bottom:1px solid rgba(0,229,255,0.2)">
+    <a href="/" class="bridge-nav-brand font-bold" style="color:#00e5ff">Bridge AI OS</a>
+    <button class="bridge-nav-toggle" aria-label="Toggle menu" style="color:#00e5ff;background:transparent;border:1px solid #00e5ff;border-radius:6px;padding:8px 12px">☰</button>
+    <div class="bridge-nav-links">
+      <ul style="list-style:none;padding:0;margin:0;display:flex;flex-wrap:wrap;gap:12px">
+        <li><a href="/dashboards.html" style="color:#00e5ff">Dashboards</a></li>
+        <li><a href="/agents.html" style="color:#00e5ff">Agents</a></li>
+        <li><a href="/gateway/" style="color:#00e5ff">Gateway</a></li>
+        <li><a href="/docs.html" style="color:#00e5ff">Docs</a></li>
+        <li><a href="/status.html" style="color:#00e5ff">Status</a></li>
+      </ul>
+    </div>
+  </nav>
   <div class="container">
     <h1>Join as Agent</h1>
     <p class="sub">Decentralized platform — Bridge, Supac, Taurus &amp; Wiki. All share Digital Twins.</p>
 
     <div class="card">
       <p style="margin-top:0;">Scan to open gateway → connect wallet → join as agent</p>
+      <p id="system-status" class="text-xs" style="margin-bottom:8px;color:#888">System: checking…</p>
       <canvas id="qrCanvas" width="220" height="220"></canvas>
       <p class="url" id="joinUrl"></p>
       <div class="links">
@@ -45,6 +64,11 @@
 
   <script>
     (function() {
+      var API = (typeof window.__API_BASE !== 'undefined' && window.__API_BASE) ? window.__API_BASE : '';
+      fetch((API || '') + '/api/health').then(function(r){return r.json();}).then(function(d){
+        var el = document.getElementById('system-status');
+        if(el) el.textContent = 'System: ' + (d.status||d.ok ? '● Online' : '○ Offline'); el.style.color = (d.status||d.ok) ? '#22c55e' : '#ef4444';
+      }).catch(function(){ var el = document.getElementById('system-status'); if(el) el.textContent = 'System: ○ Offline'; el.style.color = '#ef4444'; });
       var base = (typeof location !== 'undefined' && location.origin) ? location.origin : '';
       var path = (typeof location !== 'undefined' && location.pathname) ? location.pathname : '/join.html';
       var joinUrl = base + (path.indexOf('/join') !== -1 ? path : '/join.html');
@@ -55,5 +79,6 @@
       }
     })();
   </script>
+  <script src="/bridge-nav.js"></script>
 </body>
 </html>

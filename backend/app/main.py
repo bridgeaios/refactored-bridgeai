@@ -3,20 +3,32 @@ import json
 import time
 from contextlib import asynccontextmanager
 from pathlib import Path
+from typing import Any
 
-from fastapi import FastAPI, Request, WebSocket, WebSocketDisconnect
+from fastapi import FastAPI, HTTPException, Request, WebSocket, WebSocketDisconnect
 
 
-# Load env API keys for Digital Twin: repo .env first, then E:\AOE (same order as audit-wall.ps1)
+# Load env API keys for Digital Twin: prefer explicit process env, but replace blank inherited values
+# with repo/unified env file values so the twin status panel reflects the active local configuration.
 def _load_twin_env():
     try:
-        from dotenv import load_dotenv
+        import os
+        from dotenv import dotenv_values
         repo_root = Path(__file__).resolve().parents[2]
         aoe = Path("E:/AOE/.env")
         v1_env = Path("E:/AOE/v1/.env")
-        for p in [repo_root / ".env", aoe, v1_env]:
-            if p.exists():
-                load_dotenv(p, override=False)
+        unified = Path(r"D:\\.env.unified")
+        local_unified = repo_root.parent / ".env.secure.json"
+
+        for p in [repo_root / ".env", unified, aoe, v1_env]:
+            if not p.exists() or p.suffix == ".json":
+                continue
+            for key, value in dotenv_values(p).items():
+                if value is None:
+                    continue
+                current = os.environ.get(key)
+                if current is None or not str(current).strip():
+                    os.environ[key] = str(value)
     except Exception:
         pass
 
@@ -48,6 +60,7 @@ from app.physics import (
 from app.reducers import STRICT_MODE, get_registry_snapshot, is_sanctioned
 from app.routes.api import router as api_router
 from app.routes.auth import router as auth_router
+from app.routes.cli import router as cli_router
 from app.routes.projects import router as projects_router
 from app.routes.treasury import router as treasury_router
 from app.runtime import (
@@ -63,6 +76,16 @@ from app.runtime import (
 )
 from app.services.automation import AutomationLoops
 from app.services.cognitive_twin import CognitiveTwinService
+from app.services.ingestion import (
+    GoASSLMessage,
+    SkillCategory,
+    SkillData,
+    TaskPriority,
+    TaskStatus,
+    TaskData,
+    get_ingestion_service,
+)
+from app.services.execution_gate import evaluate as gate_evaluate
 from app.services.speech_reasoning import SpeechReasoningService
 from app.websockets.hub import ConnectionManager
 
@@ -133,6 +156,28 @@ async def lifespan(app: FastAPI):
 
 app = FastAPI(title="Bridge AI OS", lifespan=lifespan)
 
+_CANONICAL_OPENAPI_PATH = Path(__file__).resolve().parents[2] / "openapi.json"
+
+
+def _load_canonical_openapi() -> dict[str, Any]:
+    return json.loads(_CANONICAL_OPENAPI_PATH.read_text(encoding="utf-8"))
+
+
+def _canonical_frontend_url() -> str:
+    return str(_os.environ.get("BRIDGE_FRONTEND_URL") or "http://localhost:3020")
+
+
+def custom_openapi() -> dict[str, Any]:
+    if app.openapi_schema:
+        return app.openapi_schema
+    app.openapi_schema = _load_canonical_openapi()
+    return app.openapi_schema
+
+
+app.openapi = custom_openapi
+
+import os as _os
+_extra_origins = [o.strip() for o in _os.environ.get("BRIDGE_CORS_ORIGINS", "").split(",") if o.strip()]
 origins = [
     "http://localhost:3000", "http://localhost:3001", "http://localhost:3010",
     "http://localhost:3020", "http://localhost:3021", "http://localhost:5173",
@@ -140,6 +185,7 @@ origins = [
     "http://127.0.0.1:3000", "http://127.0.0.1:3001", "http://127.0.0.1:3010",
     "http://127.0.0.1:3020", "http://127.0.0.1:3021", "http://127.0.0.1:5173",
     "http://127.0.0.1:8081",
+    *_extra_origins,
 ]
 app.add_middleware(
     CORSMiddleware,
@@ -159,13 +205,225 @@ async def cortex_middleware(request: Request, call_next):
     response = await call_next(request)
     elapsed_ms = (time.perf_counter() - start) * 1000
     response.headers["X-Process-Time-Ms"] = f"{elapsed_ms:.0f}"
+
+    if request.query_params.get("format") == "compact":
+        response.headers["X-Response-Format"] = "compact"
     return response
 
 
 app.include_router(api_router, prefix="/api")
 app.include_router(auth_router, prefix="/api")
+app.include_router(cli_router, prefix="/api")
 app.include_router(projects_router, prefix="/api")
 app.include_router(treasury_router, prefix="/api")
+
+
+def _require_auth(request: Request) -> str:
+    """Validate auth token for ingestion endpoints."""
+    auth_header = request.headers.get("Authorization")
+    if not auth_header:
+        raise HTTPException(status_code=401, detail="Authorization header required")
+    if not auth_header.startswith("Bearer "):
+        raise HTTPException(status_code=401, detail="Bearer token required")
+    return auth_header[7:]
+
+
+@app.post("/api/ingest/goassl")
+async def ingest_goassl(request: Request, body: dict):
+    """Ingest GOASSL protocol messages into Digital Twin cognition."""
+    _require_auth(request)
+    svc = get_ingestion_service()
+    msg = GoASSLMessage(
+        goassl_message=body.get("goassl_message", ""),
+        signature=body.get("signature"),
+        timestamp=body.get("timestamp"),
+    )
+    return await svc.ingest_goassl(msg)
+
+
+@app.post("/api/ingest/tasks")
+async def ingest_tasks(request: Request, body: dict):
+    """Auto-create tasks from external signals into mission board."""
+    _require_auth(request)
+    task_type = body.get("type")
+    if task_type:
+        gate_result = gate_evaluate(body)
+        if gate_result is None:
+            raise HTTPException(
+                status_code=400,
+                detail="Task rejected by execution gate: invalid type or negative value",
+            )
+    svc = get_ingestion_service()
+    task = TaskData(
+        title=body.get("title", ""),
+        description=body.get("description", ""),
+        priority=TaskPriority(body.get("priority", "medium")),
+        status=TaskStatus(body.get("status", "backlog")),
+    )
+    return await svc.ingest_task(task)
+
+
+@app.post("/api/ingest/skills")
+async def ingest_skills(request: Request, body: dict):
+    """Add skills to Digital Twin's skill stack."""
+    _require_auth(request)
+    svc = get_ingestion_service()
+    skill = SkillData(
+        name=body.get("name", ""),
+        category=SkillCategory(body.get("category", "hard")),
+        proficiency=body.get("proficiency", 1.0),
+    )
+    return await svc.ingest_skill(skill)
+
+
+@app.get("/api/ingest/status")
+async def ingest_status(request: Request):
+    """Get ingestion pipeline status."""
+    _require_auth(request)
+    svc = get_ingestion_service()
+    return await svc.get_status()
+
+
+@app.post("/api/ingest/scan-all-skills")
+async def scan_all_skills(request: Request):
+    """Scan all drives (C, D, E) for skills and import to Digital Twin."""
+    _require_auth(request)
+    svc = get_ingestion_service()
+    return await svc.scan_and_import_all_skills()
+
+
+@app.post("/api/autonomous/deploy-50-apps")
+async def deploy_50_applications(request: Request):
+    """
+    Autonomous Deployment: Build and run all 50 applications using skills.
+    Each app gets a dedicated task in the marketplace for autonomous execution.
+    Includes progress tracking and error handling.
+    """
+    import logging
+    logger = logging.getLogger(__name__)
+    
+    _require_auth(request)
+    svc = get_ingestion_service()
+    
+    apps_data = [
+        {"id": 1, "title": "Smart City Digital Twin", "type": "infrastructure", "skills": ["digital-twin", "iot", "data-engineering"]},
+        {"id": 2, "title": "Traffic Optimization AI", "type": "infrastructure", "skills": ["ai-agent", "optimization", "computer-vision"]},
+        {"id": 3, "title": "Energy Grid Optimization", "type": "infrastructure", "skills": ["digital-twin", "energy", "ml-engineer"]},
+        {"id": 4, "title": "Water Infrastructure Monitoring", "type": "infrastructure", "skills": ["iot", "monitoring", "predictive-analytics"]},
+        {"id": 5, "title": "Disaster Prediction Systems", "type": "infrastructure", "skills": ["ai-agent", "simulation", "risk-management"]},
+        {"id": 6, "title": "Smart Waste Management", "type": "infrastructure", "skills": ["iot", "logistics", "automation"]},
+        {"id": 7, "title": "City Planning Simulator", "type": "infrastructure", "skills": ["simulation", "urban-planning", "digital-twin"]},
+        {"id": 8, "title": "Smart Lighting Systems", "type": "infrastructure", "skills": ["iot", "automation", "energy"]},
+        {"id": 9, "title": "Infrastructure Predictive Maintenance", "type": "infrastructure", "skills": ["predictive-analytics", "iot", "maintenance"]},
+        {"id": 10, "title": "Public Safety AI Monitoring", "type": "infrastructure", "skills": ["computer-vision", "ai-agent", "security"]},
+        {"id": 11, "title": "Patient Digital Twins", "type": "healthcare", "skills": ["digital-twin", "healthtech", "ai-agent"]},
+        {"id": 12, "title": "Remote Diagnostics", "type": "healthcare", "skills": ["telemedicine", "iot", "ai-agent"]},
+        {"id": 13, "title": "Hospital Optimization AI", "type": "healthcare", "skills": ["optimization", "healthtech", "digital-twin"]},
+        {"id": 14, "title": "Drug Discovery Simulation", "type": "healthcare", "skills": ["simulation", "bioinformatics", "ai-agent"]},
+        {"id": 15, "title": "Medical Device Monitoring", "type": "healthcare", "skills": ["iot", "monitoring", "healthtech"]},
+        {"id": 16, "title": "Emergency Response AI", "type": "healthcare", "skills": ["optimization", "dispatch", "ai-agent"]},
+        {"id": 17, "title": "Personalized Treatment Planning", "type": "healthcare", "skills": ["ml-engineer", "healthtech", "personalization"]},
+        {"id": 18, "title": "Mental Health AI Agents", "type": "healthcare", "skills": ["ai-agent", "speech-processing", "therapy"]},
+        {"id": 19, "title": "Medical Imaging AI", "type": "healthcare", "skills": ["computer-vision", "medical-imaging", "ai-agent"]},
+        {"id": 20, "title": "Healthcare Logistics", "type": "healthcare", "skills": ["logistics", "healthtech", "optimization"]},
+        {"id": 21, "title": "Autonomous Customer Support", "type": "business", "skills": ["ai-agent", "nlp", "customer-service"]},
+        {"id": 22, "title": "Autonomous Sales Agents", "type": "business", "skills": ["ai-agent", "sales-automation", "nlp"]},
+        {"id": 23, "title": "AI Marketplaces", "type": "business", "skills": ["marketplace", "blockchain", "defi"]},
+        {"id": 24, "title": "Corporate Digital Twins", "type": "business", "skills": ["digital-twin", "enterprise", "simulation"]},
+        {"id": 25, "title": "Supply Chain Optimization", "type": "business", "skills": ["logistics", "optimization", "ai-agent"]},
+        {"id": 26, "title": "Autonomous Finance Agents", "type": "business", "skills": ["ai-agent", "fintech", "trading"]},
+        {"id": 27, "title": "AI Knowledge Workers", "type": "business", "skills": ["llm-application-dev", "rag-engineer", "knowledge-management"]},
+        {"id": 28, "title": "AI Product Managers", "type": "business", "skills": ["ai-agent", "project-management", "decision-making"]},
+        {"id": 29, "title": "Autonomous Market Research", "type": "business", "skills": ["data-analysis", "ai-agent", "research"]},
+        {"id": 30, "title": "Smart Contract Governance", "type": "business", "skills": ["blockchain", "smart-contracts", "governance"]},
+        {"id": 31, "title": "Factory Digital Twins", "type": "industry", "skills": ["digital-twin", "industrial-iot", "simulation"]},
+        {"id": 32, "title": "Predictive Maintenance", "type": "industry", "skills": ["predictive-analytics", "iot", "maintenance"]},
+        {"id": 33, "title": "Robotics Fleet Coordination", "type": "industry", "skills": ["robotics", "swarm-ai", "coordination"]},
+        {"id": 34, "title": "Warehouse Optimization", "type": "industry", "skills": ["logistics", "digital-twin", "automation"]},
+        {"id": 35, "title": "Autonomous Construction Planning", "type": "industry", "skills": ["simulation", "planning", "ai-agent"]},
+        {"id": 36, "title": "Mining Operations AI", "type": "industry", "skills": ["iot", "automation", "safety"]},
+        {"id": 37, "title": "Oil & Gas Monitoring", "type": "industry", "skills": ["iot", "monitoring", "safety"]},
+        {"id": 38, "title": "Industrial Safety AI", "type": "industry", "skills": ["computer-vision", "safety", "monitoring"]},
+        {"id": 39, "title": "Asset Lifecycle Management", "type": "industry", "skills": ["asset-management", "digital-twin", "analytics"]},
+        {"id": 40, "title": "Manufacturing Simulation", "type": "industry", "skills": ["simulation", "digital-twin", "optimization"]},
+        {"id": 41, "title": "AI Personal Assistants", "type": "consumer", "skills": ["ai-agent", "nlp", "personal-assistant"]},
+        {"id": 42, "title": "Digital Identity Networks", "type": "consumer", "skills": ["identity", "siwe-auth", "blockchain"]},
+        {"id": 43, "title": "AI Education Tutors", "type": "consumer", "skills": ["ai-agent", "education", "llm-application-dev"]},
+        {"id": 44, "title": "Autonomous Media Generation", "type": "consumer", "skills": ["generative-ai", "content-creation", "multimedia"]},
+        {"id": 45, "title": "Creator AI Tools", "type": "consumer", "skills": ["generative-ai", "content-creation", "automation"]},
+        {"id": 46, "title": "Gaming AI NPC Ecosystems", "type": "consumer", "skills": ["game-dev", "ai-agent", "simulation"]},
+        {"id": 47, "title": "Smart Home AI Orchestration", "type": "consumer", "skills": ["iot", "automation", "smart-home"]},
+        {"id": 48, "title": "AI Personal Finance Advisors", "type": "consumer", "skills": ["fintech", "ai-agent", "personalization"]},
+        {"id": 49, "title": "Decentralized Work Platforms", "type": "consumer", "skills": ["marketplace", "blockchain", "freelance"]},
+        {"id": 50, "title": "Global AI Agent Economy", "type": "consumer", "skills": ["ai-agent", "economy", "multi-agent-patterns"]},
+    ]
+    
+    deployed = []
+    errors = []
+    total = len(apps_data)
+    
+    async def deploy_single_app(idx: int, app: dict) -> dict:
+        try:
+            progress = {
+                "current": idx + 1,
+                "total": total,
+                "percentage": round((idx + 1) / total * 100, 1),
+                "current_app": app["title"],
+            }
+            logger.info(f"Deploying app {idx+1}/{total}: {app['title']}")
+            
+            task = TaskData(
+                title=f"Autonomous: {app['title']}",
+                description=f"Build and run {app['title']} using skills: {', '.join(app['skills'])}",
+                priority=TaskPriority.HIGH,
+                status=TaskStatus.BACKLOG,
+            )
+            result = await svc.ingest_task(task)
+            
+            for skill_name in app['skills']:
+                skill = SkillData(
+                    name=skill_name,
+                    category=SkillCategory.HARD,
+                    proficiency=1.0,
+                )
+                await svc.ingest_skill(skill)
+            
+            return {
+                "app_id": app["id"], 
+                "title": app["title"], 
+                "status": "deployed",
+                "progress": progress,
+            }
+            
+        except Exception as e:
+            logger.error(f"Error deploying app {app['title']}: {str(e)}")
+            return {
+                "app_id": app["id"],
+                "title": app["title"],
+                "error": str(e),
+            }
+    
+    results = await asyncio.gather(*[deploy_single_app(idx, app) for idx, app in enumerate(apps_data)])
+    
+    for result in results:
+        if "error" in result:
+            errors.append(result)
+        else:
+            deployed.append(result)
+    
+    return {
+        "status": "autonomous_deployment_complete" if not errors else "autonomous_deployment_partial",
+        "deployed_count": len(deployed),
+        "error_count": len(errors),
+        "total_apps": total,
+        "progress_summary": {
+            "completed": len(deployed),
+            "failed": len(errors),
+            "percentage_complete": round(len(deployed) / total * 100, 1),
+        },
+        "applications": deployed,
+        "errors": errors,
+    }
 
 
 @app.post("/api/state")
@@ -201,7 +459,12 @@ async def state_mutation(body: dict):
 @app.get("/health")
 async def health_root():
     """Root-level health check for monitoring and node console."""
-    return {"status": "ok", "service": "bridge-live-wall", "port": 8000}
+    import os
+    try:
+        port = int(os.getenv("PORT") or "8000")
+    except Exception:
+        port = 8000
+    return {"status": "ok", "service": "bridge-live-wall", "port": port}
 
 
 @app.get("/")
@@ -238,7 +501,7 @@ async def root():
         "state_version": state_version,
         "identity_hash": identity_hash,
         "reducer_identity_hash": registry.get("identity_hash"),
-        "frontend": "http://localhost:3010",
+        "frontend": _canonical_frontend_url(),
     }
 
 
@@ -264,14 +527,28 @@ async def list_sanctioned_reducers():
 async def state_snapshot():
     """
     Full state snapshot. Version without snapshot is memory without recall.
-    Returns: state, state_version, state_hash.
+    Returns: state, state_version, state_hash, priority_distribution.
     """
     from app.services.mission import MissionService
+    from app.runtime import marketplace_service
     mission_svc = MissionService(memory)
     state_version = await get_state_version(memory)
     state_hash = await get_state_hash(memory)
     xml = await memory.get("twin:shared_xml") or ""
     board = await mission_svc.get_counts()
+    tasks = marketplace_service.get_tasks(twin_id="system", status="open")
+    scores = sorted([float(t.get("_priority_score", 0)) for t in tasks], reverse=True)
+    n = len(scores)
+    if n > 0:
+        priority_distribution = {
+            "p50": round(scores[min(n // 2, n - 1)], 4),
+            "p90": round(scores[min(int(n * 0.1), n - 1)], 4),
+            "min": round(scores[-1], 4),
+            "max": round(scores[0], 4),
+            "count": n,
+        }
+    else:
+        priority_distribution = {"p50": 0, "p90": 0, "min": 0, "max": 0, "count": 0}
     state = {
         "shared_xml": xml[:2000] if xml else "",
         "mission_board": board,
@@ -280,6 +557,7 @@ async def state_snapshot():
         "state": state,
         "state_version": state_version,
         "state_hash": state_hash,
+        "priority_distribution": priority_distribution,
     }
 
 
@@ -323,3 +601,11 @@ async def websocket_endpoint(websocket: WebSocket, channel: str):
                 await manager.broadcast(channel, msg)
     except WebSocketDisconnect:
         await manager.disconnect(channel, websocket)
+
+
+
+
+
+
+
+

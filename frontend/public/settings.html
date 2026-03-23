@@ -4,25 +4,35 @@
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>Settings — Bridge AI OS</title>
+  <script src="/bridge-api-config.js"></script>
   <script>if(typeof window.__API_BASE==="undefined")window.__API_BASE="";</script>
   <script src="https://cdn.tailwindcss.com"></script>
   <link rel="icon" href="/favicon.svg" type="image/svg+xml">
+  <link rel="stylesheet" href="/mobile-friendly.css">
+  <link rel="stylesheet" href="/bridge-theme.css">
+  <script src="/bridge-shell.js"></script>
 </head>
 <body class="bg-slate-50 font-sans antialiased">
 
-  <nav class="bg-slate-800 text-white p-4 flex flex-wrap justify-between items-center sticky top-0 z-50 shadow-lg">
-    <a href="/" class="text-xl font-bold hover:text-amber-300">Bridge AI OS</a>
-    <ul class="flex flex-wrap gap-4 mt-2 md:mt-0">
-      <li><a href="/" class="hover:text-amber-300">Digital Twin</a></li>
-      <li><a href="/executive-dashboard.html" class="hover:text-amber-300">Dashboard</a></li>
-      <li><a href="/50-applications.html" class="hover:text-amber-300">50 Applications</a></li>
-      <li><a href="/agents.html" class="hover:text-amber-300">Agents</a></li>
-      <li><a href="/landing.html" class="hover:text-amber-300">Landing</a></li>
-      <li><a href="/gateway/" class="hover:text-amber-300">Gateway</a></li>
-      <li><a href="/join.html" class="hover:text-amber-300">Join as Agent</a></li>
-      <li><a href="/docs.html" class="hover:text-amber-300">Docs</a></li>
-      <li><a href="/settings.html" class="text-amber-300 font-semibold">Settings</a></li>
-    </ul>
+  <nav class="bridge-nav bg-slate-800 text-white p-4 flex flex-wrap justify-between items-center sticky top-0 z-50 shadow-lg">
+    <a href="/" class="bridge-nav-brand text-xl font-bold hover:text-amber-300">Bridge AI OS</a>
+    <button class="bridge-nav-toggle" aria-label="Toggle menu">☰</button>
+    <div class="bridge-nav-links">
+      <ul class="flex flex-wrap gap-4 mt-2 md:mt-0">
+        <li><a href="/" class="hover:text-amber-300">Digital Twin</a></li>
+        <li><a href="/dashboards.html" class="hover:text-amber-300">Dashboards</a></li>
+        <li><a href="/executive-dashboard.html" class="hover:text-amber-300">Executive</a></li>
+        <li><a href="/50-applications.html" class="hover:text-amber-300">50 Apps</a></li>
+        <li><a href="/agents.html" class="hover:text-amber-300">Agents</a></li>
+        <li><a href="/landing.html" class="hover:text-amber-300">Landing</a></li>
+        <li><a href="/gateway/" class="hover:text-amber-300">Gateway</a></li>
+        <li><a href="/join.html" class="hover:text-amber-300">Join</a></li>
+        <li><a href="/cfo.html" class="hover:text-amber-300">CFO</a></li>
+        <li><a href="/docs.html" class="hover:text-amber-300">Docs</a></li>
+        <li><a href="/status.html" class="hover:text-amber-300">Status</a></li>
+        <li><a href="/settings.html" class="text-amber-300 font-semibold">Settings</a></li>
+      </ul>
+    </div>
   </nav>
 
   <main class="p-4 md:p-6 max-w-2xl mx-auto space-y-8">
@@ -190,5 +200,6 @@
   else load();
 })();
   </script>
+  <script src="/bridge-nav.js"></script>
 </body>
 </html>

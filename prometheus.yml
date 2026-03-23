@@ -1,0 +1,46 @@
+global:
+  scrape_interval: 15s
+  evaluation_interval: 15s
+
+scrape_configs:
+  - job_name: 'bridge-backend'
+    static_configs:
+      - targets: ['backend:8000']
+    metrics_path: '/metrics'
+    scrape_interval: 10s
+
+  - job_name: 'redis'
+    static_configs:
+      - targets: ['redis:6379']
+    scrape_interval: 30s
+
+  # ── Bridge AI OS — all 13 microservices ──────────────────────────────────────
+  - job_name: 'bridge-ai-os'
+    metrics_path: '/metrics'
+    scrape_interval: 10s
+    static_configs:
+      - targets:
+          - 'host.docker.internal:3000'   # node0  — Treasury & Payments
+          - 'host.docker.internal:3004'   # node4  — Ledger
+          - 'host.docker.internal:3005'   # node5  — Revenue Streams
+          - 'host.docker.internal:3007'   # node7  — Health Matrix
+          - 'host.docker.internal:3008'   # stripe-node
+          - 'host.docker.internal:3009'   # mind   — Cognitive State
+          - 'host.docker.internal:3010'   # node2  — Profiles / KYC
+          - 'host.docker.internal:3020'   # kernel — Execution Loop
+          - 'host.docker.internal:3025'   # agent-engine
+          - 'host.docker.internal:3030'   # marketplace
+          - 'host.docker.internal:8080'   # gateway
+          - 'host.docker.internal:1337'   # kavach — Security
+          - 'host.docker.internal:3117'   # crucix — OSINT Intel
+
+rule_files:
+  - 'alerts.yml'
+
+alerting:
+  alertmanagers:
+    - static_configs:
+        - targets: []
+
+remote_write:
+  - url: http://localhost:9090/api/v1/write

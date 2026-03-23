@@ -4,23 +4,33 @@
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>Docs — Bridge AI OS</title>
+  <script src="/bridge-api-config.js"></script>
   <script>if(typeof window.__API_BASE==="undefined")window.__API_BASE="";</script>
   <script src="https://cdn.tailwindcss.com"></script>
   <link rel="icon" href="/favicon.svg" type="image/svg+xml">
+  <link rel="stylesheet" href="/mobile-friendly.css">
+  <link rel="stylesheet" href="/bridge-theme.css">
+  <script src="/bridge-shell.js"></script>
 </head>
 <body class="bg-slate-50 font-sans antialiased">
 
-  <nav class="bg-slate-800 text-white p-4 flex flex-wrap justify-between items-center sticky top-0 z-50 shadow-lg">
-    <a href="/" class="text-xl font-bold hover:text-amber-300">Bridge AI OS</a>
-    <ul class="flex flex-wrap gap-4 mt-2 md:mt-0">
-      <li><a href="/" class="hover:text-amber-300">Digital Twin</a></li>
-      <li><a href="/executive-dashboard.html" class="hover:text-amber-300">Dashboard</a></li>
-      <li><a href="/50-applications.html" class="hover:text-amber-300">50 Applications</a></li>
-      <li><a href="/agents.html" class="hover:text-amber-300">Agents</a></li>
-      <li><a href="/landing.html" class="hover:text-amber-300">Landing</a></li>
-      <li><a href="/settings.html" class="hover:text-amber-300">Settings</a></li>
-      <li><a href="/docs.html" class="text-amber-300 font-semibold">Docs</a></li>
-    </ul>
+  <nav class="bridge-nav bg-slate-800 text-white p-4 flex flex-wrap justify-between items-center sticky top-0 z-50 shadow-lg">
+    <a href="/" class="bridge-nav-brand text-xl font-bold hover:text-amber-300">Bridge AI OS</a>
+    <button class="bridge-nav-toggle" aria-label="Toggle menu">☰</button>
+    <div class="bridge-nav-links">
+      <ul class="flex flex-wrap gap-4 mt-2 md:mt-0">
+        <li><a href="/" class="hover:text-amber-300">Digital Twin</a></li>
+        <li><a href="/dashboards.html" class="hover:text-amber-300">Dashboards</a></li>
+        <li><a href="/executive-dashboard.html" class="hover:text-amber-300">Executive</a></li>
+        <li><a href="/50-applications.html" class="hover:text-amber-300">50 Apps</a></li>
+        <li><a href="/agents.html" class="hover:text-amber-300">Agents</a></li>
+        <li><a href="/cfo.html" class="hover:text-amber-300">CFO</a></li>
+        <li><a href="/landing.html" class="hover:text-amber-300">Landing</a></li>
+        <li><a href="/settings.html" class="hover:text-amber-300">Settings</a></li>
+        <li><a href="/status.html" class="hover:text-amber-300">Status</a></li>
+        <li><a href="/docs.html" class="text-amber-300 font-semibold">Docs</a></li>
+      </ul>
+    </div>
   </nav>
 
   <main class="p-4 md:p-6 max-w-4xl mx-auto space-y-8">
@@ -36,7 +46,15 @@
         <p class="text-slate-600">Interactive API docs (Swagger UI) and OpenAPI spec are served by the backend.</p>
         <ul class="list-disc pl-5 space-y-1">
           <li><a id="api-docs-link" href="#" target="_blank" rel="noopener" class="text-blue-600 hover:underline font-medium">API Docs (Swagger)</a> — try endpoints interactively</li>
-          <li><a id="openapi-link" href="#" target="_blank" rel="noopener" class="text-blue-600 hover:underline font-medium">OpenAPI JSON</a> — machine-readable spec</li>
+          <li><a id="openapi-link" href="#" target="_blank" rel="noopener" class="text-blue-600 hover:underline font-medium">OpenAPI JSON</a> — curated 29-path canonical contract</li>
+          <li><a href="/contracts/openapi.v2.public.json" target="_blank" rel="noopener" class="text-blue-600 hover:underline font-medium">OpenAPI V2 Public</a> — promoted public contract split from runtime</li>
+          <li><a href="/contracts/openapi.internal.json" target="_blank" rel="noopener" class="text-blue-600 hover:underline font-medium">OpenAPI Internal</a> — internal and operational endpoints</li>
+          <li><a href="/contracts/API-CONTRACT-SPLIT-V2.md" target="_blank" rel="noopener" class="text-blue-600 hover:underline font-medium">Contract Split V2 Report</a> — promoted vs internal endpoint decision log</li>
+          <li><a href="/contracts/api-contract-split-v2.json" target="_blank" rel="noopener" class="text-blue-600 hover:underline font-medium">Contract Split V2 JSON</a> — machine-readable public/internal split</li>
+          <li><a href="/contracts/openapi.runtime-expanded.json" target="_blank" rel="noopener" class="text-blue-600 hover:underline font-medium">Runtime Expanded OpenAPI</a> — full runtime-derived contract</li>
+          <li><a href="/contracts/openapi.runtime-supplement.json" target="_blank" rel="noopener" class="text-blue-600 hover:underline font-medium">Runtime Supplement</a> — runtime-only endpoints outside the original canonical contract</li>
+          <li><a href="/contracts/API-DRIFT-REPORT.md" target="_blank" rel="noopener" class="text-blue-600 hover:underline font-medium">API Drift Report</a> — markdown summary of canonical vs runtime drift</li>
+          <li><a href="/contracts/api-drift-report.json" target="_blank" rel="noopener" class="text-blue-600 hover:underline font-medium">API Drift JSON</a> — machine-readable drift summary</li>
         </ul>
         <p class="text-slate-500 mt-2">Base URL: <code id="api-base-display" class="bg-slate-100 px-1 rounded">—</code></p>
       </div>
@@ -58,6 +76,7 @@
             <tr class="border-b border-slate-100"><td class="py-2 pr-4"><a href="/executive-dashboard.html" class="text-blue-600 hover:underline">/executive-dashboard.html</a></td><td>Executive Dashboard (swarm, heatmap, pipeline, agents, mission, marketplace)</td></tr>
             <tr class="border-b border-slate-100"><td class="py-2 pr-4"><a href="/50-applications.html" class="text-blue-600 hover:underline">/50-applications.html</a></td><td>50 Applications showcase</td></tr>
             <tr class="border-b border-slate-100"><td class="py-2 pr-4"><a href="/agents.html" class="text-blue-600 hover:underline">/agents.html</a></td><td>Agents &amp; Digital Twins (replication, leaderboard)</td></tr>
+            <tr class="border-b border-slate-100"><td class="py-2 pr-4"><a href="/cfo.html" class="text-blue-600 hover:underline">/cfo.html</a></td><td>CFO Breakdown (treasury buckets, ledger, rails, controls)</td></tr>
             <tr class="border-b border-slate-100"><td class="py-2 pr-4"><a href="/landing.html" class="text-blue-600 hover:underline">/landing.html</a></td><td>Landing (redirects to 50 Applications)</td></tr>
             <tr class="border-b border-slate-100"><td class="py-2 pr-4"><a href="/settings.html" class="text-blue-600 hover:underline">/settings.html</a></td><td>Settings (shared per user across domains)</td></tr>
             <tr class="border-b border-slate-100"><td class="py-2 pr-4"><a href="/gateway/" class="text-blue-600 hover:underline">/gateway/</a></td><td>Sovereign Gateway — QR scan to join; wallet, SIWE; Bridge · Supac · Taurus · Wiki</td></tr>
@@ -118,11 +137,43 @@
   <script>
 (function() {
   var API_BASE = (typeof window !== 'undefined' && window.__API_BASE) ? String(window.__API_BASE).replace(/\/$/, '') : '';
-  var backendOrigin = API_BASE || (window.location.port === '3020' || window.location.port === '3000' ? 'http://localhost:8000' : window.location.origin);
-  document.getElementById('api-docs-link').href = backendOrigin + '/docs';
-  document.getElementById('openapi-link').href = backendOrigin + '/openapi.json';
-  document.getElementById('api-base-display').textContent = backendOrigin || '(same origin)';
+
+  function setBackendOrigin(origin) {
+    var backendOrigin = (origin || '').replace(/\/$/, '');
+    document.getElementById('api-docs-link').href = backendOrigin + '/docs';
+    document.getElementById('openapi-link').href = backendOrigin + '/openapi.json';
+    document.getElementById('api-base-display').textContent = backendOrigin || '(unknown)';
+  }
+
+  async function resolveBackendOrigin() {
+    // Preferred: explicit override
+    if (API_BASE) return API_BASE;
+
+    // Best-effort: ask the running system map for the backend base URL.
+    // This stays correct even when ports change (3020→3021, 8000→8020, etc.).
+    try {
+      var r = await fetch('/api/live/map');
+      if (r && r.ok) {
+        var data = await r.json();
+        var services = data && Array.isArray(data.services) ? data.services : [];
+        // live/map provides ports; derive origin from current host with that port.
+        var apiSvc = services.find(function(s) { return s && (s.id === 'bridge-api' || s.id === 'bridge_api' || s.label === 'Bridge API'); });
+        var port = apiSvc && (apiSvc.port || apiSvc.hostPort);
+        if (port) return window.location.protocol + '//' + window.location.hostname + ':' + port;
+      }
+    } catch (_) {}
+
+    // Fallback: same host common backend ports
+    return window.location.protocol + '//' + window.location.hostname + ':8000';
+  }
+
+  resolveBackendOrigin().then(setBackendOrigin).catch(function() {
+    setBackendOrigin(API_BASE || (window.location.protocol + '//' + window.location.hostname + ':8000'));
+  });
 })();
   </script>
+  <script src="/bridge-nav.js"></script>
 </body>
 </html>
+
+

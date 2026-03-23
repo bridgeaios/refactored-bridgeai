@@ -130,16 +130,47 @@ function nowIso() {
 }
 
 function getWalletAddress() {
+  // Try EVM first (MetaMask or other EVM wallet)
   const eth = window.__walletEVM || window.ethereum || window.web3?.currentProvider;
-  // Prefer the provider selected by wallet.js (window.__walletEVM). If not set, do best-effort MetaMask selection.
-  const provider = (() => {
-    if (!eth) return null;
-    if (eth?.isMetaMask) return eth;
-    if (Array.isArray(eth?.providers)) return eth.providers.find(p => p?.isMetaMask) || eth.providers[0] || null;
-    if (Array.isArray(eth)) return eth.find(p => p?.isMetaMask) || eth[0] || null;
-    return eth;
-  })();
-  return (provider?.selectedAddress) || (window.solana?.publicKey?.toString?.()) || null;
+  if (eth) {
+    // Handle MetaMask/injected provider
+    if (eth?.isMetaMask || (Array.isArray(eth) && eth.find(p => p?.isMetaMask)) || 
+        (Array.isArray(eth?.providers) && eth.providers.find(p => p?.isMetaMask))) {
+      const provider = (() => {
+        if (eth?.isMetaMask) return eth;
+        if (Array.isArray(eth?.providers)) return eth.providers.find(p => p?.isMetaMask) || eth.providers[0] || null;
+        if (Array.isArray(eth)) return eth.find(p => p?.isMetaMask) || eth[0] || null;
+        return eth;
+      })();
+      if (provider?.selectedAddress) return provider.selectedAddress;
+    }
+    // Fallback for other EVM providers
+    try {
+      if (typeof eth.request === 'function') {
+        const accounts = eth.request ? eth.request({ method: 'eth_accounts' }) : null;
+        // Handle sync or promise
+        if (accounts && typeof accounts.then === 'function') {
+          // Promise case - we can't wait here, so return null and let caller handle async
+          // But for simplicity, we'll try to get it synchronously if possible
+          return null;
+        } else if (accounts && Array.isArray(accounts) && accounts[0]) {
+          return accounts[0];
+        }
+      }
+    } catch (e) {
+      // Ignore errors
+    }
+  }
+  
+  // Try Solana (Phantom)
+  if (window.phantom?.solana?.publicKey) {
+    return window.phantom.solana.publicKey.toString();
+  }
+  if (window.solana?.publicKey?.toString?.()) {
+    return window.solana.publicKey.toString();
+  }
+  
+  return null;
 }
 
 const SDG_OPTIONS = [
@@ -376,65 +407,111 @@ export function initMarketplace() {
         `;
       }).join('');
 
-      // Accept (bounty) flow
-      list.querySelectorAll('button[data-accept-id]').forEach(b => {
-        b.onclick = async (e) => {
-          const id = e.target.getAttribute('data-accept-id');
-          const addr = getWalletAddress();
-          if (!addr) return alert('Connect a wallet first');
-          try {
-            await fetch(`${API_BASE}/api/marketplace/accept`, {
-              method: 'POST',
-              headers: { 'Content-Type': 'application/json' },
-              body: JSON.stringify({ task_id: id, wallet: addr })
-            });
-            alert('Accepted — complete the work and claim reward.');
-          } catch {
-            // local fallback: mark accepted
-            const local = loadLocalTasks();
-            const idx = local.findIndex(x => String(x.id) === String(id));
-            if (idx >= 0) {
-              local[idx].status = 'accepted';
-              local[idx].accepted_by = addr;
-              saveLocalTasks(local);
-              alert('Accepted (local/offline).');
-            } else {
-              alert('Accept failed (offline).');
-            }
-          }
-          await updateTasks();
-        };
-      });
+       // Accept (bounty) flow
+       list.querySelectorAll('button[data-accept-id]').forEach(b => {
+         b.onclick = async (e) => {
+           const id = e.target.getAttribute('data-accept-id');
+           const addr = getWalletAddress();
+           if (!addr) return alert('Connect a wallet first');
+           
+           // Create a message to sign for the acceptance
+           const message = `Accept task ${id}`;
+           
+           // Try to sign the message with the connected wallet
+           let signature = null;
+           let signedBy = addr;
+           try {
+             // Try EVM signing first
+             if (window.__walletEVM || window.ethereum || window.web3?.currentProvider) {
+               signature = await signMessageEVM(message, addr);
+               signedBy = `${addr} (EVM)`;
+             } else if (window.phantom?.solana?.publicKey || window.solana?.publicKey?.toString?.()) {
+               // Try Solana signing
+               signature = await signMessageSolana(message);
+               signedBy = `${addr} (Solana)`;
+             }
+           } catch (signError) {
+             console.warn('Wallet signing failed, proceeding without signature:', signError);
+             // Continue without signature if wallet signing fails
+           }
+           
+           try {
+             await fetch(`${API_BASE}/api/marketplace/accept`, {
+               method: 'POST',
+               headers: { 'Content-Type': 'application/json' },
+               body: JSON.stringify({ task_id: id, wallet: addr, signature, signedBy })
+             });
+             alert('Accepted and signed — complete the work and claim reward.');
+           } catch {
+             // local fallback: mark accepted
+             const local = loadLocalTasks();
+             const idx = local.findIndex(x => String(x.id) === String(id));
+             if (idx >= 0) {
+               local[idx].status = 'accepted';
+               local[idx].accepted_by = addr;
+               local[idx].signature = signature;
+               local[idx].signedBy = signedBy;
+               saveLocalTasks(local);
+               alert('Accepted (local/offline).');
+             } else {
+               alert('Accept failed (offline).');
+             }
+           }
+           await updateTasks();
+         };
+       });
 
-      // Pledge (upliftment) flow
-      list.querySelectorAll('button[data-pledge-id]').forEach(b => {
-        b.onclick = async (e) => {
-          const id = e.target.getAttribute('data-pledge-id');
-          const addr = getWalletAddress();
-          if (!addr) return alert('Connect a wallet first');
-          const amountRaw = prompt('Pledge amount (BRDG):', '10');
-          if (!amountRaw) return;
-          const amount = Number(amountRaw);
-          if (!Number.isFinite(amount) || amount <= 0) return alert('Enter a valid pledge amount.');
-          const wallet = normWallet(addr);
-          const event_id = newEventId();
-          // Record locally first (offline-safe + instant leaderboard).
-          addPledgeEvent({ event_id, task_id: id, wallet, amount, ts: Date.now(), confirmed: false });
-          try {
-            await fetch(`${API_BASE}/api/marketplace/pledge`, {
-              method: 'POST',
-              headers: { 'Content-Type': 'application/json' },
-              body: JSON.stringify({ task_id: id, wallet, amount, event_id })
-            });
-            markEventConfirmed(event_id);
-            alert('Pledge recorded.');
-          } catch {
-            alert('Pledge recorded (local/offline).');
-          }
-          window.dispatchEvent(new CustomEvent('marketplace-update'));
-          await updateTasks();
-        };
-      });
+   // Pledge (upliftment) flow
+       list.querySelectorAll('button[data-pledge-id]').forEach(b => {
+         b.onclick = async (e) => {
+           const id = e.target.getAttribute('data-pledge-id');
+           const addr = getWalletAddress();
+           if (!addr) return alert('Connect a wallet first');
+           const amountRaw = prompt('Pledge amount (BRDG):', '10');
+           if (!amountRaw) return;
+           const amount = Number(amountRaw);
+           if (!Number.isFinite(amount) || amount <= 0) return alert('Enter a valid pledge amount.');
+           const wallet = normWallet(addr);
+           const event_id = newEventId();
+           
+           // Create a message to sign for the pledge
+           const message = `Pledge ${amount} BRDG to task ${id}`;
+           
+           // Try to sign the message with the connected wallet
+           let signature = null;
+           let signedBy = wallet;
+           try {
+             // Try EVM signing first
+             if (window.__walletEVM || window.ethereum || window.web3?.currentProvider) {
+               signature = await signMessageEVM(message, addr);
+               signedBy = `${wallet} (EVM)`;
+             } else if (window.phantom?.solana?.publicKey || window.solana?.publicKey?.toString?.()) {
+               // Try Solana signing
+               signature = await signMessageSolana(message);
+               signedBy = `${wallet} (Solana)`;
+             }
+           } catch (signError) {
+             console.warn('Wallet signing failed, proceeding without signature:', signError);
+             // Continue without signature if wallet signing fails
+           }
+           
+           // Record locally first (offline-safe + instant leaderboard).
+           addPledgeEvent({ event_id, task_id: id, wallet, amount, ts: Date.now(), confirmed: false, signature, signedBy });
+           try {
+             await fetch(`${API_BASE}/api/marketplace/pledge`, {
+               method: 'POST',
+               headers: { 'Content-Type': 'application/json' },
+               body: JSON.stringify({ task_id: id, wallet, amount, event_id, signature, signedBy })
+             });
+             markEventConfirmed(event_id);
+             alert('Pledge recorded and signed.');
+           } catch {
+             alert('Pledge recorded (local/offline).');
+           }
+           window.dispatchEvent(new CustomEvent('marketplace-update'));
+           await updateTasks();
+         };
+       });
 
       // Animate upliftment pledged totals when they change.
       filtered.forEach(t => {

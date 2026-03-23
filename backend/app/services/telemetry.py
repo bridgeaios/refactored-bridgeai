@@ -6,10 +6,10 @@ Metrics:
 - System-level: swarm latency (P50/P99), queue depth
 - Health: heartbeat, failure detection, recovery time
 """
-from prometheus_client import Counter, Histogram, Gauge, start_http_server
-from typing import Optional
-import time
 import logging
+from typing import Optional
+
+from prometheus_client import Counter, Gauge, Histogram, start_http_server
 
 logger = logging.getLogger(__name__)
 
@@ -106,6 +106,18 @@ entropy_score = Gauge(
     "System entropy score",
 )
 
+# Execution gate metrics
+execution_tasks_total = Counter(
+    "execution_tasks_total",
+    "Total tasks submitted to execution gate",
+    ["stage"],
+)
+
+execution_rejection_rate = Gauge(
+    "execution_rejection_rate",
+    "Rate of tasks rejected by execution gate",
+)
+
 
 class TelemetryService:
     """Centralized telemetry for Bridge Twin System."""
@@ -189,6 +201,14 @@ class TelemetryService:
     def update_entropy(self, score: float) -> None:
         """Update entropy score."""
         entropy_score.set(score)
+
+    def record_execution_task(self, stage: str) -> None:
+        """Record execution gate task submission."""
+        execution_tasks_total.labels(stage=stage).inc()
+
+    def update_execution_rejection_rate(self, rate: float) -> None:
+        """Update execution rejection rate."""
+        execution_rejection_rate.set(rate)
 
 
 # Global instance

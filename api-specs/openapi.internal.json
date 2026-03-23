@@ -1,0 +1,1494 @@
+{
+  "openapi": "3.1.0",
+  "info": {
+    "title": "Bridge AI OS Internal API",
+    "version": "2.0.0-internal",
+    "description": "Internal and operational endpoints retained at runtime but excluded from the V2 public contract."
+  },
+  "paths": {
+    "/api/cli/enqueue": {
+      "post": {
+        "summary": "Cli Enqueue",
+        "operationId": "cli_enqueue_api_cli_enqueue_post",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "additionalProperties": true,
+                "type": "object",
+                "title": "Payload"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {}
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/cli/history": {
+      "get": {
+        "summary": "Cli History",
+        "operationId": "cli_history_api_cli_history_get",
+        "parameters": [
+          {
+            "name": "limit",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "integer",
+              "default": 30,
+              "title": "Limit"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {}
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/cli/queue/next": {
+      "get": {
+        "summary": "Cli Queue Next",
+        "operationId": "cli_queue_next_api_cli_queue_next_get",
+        "parameters": [
+          {
+            "name": "runner_id",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "string",
+              "default": "runner",
+              "title": "Runner Id"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {}
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/cli/report": {
+      "post": {
+        "summary": "Cli Report",
+        "operationId": "cli_report_api_cli_report_post",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "additionalProperties": true,
+                "type": "object",
+                "title": "Payload"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {}
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/cli/status": {
+      "get": {
+        "summary": "Cli Status",
+        "operationId": "cli_status_api_cli_status_get",
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {}
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/demand/pump": {
+      "post": {
+        "summary": "Demand Pump",
+        "description": "Create new tasks if backlog is low.\nBody: { target_backlog?: int, max_create?: int }",
+        "operationId": "demand_pump_api_demand_pump_post",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "anyOf": [
+                  {
+                    "additionalProperties": true,
+                    "type": "object"
+                  },
+                  {
+                    "type": "null"
+                  }
+                ],
+                "title": "Payload"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {}
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/econ/circuit-breaker": {
+      "get": {
+        "summary": "Get Circuit Breaker Status",
+        "description": "Economic circuit breaker status. When tripped: all economic actions blocked.",
+        "operationId": "get_circuit_breaker_status_api_econ_circuit_breaker_get",
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {}
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/econ/reset-breaker": {
+      "post": {
+        "summary": "Reset Circuit Breaker",
+        "description": "Reset economic circuit breaker. Orchestrator authority required.\nUse after investigating root cause (entropy spike, trade frequency exceeded).",
+        "operationId": "reset_circuit_breaker_api_econ_reset_breaker_post",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "additionalProperties": true,
+                "type": "object",
+                "title": "Payload",
+                "default": {}
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {}
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/econ/weights": {
+      "post": {
+        "summary": "Set Econ Weights",
+        "description": "Governance-controlled. Merge with defaults. Valid keys: impact, revenue, risk, latency, trust.",
+        "operationId": "set_econ_weights_api_econ_weights_post",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "additionalProperties": true,
+                "type": "object",
+                "title": "Payload"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {}
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/founder-todo/{obj_id}/complete": {
+      "patch": {
+        "summary": "Complete Founder Objective",
+        "description": "Mark objective complete. Wallpaper will update on next refresh (run-wallpaper-live.ps1).",
+        "operationId": "complete_founder_objective_api_founder_todo__obj_id__complete_patch",
+        "parameters": [
+          {
+            "name": "obj_id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "title": "Obj Id"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {}
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/google-sheets/{spreadsheet_id}/append": {
+      "post": {
+        "summary": "Append Google Sheet",
+        "description": "Append data to a Google Spreadsheet",
+        "operationId": "append_google_sheet_api_google_sheets__spreadsheet_id__append_post",
+        "parameters": [
+          {
+            "name": "spreadsheet_id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "title": "Spreadsheet Id"
+            }
+          },
+          {
+            "name": "sheet_name",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "string",
+              "default": "Sheet1",
+              "title": "Sheet Name"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "array",
+                "items": {
+                  "type": "array",
+                  "items": {}
+                },
+                "title": "Values"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {}
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/google-sheets/{spreadsheet_id}/info": {
+      "get": {
+        "summary": "Get Google Sheet Info",
+        "description": "Get information about a Google Spreadsheet",
+        "operationId": "get_google_sheet_info_api_google_sheets__spreadsheet_id__info_get",
+        "parameters": [
+          {
+            "name": "spreadsheet_id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "title": "Spreadsheet Id"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {}
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/google-sheets/{spreadsheet_id}/read": {
+      "get": {
+        "summary": "Read Google Sheet",
+        "description": "Read data from a Google Spreadsheet",
+        "operationId": "read_google_sheet_api_google_sheets__spreadsheet_id__read_get",
+        "parameters": [
+          {
+            "name": "spreadsheet_id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "title": "Spreadsheet Id"
+            }
+          },
+          {
+            "name": "range_name",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "string",
+              "default": "A:Z",
+              "title": "Range Name"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {}
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/google-sheets/{spreadsheet_id}/write": {
+      "post": {
+        "summary": "Write Google Sheet",
+        "description": "Write data to a Google Spreadsheet",
+        "operationId": "write_google_sheet_api_google_sheets__spreadsheet_id__write_post",
+        "parameters": [
+          {
+            "name": "spreadsheet_id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "title": "Spreadsheet Id"
+            }
+          },
+          {
+            "name": "range_name",
+            "in": "query",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "title": "Range Name"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "array",
+                "items": {
+                  "type": "array",
+                  "items": {}
+                },
+                "title": "Values"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {}
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/ingest/goassl": {
+      "post": {
+        "summary": "Ingest Goassl",
+        "description": "Ingest GOASSL protocol messages into Digital Twin cognition.",
+        "operationId": "ingest_goassl_api_ingest_goassl_post",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "additionalProperties": true,
+                "type": "object",
+                "title": "Body"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {}
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/ingest/skills": {
+      "post": {
+        "summary": "Ingest Skills",
+        "description": "Add skills to Digital Twin's skill stack.",
+        "operationId": "ingest_skills_api_ingest_skills_post",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "additionalProperties": true,
+                "type": "object",
+                "title": "Body"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {}
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/ingest/status": {
+      "get": {
+        "summary": "Ingest Status",
+        "description": "Get ingestion pipeline status.",
+        "operationId": "ingest_status_api_ingest_status_get",
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {}
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/ingest/tasks": {
+      "post": {
+        "summary": "Ingest Tasks",
+        "description": "Auto-create tasks from external signals into mission board.",
+        "operationId": "ingest_tasks_api_ingest_tasks_post",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "additionalProperties": true,
+                "type": "object",
+                "title": "Body"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {}
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/marketplace/complete": {
+      "post": {
+        "summary": "Complete Task",
+        "description": "Complete a task. Payout = _priority_locked * quality. Value-conserving economic loop.",
+        "operationId": "complete_task_api_marketplace_complete_post",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "additionalProperties": true,
+                "type": "object",
+                "title": "Data"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {}
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/marketplace/pledge": {
+      "post": {
+        "summary": "Pledge Task",
+        "description": "Pledge to an upliftment task.\nAccepts optional event_id for idempotency (so clients can retry safely).",
+        "operationId": "pledge_task_api_marketplace_pledge_post",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "additionalProperties": true,
+                "type": "object",
+                "title": "Data"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {}
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/orchestrate/directives": {
+      "get": {
+        "summary": "Orchestrate Directives",
+        "description": "Orchestrate and direct: list of actions (scripts/commands) to run for sync, audit, wallpaper.\nFrontend can display these and user runs them (or a scheduler). No execution from API.",
+        "operationId": "orchestrate_directives_api_orchestrate_directives_get",
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {}
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/payments/webhook/crypto": {
+      "post": {
+        "summary": "Webhook Crypto",
+        "description": "Crypto / on-chain payment webhook.\nCalled by contract_listener or external bridge node.",
+        "operationId": "webhook_crypto_api_payments_webhook_crypto_post",
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {}
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/payments/webhook/paypal": {
+      "post": {
+        "summary": "Webhook Paypal",
+        "description": "PayPal webhook endpoint.\nSet in PayPal developer dashboard: https://api.bridge-ai-os.tech/api/payments/webhook/paypal",
+        "operationId": "webhook_paypal_api_payments_webhook_paypal_post",
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {}
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/payments/webhook/paystack": {
+      "post": {
+        "summary": "Webhook Paystack",
+        "description": "Paystack webhook endpoint.\nSet this URL in Paystack dashboard: https://api.bridge-ai-os.tech/api/payments/webhook/paystack",
+        "operationId": "webhook_paystack_api_payments_webhook_paystack_post",
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {}
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/payments/webhook/{rail}": {
+      "post": {
+        "summary": "Webhook Generic",
+        "description": "Generic webhook for any internal project.\nCalled by AOE, Supaco, Taurus, etc. to route revenue into the unified treasury.\nBody: { amount, currency, source_project, type, customer, reference, meta }",
+        "operationId": "webhook_generic_api_payments_webhook__rail__post",
+        "parameters": [
+          {
+            "name": "rail",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "title": "Rail"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {}
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/projects/{project_id}": {
+      "delete": {
+        "summary": "Deregister Project",
+        "description": "Remove a project from the registry.",
+        "operationId": "deregister_project_api_projects__project_id__delete",
+        "parameters": [
+          {
+            "name": "project_id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "title": "Project Id"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {}
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/replication/register": {
+      "post": {
+        "summary": "Post Replication Register",
+        "description": "Register a node for discovery (node_id, url, capabilities).",
+        "operationId": "post_replication_register_api_replication_register_post",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "additionalProperties": true,
+                "type": "object",
+                "title": "Data"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {}
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/sensors/mouse": {
+      "post": {
+        "summary": "Sensors Mouse Post",
+        "description": "Ingest mouse position/activity from mouse-tracker-boot.ps1.\nEvery 12 active (moved=true) samples a marketplace task is auto-created\nand completed, earning the user 0.5 BRDG in the revenue pool.",
+        "operationId": "sensors_mouse_post_api_sensors_mouse_post",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "additionalProperties": true,
+                "type": "object",
+                "title": "Payload"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {}
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/sensors/wifi": {
+      "post": {
+        "summary": "Sensors Wifi Post",
+        "description": "Ingest WiFi RF sample from wifi-rf-boot.ps1. Expects signal, ssid, etc.",
+        "operationId": "sensors_wifi_post_api_sensors_wifi_post",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "additionalProperties": true,
+                "type": "object",
+                "title": "Payload"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {}
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/system/comprehension/evolve": {
+      "post": {
+        "summary": "System Comprehension Evolve",
+        "description": "Adaptive learning loop: ingest structural change. Requires orchestrator + evolution budget.",
+        "operationId": "system_comprehension_evolve_api_system_comprehension_evolve_post",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "additionalProperties": true,
+                "type": "object",
+                "title": "Payload"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {}
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/telemetry/events": {
+      "post": {
+        "summary": "Telemetry Events Post",
+        "description": "Ingest telemetry events (e.g. svg_build_completed) for usage accounting,\ntreasury, and Taurus dashboard. Events flow to billing/reputation.",
+        "operationId": "telemetry_events_post_api_telemetry_events_post",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "additionalProperties": true,
+                "type": "object",
+                "title": "Payload"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {}
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/treasury/collect": {
+      "post": {
+        "summary": "Treasury Collect",
+        "description": "Collect revenue from any project into the unified treasury.\nRequired: amount (float)\nOptional: currency (default BRDG), source_project, method, type, meta",
+        "operationId": "treasury_collect_api_treasury_collect_post",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "additionalProperties": true,
+                "type": "object",
+                "title": "Payload"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {}
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/treasury/disburse": {
+      "post": {
+        "summary": "Treasury Disburse",
+        "description": "Record a treasury disbursement from a bucket.\nRequired: bucket (ubi|treasury|ops|founder), amount, destination\nOptional: authorized_by",
+        "operationId": "treasury_disburse_api_treasury_disburse_post",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "additionalProperties": true,
+                "type": "object",
+                "title": "Payload"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {}
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/treasury/ingest": {
+      "post": {
+        "summary": "Treasury Ingest",
+        "description": "Universal ingest: any internal service or external agent posts revenue here.\nRoutes directly to treasury_service \u2014 no revenue_service layer.\nBody: { amount, currency?, source_project?, method?, type?, meta? }",
+        "operationId": "treasury_ingest_api_treasury_ingest_post",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "additionalProperties": true,
+                "type": "object",
+                "title": "Payload"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {}
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/twins/allocate": {
+      "post": {
+        "summary": "Twins Allocate",
+        "description": "Allocate top-priority task to twin. No random. No manual override. Execution = argmax(w\u00b7P).",
+        "operationId": "twins_allocate_api_twins_allocate_post",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "additionalProperties": true,
+                "type": "object",
+                "title": "Data"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {}
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/twins/auto-add": {
+      "post": {
+        "summary": "Twins Auto Add",
+        "description": "Auto-add a random task from the Bridge task pool.",
+        "operationId": "twins_auto_add_api_twins_auto_add_post",
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {}
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/twins/teach": {
+      "post": {
+        "summary": "Twins Teach",
+        "description": "One twin teaches another a skill. Teacher must have the skill verified and sufficient trust.",
+        "operationId": "twins_teach_api_twins_teach_post",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "additionalProperties": true,
+                "type": "object",
+                "title": "Data"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {}
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/ubi/distribute": {
+      "post": {
+        "summary": "Claim Ubi",
+        "description": "UBI claim/distribute. Economic risk governor: max exposure, cooldown.",
+        "operationId": "claim_ubi_api_ubi_distribute_post",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "additionalProperties": true,
+                "type": "object",
+                "title": "Payload"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {}
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    }
+  },
+  "components": {
+    "schemas": {
+      "HTTPValidationError": {
+        "properties": {
+          "detail": {
+            "items": {
+              "$ref": "#/components/schemas/ValidationError"
+            },
+            "type": "array",
+            "title": "Detail"
+          }
+        },
+        "type": "object",
+        "title": "HTTPValidationError"
+      },
+      "LearnFromYouTubeModel": {
+        "properties": {
+          "video_id": {
+            "type": "string",
+            "title": "Video Id"
+          },
+          "save": {
+            "type": "boolean",
+            "title": "Save",
+            "default": false
+          }
+        },
+        "type": "object",
+        "required": [
+          "video_id"
+        ],
+        "title": "LearnFromYouTubeModel"
+      },
+      "SiweLoginRequest": {
+        "properties": {
+          "message": {
+            "type": "string",
+            "title": "Message"
+          },
+          "signature": {
+            "type": "string",
+            "title": "Signature"
+          }
+        },
+        "type": "object",
+        "required": [
+          "message",
+          "signature"
+        ],
+        "title": "SiweLoginRequest"
+      },
+      "SkillModel": {
+        "properties": {
+          "name": {
+            "type": "string",
+            "title": "Name"
+          },
+          "tags": {
+            "items": {
+              "type": "string"
+            },
+            "type": "array",
+            "title": "Tags"
+          },
+          "description": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Description"
+          }
+        },
+        "type": "object",
+        "required": [
+          "name",
+          "tags"
+        ],
+        "title": "SkillModel"
+      },
+      "ValidationError": {
+        "properties": {
+          "loc": {
+            "items": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "integer"
+                }
+              ]
+            },
+            "type": "array",
+            "title": "Location"
+          },
+          "msg": {
+            "type": "string",
+            "title": "Message"
+          },
+          "type": {
+            "type": "string",
+            "title": "Error Type"
+          },
+          "input": {
+            "title": "Input"
+          },
+          "ctx": {
+            "type": "object",
+            "title": "Context"
+          }
+        },
+        "type": "object",
+        "required": [
+          "loc",
+          "msg",
+          "type"
+        ],
+        "title": "ValidationError"
+      }
+    }
+  }
+}

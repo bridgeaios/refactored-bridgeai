@@ -1,0 +1,133 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>All Dashboards — Bridge AI OS</title>
+  <script src="/bridge-api-config.js"></script>
+  <script>if(typeof window.__API_BASE==="undefined")window.__API_BASE="";</script>
+  <script src="https://cdn.tailwindcss.com"></script>
+  <link rel="icon" href="/favicon.svg" type="image/svg+xml">
+  <link rel="stylesheet" href="/mobile-friendly.css">
+  <style>
+    .hub-card { transition: transform 0.2s, box-shadow 0.2s; }
+    .hub-card:hover { transform: translateY(-4px); box-shadow: 0 12px 40px -8px rgba(0,245,255,0.2); }
+  </style>
+  <link rel="stylesheet" href="/bridge-theme.css">
+  <script src="/bridge-shell.js"></script>
+</head>
+<body class="bg-slate-950 text-slate-100 font-sans antialiased min-h-screen">
+  <nav class="bridge-nav bg-slate-900/80 border-b border-slate-800 px-4 py-3 flex flex-wrap justify-between items-center sticky top-0 z-50">
+    <a href="/" class="bridge-nav-brand font-extrabold tracking-wide hover:text-amber-300">Bridge AI OS</a>
+    <button class="bridge-nav-toggle text-slate-300" aria-label="Toggle menu">☰</button>
+    <div class="bridge-nav-links flex items-center gap-2">
+      <ul class="flex flex-wrap gap-3 text-sm mt-2 md:mt-0">
+        <li><a href="/dashboards.html" class="text-amber-300 font-semibold">Dashboards</a></li>
+        <li><a href="/status.html" class="hover:text-amber-300">Status</a></li>
+        <li><a href="/executive-dashboard.html" class="hover:text-amber-300">Executive</a></li>
+        <li><a href="/network-dashboard.html" class="hover:text-amber-300">Network</a></li>
+        <li><a href="/cfo.html" class="hover:text-amber-300">CFO</a></li>
+        <li><a href="/agents.html" class="hover:text-amber-300">Agents</a></li>
+        <li><a href="/ban-live-wall.html" class="hover:text-amber-300">BAN</a></li>
+      </ul>
+      <span id="api-badge" class="px-2 py-1 rounded text-xs bg-slate-800">…</span>
+    </div>
+  </nav>
+
+  <main class="max-w-6xl mx-auto px-4 py-10">
+    <h1 class="text-3xl font-extrabold mb-2">Bridge AI OS — All Dashboards</h1>
+    <p class="text-slate-400 mb-8">Full system integration · Shared DB · Spine · Revenue · Local + Cloud</p>
+
+    <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+      <a href="/executive-dashboard.html" class="hub-card block rounded-2xl border border-slate-700 bg-slate-900/60 p-6 hover:border-cyan-500/50">
+        <div class="text-cyan-400 font-mono text-sm mb-1">EXECUTIVE</div>
+        <div class="font-bold text-lg">Executive Dashboard</div>
+        <div class="text-slate-400 text-sm mt-1">Revenue, Treasury, Mission, Skills, UBI, Projects</div>
+      </a>
+      <a href="/network-dashboard.html" class="hub-card block rounded-2xl border border-slate-700 bg-slate-900/60 p-6 hover:border-cyan-500/50">
+        <div class="text-cyan-400 font-mono text-sm mb-1">NETWORK</div>
+        <div class="font-bold text-lg">Network Dashboard</div>
+        <div class="text-slate-400 text-sm mt-1">Live topology, Health, Twins, Merkle, Audit</div>
+      </a>
+      <a href="/status.html" class="hub-card block rounded-2xl border border-slate-700 bg-slate-900/60 p-6 hover:border-cyan-500/50">
+        <div class="text-cyan-400 font-mono text-sm mb-1">STATUS</div>
+        <div class="font-bold text-lg">System Status</div>
+        <div class="text-slate-400 text-sm mt-1">Subsystems, Walkthrough, Smart Debug, CLI</div>
+      </a>
+      <a href="/cfo.html" class="hub-card block rounded-2xl border border-slate-700 bg-slate-900/60 p-6 hover:border-cyan-500/50">
+        <div class="text-cyan-400 font-mono text-sm mb-1">CFO</div>
+        <div class="font-bold text-lg">CFO / Treasury</div>
+        <div class="text-slate-400 text-sm mt-1">Ledger, Buckets, Rails, Collect, Disburse</div>
+      </a>
+      <a href="/agents.html" class="hub-card block rounded-2xl border border-slate-700 bg-slate-900/60 p-6 hover:border-cyan-500/50">
+        <div class="text-cyan-400 font-mono text-sm mb-1">CORTEX</div>
+        <div class="font-bold text-lg">Agents & Twins</div>
+        <div class="text-slate-400 text-sm mt-1">Swarm health, Reputation, Demand, Replication</div>
+      </a>
+      <a href="/ban-live-wall.html" class="hub-card block rounded-2xl border border-slate-700 bg-slate-900/60 p-6 hover:border-cyan-500/50">
+        <div class="text-cyan-400 font-mono text-sm mb-1">BAN</div>
+        <div class="font-bold text-lg">BAN Live Wall</div>
+        <div class="text-slate-400 text-sm mt-1">Unified identity, Modules, SVG build, Ops cores</div>
+      </a>
+      <a href="/ban-ops-core.html" class="hub-card block rounded-2xl border border-slate-700 bg-slate-900/60 p-6 hover:border-cyan-500/50">
+        <div class="text-cyan-400 font-mono text-sm mb-1">BAN OPS</div>
+        <div class="font-bold text-lg">BAN Ops Core</div>
+        <div class="text-slate-400 text-sm mt-1">Mechanica & Execution Core SVGs</div>
+      </a>
+      <a href="/control-plane.html" class="hub-card block rounded-2xl border border-slate-700 bg-slate-900/60 p-6 hover:border-cyan-500/50">
+        <div class="text-cyan-400 font-mono text-sm mb-1">CONTROL</div>
+        <div class="font-bold text-lg">Control Plane</div>
+        <div class="text-slate-400 text-sm mt-1">CLI Queue, Economy surfaces, Directives</div>
+      </a>
+      <a href="/landing.html" class="hub-card block rounded-2xl border border-slate-700 bg-slate-900/60 p-6 hover:border-cyan-500/50">
+        <div class="text-cyan-400 font-mono text-sm mb-1">LANDING</div>
+        <div class="font-bold text-lg">Landing</div>
+        <div class="text-slate-400 text-sm mt-1">Overview, Live report, Treasury</div>
+      </a>
+      <a href="http://localhost:7070" target="_blank" rel="noreferrer" class="hub-card block rounded-2xl border border-slate-700 bg-slate-900/60 p-6 hover:border-cyan-500/50">
+        <div class="text-cyan-400 font-mono text-sm mb-1">SVG ENGINE</div>
+        <div class="font-bold text-lg">SVG Skill Engine</div>
+        <div class="text-slate-400 text-sm mt-1">Skill graph, tutorials, render services, registry-linked tooling</div>
+      </a>
+    </div>
+
+    <div class="mt-12 grid grid-cols-1 md:grid-cols-2 gap-6">
+      <div class="rounded-xl border border-emerald-500/30 bg-emerald-900/20 p-6">
+        <h2 class="font-bold text-emerald-300 mb-3">Monetizable System</h2>
+        <p class="text-slate-300 text-sm mb-3">Revenue flows into Treasury buckets; UBI, Ops, Founder splits. Collect from PayPal, Paystack, sensors, marketplace.</p>
+        <a href="/cfo.html" class="inline-block px-4 py-2 rounded-lg bg-emerald-700/50 hover:bg-emerald-600/50 text-emerald-200 font-semibold text-sm">Open CFO →</a>
+      </div>
+      <div class="rounded-xl border border-cyan-500/30 bg-cyan-900/20 p-6">
+        <h2 class="font-bold text-cyan-300 mb-3">Agents Automating</h2>
+        <p class="text-slate-300 text-sm mb-3">Twins execute tasks; demand pump refills backlog; reputation ranks reliability. Swarm health and throughput live.</p>
+        <a href="/agents.html" class="inline-block px-4 py-2 rounded-lg bg-cyan-700/50 hover:bg-cyan-600/50 text-cyan-200 font-semibold text-sm">Open Agents →</a>
+      </div>
+    </div>
+
+    <div class="mt-8 rounded-xl border border-slate-700 bg-slate-900/40 p-6">
+      <h2 class="font-bold text-slate-200 mb-3">System Architecture</h2>
+      <div class="grid grid-cols-1 md:grid-cols-3 gap-4 text-sm">
+        <div><span class="text-cyan-400">DB:</span> MemoryStore (Redis + file fallback) — shared</div>
+        <div><span class="text-cyan-400">Spine:</span> Endpoint → Reducer → State → Scheduler</div>
+        <div><span class="text-cyan-400">Revenue:</span> Treasury — UBI, Ops, Founder buckets</div>
+        <div><span class="text-cyan-400">BridgeAI Root:</span> BridgeLiveWall stack + SVG engine via shared registry</div>
+      </div>
+      <p class="text-slate-500 text-xs mt-3">Backend: <span id="backend-url" class="font-mono">—</span> · Add <code class="text-slate-400">?api=cloud</code> for cloud mode</p>
+    </div>
+  </main>
+
+  <script>
+    (function(){
+      var API = (typeof window.__API_BASE !== 'undefined' && window.__API_BASE) ? window.__API_BASE : '';
+      document.getElementById('backend-url').textContent = API || '(same origin)';
+      fetch((API || '') + '/api/health').then(function(r){return r.json();}).then(function(d){
+        var el = document.getElementById('api-badge');
+        if(el){ el.textContent = (d.status||d.ok) ? 'API ●' : 'API ○'; el.className = 'px-2 py-1 rounded text-xs ' + (d.status||d.ok ? 'bg-green-900/50 text-green-300' : 'bg-red-900/50 text-red-300'); }
+      }).catch(function(){ var el = document.getElementById('api-badge'); if(el){ el.textContent = 'API ○'; el.className = 'px-2 py-1 rounded text-xs bg-red-900/50 text-red-300'; } });
+    })();
+  </script>
+  <script src="/bridge-nav.js"></script>
+</body>
+</html>
+
+

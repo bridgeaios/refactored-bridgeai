@@ -180,6 +180,7 @@ function renderCtas() {
       <p>Connect with us to discover how Bridge AI OS can benefit your sector.</p>
       <div class="app-ctas-actions">
         <a href="${base}" class="btn-primary">Get Started</a>
+        <a href="/executive-dashboard.html" class="btn-secondary">Executive Dashboard</a>
         <a href="#top5" class="btn-secondary">Learn More</a>
       </div>
       <p style="margin-top:1.5rem">Explore scaling and value strategies:</p>

@@ -2,7 +2,7 @@ interface TreasuryProps {
   isConnected: boolean
 }
 
-export default function Treasury({ isConnected }: TreasuryProps) {
+export default function Treasury({ isConnected: _isConnected }: TreasuryProps) {
   return (
     <div className="treasury">
       <div className="card">

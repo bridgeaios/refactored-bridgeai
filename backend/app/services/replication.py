@@ -39,7 +39,7 @@ class ReplicationEngine:
         return len(getattr(self.twins, "twins", {}))
 
     def _open_task_count(self) -> int:
-        return len(self.marketplace.get_tasks(status=None))
+        return self.marketplace.get_open_count()
 
     def _best_twin_id_for_variant(self) -> Optional[str]:
         """Twin with highest completed count above threshold."""

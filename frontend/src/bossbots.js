@@ -39,6 +39,15 @@ export function initBossBots() {
   document.getElementById('run-bot').onclick = () => {
     setTimeout(async () => {
       try {
+        // Check if wallet is connected before allowing trade
+        const walletAddress = window.__walletEVM?.selectedAddress || 
+                             (window.phantom?.solana?.publicKey?.toString()) ||
+                             (window.solana?.publicKey?.toString?.());
+        if (!walletAddress) {
+          alert('Please connect a wallet first');
+          return;
+        }
+        
         const asset = ASSETS[Math.floor(Math.random() * ASSETS.length)];
         const res = await fetch(`${API_BASE}/api/bossbots/trade`, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ asset }) });
         const data = res.ok ? await res.json() : {};

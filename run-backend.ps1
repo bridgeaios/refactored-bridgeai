@@ -1,4 +1,4 @@
-# BridgeLiveWall — Run Backend API
+# BridgeLiveWall - Run Backend API
 # Starts uvicorn on http://localhost:8000. Install deps first: .\setup-and-test.ps1
 
 $ErrorActionPreference = "Stop"
@@ -37,9 +37,22 @@ if (-not $pyExe) {
 $pyDir = Split-Path -Parent $pyExe
 $pyScripts = Join-Path (Split-Path -Parent $pyExe) "Scripts"
 if ($pyDir -notin ($env:Path -split ';')) { $env:Path = "$pyDir;$pyScripts;" + $env:Path }
-$env:PYTHONPATH = Join-Path $projectRoot "backend"
+$env:PYTHONPATH = $projectRoot
+
+$reloadEnabled = @('1','true','yes','on') -contains (([string]$env:BRIDGE_BACKEND_RELOAD).ToLower())
+$appTarget = 'backend.app.main:app'
+$appDir = $projectRoot
 
 Write-Host "Starting Bridge AI OS API at http://localhost:8000" -ForegroundColor Green
 Write-Host "Docs: http://localhost:8000/docs" -ForegroundColor Cyan
-# Restrict --reload to backend/ only so node_modules and frontend don't trigger restarts
-& $pyExe -m uvicorn app.main:app --host 0.0.0.0 --port 8000 --reload --reload-dir backend
+Write-Host "ASGI app: $appTarget" -ForegroundColor DarkGray
+
+$uvicornArgs = @('-m','uvicorn',$appTarget,'--host','0.0.0.0','--port','8000','--app-dir',$appDir)
+if ($reloadEnabled) {
+    $uvicornArgs += @('--reload','--reload-dir',(Join-Path $projectRoot 'backend'))
+    Write-Host "Reload: enabled" -ForegroundColor DarkGray
+} else {
+    Write-Host "Reload: disabled" -ForegroundColor DarkGray
+}
+
+& $pyExe @uvicornArgs

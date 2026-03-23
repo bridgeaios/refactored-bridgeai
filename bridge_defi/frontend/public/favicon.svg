@@ -1,0 +1,22 @@
+<svg width="32" height="32" viewBox="0 0 32 32" xmlns="http://www.w3.org/2000/svg">
+  <rect width="32" height="32" fill="#000"/>
+  <defs>
+    <filter id="g">
+      <feGaussianBlur stdDeviation="1" result="b"/>
+      <feMerge><feMergeNode in="b"/><feMergeNode in="SourceGraphic"/></feMerge>
+    </filter>
+  </defs>
+  <!-- pillars -->
+  <rect x="6" y="8" width="3" height="16" fill="#1A1A1A"/>
+  <rect x="23" y="8" width="3" height="16" fill="#1A1A1A"/>
+  <!-- beam -->
+  <rect x="9" y="8" width="14" height="3" fill="#FF0033" filter="url(#g)"/>
+  <!-- base -->
+  <rect x="6" y="22" width="20" height="2" fill="#1A1A1A"/>
+  <!-- pulse -->
+  <polyline points="8,16 11,16 12,14 13,18 14,14 16,16 24,16" fill="none" stroke="#FF0033" stroke-width="1.2" filter="url(#g)"/>
+  <!-- nodes -->
+  <circle cx="10" cy="9.5" r="1" fill="#FF1A4D"/>
+  <circle cx="16" cy="9.5" r="1" fill="#FF1A4D"/>
+  <circle cx="22" cy="9.5" r="1" fill="#FF1A4D"/>
+</svg>

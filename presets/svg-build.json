@@ -1,0 +1,40 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "name": "svg-build",
+  "description": "SVG build orchestrator preset for Bridge Live Wall",
+  "version": "1.0.0",
+  "flows": [
+    {
+      "id": "full",
+      "name": "Full SVG build",
+      "steps": [
+        {
+          "id": "health_backend",
+          "type": "http",
+          "method": "GET",
+          "url": "http://localhost:8000/api/health",
+          "expectedStatus": 200
+        },
+        {
+          "id": "run_svg_build",
+          "type": "command",
+          "command": "pwsh",
+          "args": ["-ExecutionPolicy", "Bypass", "-File", "E:\\A\\run-svg-build.ps1"]
+        }
+      ]
+    },
+    {
+      "id": "delta",
+      "name": "Delta SVG build (changed only)",
+      "description": "Uses index.json + Merkle root to compute delta; future enhancement"
+    }
+  ],
+  "tools": [
+    {
+      "id": "run_svg_build",
+      "command": "pwsh",
+      "args": ["-ExecutionPolicy", "Bypass", "-File", "E:\\A\\run-svg-build.ps1"],
+      "preconditions": ["backend_health", "taurus_path_resolved"]
+    }
+  ]
+}

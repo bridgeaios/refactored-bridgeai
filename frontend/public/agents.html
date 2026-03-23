@@ -4,29 +4,40 @@
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>Agents — Bridge AI OS</title>
+  <script src="/bridge-api-config.js"></script>
   <script>if(typeof window.__API_BASE==="undefined")window.__API_BASE="";</script>
   <script src="https://cdn.tailwindcss.com"></script>
   <link rel="icon" href="/favicon.svg" type="image/svg+xml">
+  <link rel="stylesheet" href="/mobile-friendly.css">
   <style>
     .agent-card { transition: transform 0.2s, box-shadow 0.2s; }
     .agent-card:hover { transform: translateY(-2px); box-shadow: 0 10px 25px -5px rgba(0,0,0,0.2); }
   </style>
+  <link rel="stylesheet" href="/bridge-theme.css">
+  <script src="/bridge-shell.js"></script>
 </head>
 <body class="bg-slate-50 font-sans antialiased">
 
-  <nav class="bg-slate-800 text-white p-4 flex flex-wrap justify-between items-center sticky top-0 z-50 shadow-lg">
-    <a href="/" class="text-xl font-bold hover:text-amber-300">Bridge AI OS</a>
-    <ul class="flex flex-wrap gap-4 mt-2 md:mt-0">
-      <li><a href="/" class="hover:text-amber-300">Digital Twin</a></li>
-      <li><a href="/executive-dashboard.html" class="hover:text-amber-300">Dashboard</a></li>
-      <li><a href="/50-applications.html" class="hover:text-amber-300">50 Applications</a></li>
-      <li><a href="/landing.html" class="hover:text-amber-300">Landing</a></li>
-      <li><a href="/gateway/" class="hover:text-amber-300">Gateway</a></li>
-      <li><a href="/join.html" class="hover:text-amber-300">Join as Agent</a></li>
-      <li><a href="/settings.html" class="hover:text-amber-300">Settings</a></li>
-      <li><a href="/docs.html" class="hover:text-amber-300">Docs</a></li>
-      <li><a href="/agents.html" class="text-amber-300 font-semibold">Agents</a></li>
-    </ul>
+  <nav class="bridge-nav bg-slate-800 text-white p-4 flex flex-wrap justify-between items-center sticky top-0 z-50 shadow-lg">
+    <a href="/" class="bridge-nav-brand text-xl font-bold hover:text-amber-300">Bridge AI OS</a>
+    <button class="bridge-nav-toggle" aria-label="Toggle menu">☰</button>
+    <div class="bridge-nav-links">
+      <ul class="flex flex-wrap gap-4 mt-2 md:mt-0">
+        <li><a href="/" class="hover:text-amber-300">Digital Twin</a></li>
+        <li><a href="/dashboards.html" class="hover:text-amber-300">Dashboards</a></li>
+        <li><a href="/executive-dashboard.html" class="hover:text-amber-300">Executive</a></li>
+        <li><a href="/50-applications.html" class="hover:text-amber-300">50 Apps</a></li>
+        <li><a href="/landing.html" class="hover:text-amber-300">Landing</a></li>
+        <li><a href="/gateway/" class="hover:text-amber-300">Gateway</a></li>
+        <li><a href="/join.html" class="hover:text-amber-300">Join</a></li>
+        <li><a href="/cfo.html" class="hover:text-amber-300">CFO</a></li>
+        <li><a href="/settings.html" class="hover:text-amber-300">Settings</a></li>
+        <li><a href="/docs.html" class="hover:text-amber-300">Docs</a></li>
+        <li><a href="/network-dashboard.html" class="hover:text-amber-300">Network</a></li>
+        <li><a href="/status.html" class="hover:text-amber-300">Status</a></li>
+        <li><a href="/agents.html" class="text-amber-300 font-semibold">Agents</a></li>
+      </ul>
+    </div>
   </nav>
 
   <main class="p-4 md:p-6 max-w-6xl mx-auto space-y-8">
@@ -34,6 +45,103 @@
       <h1 class="text-3xl font-bold text-slate-800">Agents & Digital Twins</h1>
       <p class="text-slate-600 mt-1">All registered twins, replication status, and live leaderboard.</p>
     </header>
+
+    <!-- Cortex Command Interface -->
+    <section class="bg-white rounded-lg shadow-md border border-slate-200 overflow-hidden">
+      <div class="p-4 border-b border-slate-200 flex flex-wrap items-center justify-between gap-3">
+        <div>
+          <h2 class="text-lg font-semibold text-slate-800">Cortex Command Interface</h2>
+          <p class="text-xs text-slate-500 mt-1">Health, revenue, throughput, reputation, and demand controls.</p>
+        </div>
+        <div id="cortex-last-updated" class="text-xs text-slate-500">—</div>
+      </div>
+
+      <div class="p-4 grid grid-cols-1 md:grid-cols-5 gap-3">
+        <div class="rounded-lg border border-slate-200 p-3 bg-slate-50">
+          <div class="text-xs text-slate-500">Swarm Health</div>
+          <div class="mt-1 flex items-center gap-2">
+            <div id="swarm-health-score" class="text-2xl font-semibold text-slate-800">—</div>
+            <div id="swarm-health-tag" class="text-xs font-semibold px-2 py-0.5 rounded bg-slate-200 text-slate-700">—</div>
+          </div>
+          <div id="swarm-health-components" class="mt-2 text-xs text-slate-600">—</div>
+        </div>
+
+        <div class="rounded-lg border border-slate-200 p-3 bg-slate-50">
+          <div class="text-xs text-slate-500">Twins</div>
+          <div id="kpi-twins" class="mt-1 text-2xl font-semibold text-slate-800">—</div>
+          <div class="mt-2 text-xs text-slate-600">Active in live report</div>
+        </div>
+
+        <div class="rounded-lg border border-slate-200 p-3 bg-slate-50">
+          <div class="text-xs text-slate-500">Throughput</div>
+          <div id="kpi-throughput" class="mt-1 text-sm text-slate-700">Loading…</div>
+          <div class="mt-2 text-xs text-slate-600">From SDG counters</div>
+        </div>
+
+        <div class="rounded-lg border border-slate-200 p-3 bg-slate-50">
+          <div class="text-xs text-slate-500">Revenue</div>
+          <div id="kpi-revenue" class="mt-1 text-sm text-slate-700">Loading…</div>
+          <div class="mt-2 text-xs text-slate-600">UBI / treasury / ops / founder</div>
+        </div>
+
+        <div class="rounded-lg border border-slate-200 p-3 bg-slate-50">
+          <div class="text-xs text-slate-500">Demand</div>
+          <div id="kpi-demand" class="mt-1 text-sm text-slate-700">—</div>
+          <div class="mt-2 text-xs text-slate-600">Backlog top-up control</div>
+        </div>
+      </div>
+
+      <div class="px-4 pb-4 grid grid-cols-1 lg:grid-cols-2 gap-4">
+        <div class="rounded-lg border border-slate-200 p-4">
+          <h3 class="font-semibold text-slate-800">Demand Pump</h3>
+          <p class="text-xs text-slate-500 mt-1">Creates tasks if backlog is low (safe, human-triggered).</p>
+
+          <div class="mt-3 grid grid-cols-1 sm:grid-cols-2 gap-3">
+            <label class="text-xs text-slate-600">
+              Target backlog
+              <input id="demand-target" type="number" min="0" value="50" class="mt-1 w-full rounded border border-slate-300 px-2 py-1 text-sm" />
+            </label>
+            <label class="text-xs text-slate-600">
+              Max create
+              <input id="demand-max" type="number" min="1" value="25" class="mt-1 w-full rounded border border-slate-300 px-2 py-1 text-sm" />
+            </label>
+          </div>
+
+          <div class="mt-3 flex flex-wrap items-center gap-3">
+            <button id="demand-pump-btn" class="px-3 py-1.5 rounded bg-slate-800 text-white text-sm hover:bg-slate-700">Pump demand</button>
+            <div id="demand-pump-status" class="text-xs text-slate-600">—</div>
+          </div>
+        </div>
+
+        <div class="rounded-lg border border-slate-200 p-4 overflow-hidden">
+          <div class="flex items-center justify-between gap-3">
+            <div>
+              <h3 class="font-semibold text-slate-800">Top Reputation</h3>
+              <p class="text-xs text-slate-500 mt-1">Who should win bids (reliability / quality / latency / cost).</p>
+            </div>
+            <button id="reputation-refresh" class="px-3 py-1.5 rounded border border-slate-300 text-sm hover:bg-slate-50">Refresh</button>
+          </div>
+
+          <div class="mt-3 overflow-x-auto">
+            <table class="min-w-full text-sm">
+              <thead>
+                <tr class="text-xs text-slate-500 border-b border-slate-200">
+                  <th class="py-2 text-left font-semibold">Agent</th>
+                  <th class="py-2 text-right font-semibold">Score</th>
+                  <th class="py-2 text-right font-semibold">Success</th>
+                  <th class="py-2 text-right font-semibold">Latency</th>
+                  <th class="py-2 text-right font-semibold">Cost</th>
+                  <th class="py-2 text-right font-semibold">Quality</th>
+                </tr>
+              </thead>
+              <tbody id="reputation-table" class="divide-y divide-slate-100">
+                <tr><td class="py-3 text-slate-500" colspan="6">Loading…</td></tr>
+              </tbody>
+            </table>
+          </div>
+        </div>
+      </div>
+    </section>
 
     <!-- Replication & nodes summary -->
     <section class="grid grid-cols-1 md:grid-cols-2 gap-4">
@@ -78,11 +186,182 @@
     } catch (e) { return null; }
   }
 
+  async function post(path, body) {
+    try {
+      const r = await fetch(api(path), {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(body || {}),
+      });
+      return r.ok ? await r.json() : null;
+    } catch (e) { return null; }
+  }
+
   function escapeHtml(s) {
     if (s == null) return '';
     const div = document.createElement('div');
     div.textContent = String(s);
     return div.innerHTML;
+  }
+
+  function fmt(n, digits) {
+    if (n == null || n === '') return '—';
+    const x = Number(n);
+    if (!Number.isFinite(x)) return '—';
+    return (typeof digits === 'number') ? x.toFixed(digits) : String(x);
+  }
+
+  function setText(id, text) {
+    const el = document.getElementById(id);
+    if (el) el.textContent = text;
+  }
+
+  function setHtml(id, html) {
+    const el = document.getElementById(id);
+    if (el) el.innerHTML = html;
+  }
+
+  async function loadCortex() {
+    const [live, revenue, sdg, health, rep] = await Promise.all([
+      get('/api/live/report'),
+      get('/api/revenue/status'),
+      get('/api/sdg/metrics'),
+      get('/api/swarm/health'),
+      get('/api/reputation/top?limit=20'),
+    ]);
+
+    const now = new Date();
+    setText('cortex-last-updated', 'Updated: ' + now.toLocaleTimeString());
+
+    // Twins KPI
+    const twinsCount = live && Array.isArray(live.twins) ? live.twins.length : 0;
+    setText('kpi-twins', String(twinsCount));
+
+    // Throughput KPI
+    if (sdg) {
+      setHtml('kpi-throughput',
+        '<div>Tasks created: <strong>' + fmt(sdg.tasks_created, 0) + '</strong></div>' +
+        '<div>Tasks completed: <strong>' + fmt(sdg.tasks_completed, 0) + '</strong></div>' +
+        '<div>Trades executed: <strong>' + fmt(sdg.trades_executed, 0) + '</strong></div>'
+      );
+    } else {
+      setHtml('kpi-throughput', '<span class="text-red-600">Offline</span>');
+    }
+
+    // Revenue KPI
+    if (revenue) {
+      setHtml('kpi-revenue',
+        '<div>Distributed: <strong>' + fmt(revenue.distributed, 4) + '</strong></div>' +
+        '<div class="text-xs text-slate-600 mt-1">UBI ' + fmt(revenue.ubi, 4) +
+        ' · Treasury ' + fmt(revenue.treasury, 4) +
+        ' · Ops ' + fmt(revenue.ops, 4) +
+        ' · Founder ' + fmt(revenue.founder, 4) + '</div>'
+      );
+    } else {
+      setHtml('kpi-revenue', '<span class="text-red-600">Offline</span>');
+    }
+
+    // Health KPI
+    if (health && typeof health.health_score !== 'undefined') {
+      const score = Number(health.health_score);
+      const ok = !!health.ok && score >= 0.5;
+      setText('swarm-health-score', Number.isFinite(score) ? score.toFixed(3) : '—');
+      const tag = document.getElementById('swarm-health-tag');
+      if (tag) {
+        tag.textContent = ok ? 'OK' : 'DEGRADED';
+        tag.className = 'text-xs font-semibold px-2 py-0.5 rounded ' + (ok ? 'bg-green-100 text-green-800' : 'bg-amber-100 text-amber-800');
+      }
+      const c = health.components || {};
+      setText('swarm-health-components',
+        'q=' + fmt(c.queue_latency_ms, 0) + 'ms · util=' + fmt(c.worker_utilization, 2) +
+        ' · profit=' + fmt(c.task_profitability, 4) +
+        ' · fail=' + fmt(c.agent_failure_rate, 3)
+      );
+    } else {
+      setText('swarm-health-score', '—');
+      setText('swarm-health-components', 'Offline');
+      const tag = document.getElementById('swarm-health-tag');
+      if (tag) {
+        tag.textContent = 'OFFLINE';
+        tag.className = 'text-xs font-semibold px-2 py-0.5 rounded bg-slate-200 text-slate-700';
+      }
+    }
+
+    // Demand KPI: show replication open tasks (proxy) + demand pump result placeholder
+    try {
+      const repStatus = await get('/api/replication/status');
+      if (repStatus) {
+        setHtml('kpi-demand',
+          '<div>Open tasks: <strong>' + fmt(repStatus.open_tasks, 0) + '</strong></div>' +
+          '<div class="text-xs text-slate-600 mt-1">Use Demand Pump to top up</div>'
+        );
+      } else {
+        setHtml('kpi-demand', '<span class="text-red-600">Offline</span>');
+      }
+    } catch (_) {}
+
+    // Reputation table
+    renderReputation(rep);
+  }
+
+  function renderReputation(rep) {
+    const body = document.getElementById('reputation-table');
+    if (!body) return;
+    const list = rep && rep.agents && Array.isArray(rep.agents) ? rep.agents : [];
+    if (!rep || list.length === 0) {
+      body.innerHTML = '<tr><td class="py-3 text-slate-500" colspan="6">No reputation data</td></tr>';
+      return;
+    }
+    body.innerHTML = list.map(function(r) {
+      return '<tr>' +
+        '<td class="py-2 pr-2 font-medium text-slate-800">' + escapeHtml(r.agent_id) + '</td>' +
+        '<td class="py-2 text-right">' + fmt(r.score, 3) + '</td>' +
+        '<td class="py-2 text-right">' + fmt(r.success_rate, 3) + '</td>' +
+        '<td class="py-2 text-right">' + fmt(r.latency_ms, 0) + 'ms</td>' +
+        '<td class="py-2 text-right">$' + fmt(r.average_cost, 3) + '</td>' +
+        '<td class="py-2 text-right">' + fmt(r.quality_score, 3) + '</td>' +
+      '</tr>';
+    }).join('');
+  }
+
+  function wireDemandPump() {
+    const btn = document.getElementById('demand-pump-btn');
+    const status = document.getElementById('demand-pump-status');
+    const targetEl = document.getElementById('demand-target');
+    const maxEl = document.getElementById('demand-max');
+    if (!btn || !status || !targetEl || !maxEl) return;
+
+    btn.addEventListener('click', async function() {
+      btn.disabled = true;
+      btn.textContent = 'Pumping…';
+      status.textContent = 'Working…';
+      const target_backlog = Number(targetEl.value || 50);
+      const max_create = Number(maxEl.value || 25);
+      const res = await post('/api/demand/pump', { target_backlog, max_create });
+      if (!res) {
+        status.innerHTML = '<span class="text-red-600">Demand pump failed (backend offline?)</span>';
+      } else {
+        status.innerHTML = 'Created <strong>' + fmt(res.created, 0) + '</strong>, skipped ' + fmt(res.skipped, 0) +
+          ' · Open tasks: <strong>' + fmt(res.open_tasks, 0) + '</strong> (target ' + fmt(res.target_backlog, 0) + ')';
+      }
+      btn.disabled = false;
+      btn.textContent = 'Pump demand';
+      // Refresh KPIs after pumping
+      await loadCortex();
+    });
+  }
+
+  function wireReputationRefresh() {
+    const btn = document.getElementById('reputation-refresh');
+    if (!btn) return;
+    btn.addEventListener('click', async function() {
+      btn.disabled = true;
+      btn.textContent = 'Refreshing…';
+      const rep = await get('/api/reputation/top?limit=20');
+      renderReputation(rep);
+      btn.disabled = false;
+      btn.textContent = 'Refresh';
+    });
   }
 
   async function loadReplicationStatus() {
@@ -174,6 +453,7 @@
   }
 
   async function refreshAll() {
+    await loadCortex();
     await loadReplicationStatus();
     await loadReplicationNodes();
     await loadAgents();
@@ -181,11 +461,21 @@
     await loadLiveReportMeta();
   }
 
-  if (document.readyState === 'loading') document.addEventListener('DOMContentLoaded', refreshAll);
-  else refreshAll();
+  if (document.readyState === 'loading') {
+    document.addEventListener('DOMContentLoaded', function() {
+      wireDemandPump();
+      wireReputationRefresh();
+      refreshAll();
+    });
+  } else {
+    wireDemandPump();
+    wireReputationRefresh();
+    refreshAll();
+  }
 
   setInterval(refreshAll, 15000);
 })();
   </script>
+  <script src="/bridge-nav.js"></script>
 </body>
 </html>

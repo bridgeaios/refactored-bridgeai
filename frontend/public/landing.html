@@ -3,24 +3,91 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Orchestrating the Future of AI — Bridge AI OS</title>
-  <meta http-equiv="refresh" content="0;url=/50-applications.html">
+  <script src="/bridge-api-config.js"></script>
+  <script>if(typeof window.__API_BASE==="undefined")window.__API_BASE="";</script>
+  <title>Bridge AI OS — Landing</title>
+  <script>if(typeof window.__API_BASE==="undefined")window.__API_BASE="";if(typeof window.__WS_BASE==="undefined")window.__WS_BASE="";</script>
+  <script src="https://cdn.tailwindcss.com"></script>
   <link rel="icon" href="/favicon.svg" type="image/svg+xml">
-  <style>
-    body { font-family: system-ui, sans-serif; background: #0f172a; color: #e2e8f0; margin: 0; min-height: 100vh; display: flex; align-items: center; justify-content: center; }
-    .box { text-align: center; max-width: 420px; padding: 2rem; }
-    h1 { font-size: 1.25rem; color: #facc15; margin-bottom: 0.5rem; }
-    p { color: #94a3b8; margin: 1rem 0; }
-    a { display: inline-block; margin-top: 1rem; padding: 12px 24px; background: #3b82f6; color: #fff; text-decoration: none; border-radius: 8px; font-weight: 600; }
-    a:hover { background: #2563eb; }
-  </style>
+  <link rel="stylesheet" href="/mobile-friendly.css">
+  <link rel="stylesheet" href="/bridge-theme.css">
+  <script src="/bridge-shell.js"></script>
 </head>
-<body>
-  <div class="box">
-    <h1>Orchestrating the Future of AI</h1>
-    <p>Decentralized AI Operating System for Digital Twins and Autonomous Agents.</p>
-    <p>Taking you to 50 real-world applications…</p>
-    <a href="/50-applications.html">Open 50 Applications</a>
+<body class="bg-slate-950 text-slate-100 font-sans antialiased">
+  <div class="min-h-screen flex flex-col">
+    <nav class="bridge-nav bg-slate-900/60 border-b border-slate-800 backdrop-blur px-4 py-3 flex flex-wrap items-center justify-between gap-3">
+      <a href="/" class="bridge-nav-brand font-extrabold tracking-wide hover:text-amber-300">Bridge AI OS</a>
+      <button class="bridge-nav-toggle text-slate-300" aria-label="Toggle menu">☰</button>
+      <div class="bridge-nav-links">
+        <ul class="flex flex-wrap gap-3 text-sm text-slate-300 mt-2 md:mt-0">
+          <li><a href="/landing.html" class="text-amber-300 font-semibold">Landing</a></li>
+          <li><a href="/dashboards.html" class="hover:text-amber-300">Dashboards</a></li>
+          <li><a href="/corporate.html" class="hover:text-amber-300">Corporate</a></li>
+          <li><a href="/control-plane.html" class="hover:text-amber-300">Control Plane</a></li>
+          <li><a href="/status.html" class="hover:text-amber-300">Status</a></li>
+          <li><a href="/cfo.html" class="hover:text-amber-300">CFO</a></li>
+        </ul>
+      </div>
+    </nav>
+
+    <main class="flex-1 max-w-6xl mx-auto px-4 py-10 w-full">
+      <div class="grid grid-cols-1 lg:grid-cols-2 gap-8 items-start">
+        <section class="rounded-2xl border border-slate-800 bg-slate-900/40 p-7">
+          <div class="inline-flex items-center gap-2 text-xs px-2.5 py-1 rounded-full bg-slate-800 text-slate-200">
+            <span class="w-2 h-2 rounded-full bg-emerald-400 animate-pulse"></span>
+            Self-running economic control surface
+          </div>
+          <h1 class="mt-4 text-4xl font-extrabold leading-tight">
+            Build → Debug → Sustain → Perpetuate
+          </h1>
+          <p class="mt-3 text-slate-300">
+            This system continuously checks live status, generates demand, routes revenue into treasury buckets,
+            funds UBI, tracks swarm health + reputation, and exposes CFO controls — all on localhost.
+          </p>
+          <div class="mt-6 flex flex-wrap gap-3">
+            <a class="px-4 py-2 rounded-lg bg-amber-500 hover:bg-amber-400 text-slate-900 font-extrabold" href="/50-applications.html#wins">
+              Go to Wins (Goal #1)
+            </a>
+            <a class="px-4 py-2 rounded-lg bg-slate-800 hover:bg-slate-700 font-semibold" href="/control-plane.html">
+              Open Control Plane
+            </a>
+            <a class="px-4 py-2 rounded-lg border border-slate-700 hover:bg-slate-900 font-semibold" href="/status.html">
+              System Status
+            </a>
+          </div>
+          <div class="mt-6 text-xs text-slate-400">
+            Tip: If something is down, open <a class="text-blue-300 hover:underline" href="/status.html">Status</a> → Smart Debug → copy commands.
+          </div>
+        </section>
+
+        <section class="rounded-2xl border border-slate-800 bg-slate-900/40 p-7">
+          <h2 class="text-lg font-bold text-slate-100">Guided path</h2>
+          <ol class="mt-3 space-y-2 text-sm text-slate-300 list-decimal list-inside">
+            <li><a class="text-blue-300 hover:underline" href="/corporate.html">Corporate</a>: what this is + what it sells.</li>
+            <li><a class="text-blue-300 hover:underline" href="/control-plane.html">Control Plane</a>: economics + automation controls + CLI runner queue.</li>
+            <li><a class="text-blue-300 hover:underline" href="/">Main App</a>: Digital Twin (render + terminal).</li>
+            <li><a class="text-blue-300 hover:underline" href="/50-applications.html#wins">Wins</a>: target milestone + revenue demand feed.</li>
+          </ol>
+          <div class="mt-6 rounded-lg bg-slate-950 border border-slate-800 p-4">
+            <div class="text-xs text-slate-400">Live check</div>
+            <div id="live" class="mt-1 text-sm text-slate-200">Loading…</div>
+          </div>
+        </section>
+      </div>
+    </main>
   </div>
+
+  <script>
+  (function(){
+    async function get(path){ try{ const r=await fetch(path); return r.ok?await r.json():null; }catch(_){ return null; } }
+    const el=document.getElementById('live');
+    Promise.all([get('/api/live/report'), get('/api/treasury/status')]).then(([live, treas])=>{
+      const twins = live && Array.isArray(live.twins) ? live.twins.length : 0;
+      const total = treas && typeof treas.total_collected_brdg !== 'undefined' ? Number(treas.total_collected_brdg).toFixed(2) : '—';
+      el.textContent = `Twins: ${twins} · Treasury collected: ${total} BRDG`;
+    }).catch(()=>{ el.textContent='Backend offline — open Status.'; });
+  })();
+  </script>
+  <script src="/bridge-nav.js"></script>
 </body>
 </html>

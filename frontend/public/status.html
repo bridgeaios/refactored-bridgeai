@@ -1,0 +1,446 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>System Status — Bridge AI OS</title>
+  <script src="/bridge-api-config.js"></script>
+  <script>if(typeof window.__API_BASE==="undefined")window.__API_BASE="";if(typeof window.__WS_BASE==="undefined")window.__WS_BASE="";</script>
+  <script src="https://cdn.tailwindcss.com"></script>
+  <link rel="icon" href="/favicon.svg" type="image/svg+xml">
+  <link rel="stylesheet" href="/mobile-friendly.css">
+  <style>
+    .badge { display:inline-block; padding:2px 10px; border-radius:999px; font-size:.72rem; font-weight:800; }
+    .ok { background:#dcfce7; color:#166534; }
+    .warn { background:#fef3c7; color:#92400e; }
+    .bad { background:#fee2e2; color:#991b1b; }
+    .mono { font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, "Liberation Mono", "Courier New", monospace; }
+  </style>
+  <link rel="stylesheet" href="/bridge-theme.css">
+  <script src="/bridge-shell.js"></script>
+</head>
+<body class="bg-slate-50 font-sans antialiased">
+  <nav class="bridge-nav bg-slate-800 text-white p-4 flex flex-wrap justify-between items-center sticky top-0 z-50 shadow-lg">
+    <a href="/" class="bridge-nav-brand text-xl font-bold hover:text-amber-300">Bridge AI OS</a>
+    <button class="bridge-nav-toggle" aria-label="Toggle menu">☰</button>
+    <div class="bridge-nav-links">
+      <ul class="flex flex-wrap gap-4 mt-2 md:mt-0">
+        <li><a href="/" class="hover:text-amber-300">Digital Twin</a></li>
+        <li><a href="/dashboards.html" class="hover:text-amber-300">Dashboards</a></li>
+        <li><a href="/executive-dashboard.html" class="hover:text-amber-300">Executive</a></li>
+        <li><a href="/network-dashboard.html" class="hover:text-amber-300">Network</a></li>
+        <li><a href="/agents.html" class="hover:text-amber-300">Agents</a></li>
+        <li><a href="/cfo.html" class="hover:text-amber-300">CFO</a></li>
+        <li><a href="/docs.html" class="hover:text-amber-300">Docs</a></li>
+        <li><a href="/ban-live-wall.html" class="hover:text-amber-300">Live Wall</a></li>
+        <li><a href="/ban-ops-core.html" class="hover:text-amber-300">BAN Ops</a></li>
+        <li><a href="/status.html" class="text-amber-300 font-semibold">Status</a></li>
+        <li><a href="http://localhost:4201/system-map.html" target="_blank" class="hover:text-amber-300">System Map</a></li>
+      </ul>
+    </div>
+    <button id="refresh-btn" class="ml-2 md:ml-4 text-slate-400 hover:text-amber-300 text-lg min-w-[44px] min-h-[44px] flex items-center justify-center" title="Refresh">↻</button>
+  </nav>
+
+  <main class="p-4 md:p-6 max-w-6xl mx-auto space-y-6">
+    <header class="flex flex-wrap items-end justify-between gap-3">
+      <div>
+        <h1 class="text-3xl font-extrabold text-slate-900">Localhost System Status</h1>
+        <p class="text-slate-600 mt-1">Shows what’s LIVE vs OFFLINE and guides the next step automatically.</p>
+      </div>
+      <div class="text-xs text-slate-500">
+        <div>Frontend: <span class="mono" id="front-origin">—</span></div>
+        <div>Backend (resolved): <span class="mono" id="backend-origin">—</span></div>
+        <div>Updated: <span class="mono" id="updated-at">—</span></div>
+      </div>
+    </header>
+
+    <section class="bg-white rounded-lg shadow-md border border-slate-200 overflow-hidden">
+      <div class="p-4 border-b border-slate-200 flex items-center justify-between gap-3">
+        <h2 class="text-lg font-semibold text-slate-800">Subsystems</h2>
+        <span id="overall" class="badge warn">Checking…</span>
+      </div>
+      <div class="p-4 overflow-x-auto">
+        <table class="min-w-full text-sm">
+          <thead>
+            <tr class="text-xs text-slate-500 border-b border-slate-200">
+              <th class="py-2 text-left font-semibold">Subsystem</th>
+              <th class="py-2 text-left font-semibold">Status</th>
+              <th class="py-2 text-left font-semibold">Details</th>
+              <th class="py-2 text-left font-semibold">Next action</th>
+            </tr>
+          </thead>
+          <tbody id="rows" class="divide-y divide-slate-100">
+            <tr><td class="py-3 text-slate-500" colspan="4">Loading…</td></tr>
+          </tbody>
+        </table>
+      </div>
+    </section>
+
+    <section class="bg-slate-900 text-slate-100 rounded-lg p-4 overflow-hidden">
+      <div class="flex items-center justify-between gap-2">
+        <h2 class="font-semibold">Walkthrough (dynamic)</h2>
+        <span class="text-xs text-slate-400">This updates based on what’s live.</span>
+      </div>
+      <ol id="walkthrough" class="mt-3 space-y-2 text-sm list-decimal list-inside">
+        <li>Detecting system state…</li>
+      </ol>
+    </section>
+
+    <section class="bg-white rounded-lg shadow-md border border-slate-200 overflow-hidden">
+      <div class="p-4 border-b border-slate-200 flex flex-wrap items-center justify-between gap-3">
+        <div>
+          <h2 class="text-lg font-semibold text-slate-800">Smart Debug</h2>
+          <p class="text-xs text-slate-500 mt-0.5">Auto-diagnose + generate safe commands (copy/paste). No browser command execution.</p>
+        </div>
+        <div class="flex items-center gap-2">
+          <button id="copy-bundle" class="px-3 py-1.5 rounded border border-slate-300 text-sm hover:bg-slate-50">Copy debug bundle</button>
+          <button id="debug-refresh" class="px-3 py-1.5 rounded bg-slate-800 text-white text-sm hover:bg-slate-700">Refresh</button>
+        </div>
+      </div>
+      <div class="p-4 grid grid-cols-1 lg:grid-cols-2 gap-4">
+        <div class="rounded-lg border border-slate-200 p-4">
+          <h3 class="font-semibold text-slate-800">Diagnostics (live)</h3>
+          <div id="diag" class="mt-2 text-sm text-slate-700 space-y-1">Loading…</div>
+          <pre id="diag-raw" class="mt-3 hidden text-xs bg-slate-950 text-slate-100 rounded p-3 overflow-auto mono"></pre>
+        </div>
+        <div class="rounded-lg border border-slate-200 p-4">
+          <div class="flex items-center justify-between gap-3">
+            <h3 class="font-semibold text-slate-800">Recommended commands</h3>
+            <button id="toggle-raw" class="px-3 py-1.5 rounded border border-slate-300 text-sm hover:bg-slate-50">Show raw</button>
+          </div>
+          <div id="cmds" class="mt-3 space-y-3 text-sm text-slate-700">Loading…</div>
+        </div>
+      </div>
+    </section>
+  </main>
+
+  <script>
+(function() {
+  const API_BASE = (typeof window !== 'undefined' && window.__API_BASE) ? String(window.__API_BASE).replace(/\/$/, '') : '';
+  const WS_BASE = (typeof window !== 'undefined' && window.__WS_BASE) ? String(window.__WS_BASE).replace(/\/$/, '') : '';
+
+  function esc(s) { const d=document.createElement('div'); d.textContent = (s==null?'':String(s)); return d.innerHTML; }
+  function badge(cls, text) { return '<span class="badge ' + cls + '">' + esc(text) + '</span>'; }
+  function num(v, d=2) { const x=Number(v); return Number.isFinite(x) ? x.toFixed(d) : '0.00'; }
+
+  async function tryFetch(url, opts) {
+    try {
+      const r = await fetch(url, opts || {});
+      return { ok: r.ok, status: r.status, json: async () => { try { return await r.json(); } catch { return null; } } };
+    } catch (e) {
+      return { ok: false, status: 0, error: String(e) };
+    }
+  }
+
+  async function resolveBackendOrigin() {
+    if (API_BASE) return API_BASE;
+    // Same-origin proxy should work if frontend is configured correctly.
+    // Ask live map first: it tells us the current backend port.
+    const r = await tryFetch('/api/live/map');
+    if (r.ok) {
+      const data = await r.json();
+      const services = data && Array.isArray(data.services) ? data.services : [];
+      const apiSvc = services.find(s => s && (s.id === 'bridge-api' || s.label === 'Bridge API'));
+      const port = apiSvc && (apiSvc.port || apiSvc.hostPort);
+      if (port) return window.location.protocol + '//' + window.location.hostname + ':' + port;
+      // If proxy is already correct, same origin works.
+      return window.location.origin;
+    }
+    // Fallback common ports
+    return window.location.protocol + '//' + window.location.hostname + ':8000';
+  }
+
+  async function checkWs(wsBase) {
+    return await new Promise((resolve) => {
+      let done = false;
+      const finish = (ok, detail) => { if (done) return; done = true; resolve({ ok, detail }); };
+      const base = wsBase || (WS_BASE || (window.location.protocol === 'https:' ? 'wss://' : 'ws://') + window.location.host);
+      const url = (base.replace(/\/$/, '') + '/ws/mission').replace(/([^:]\/)\/+/g, '$1');
+      let ws;
+      const t = setTimeout(() => finish(false, 'timeout'), 1200);
+      try { ws = new WebSocket(url); } catch (e) { clearTimeout(t); return finish(false, 'bad_url'); }
+      ws.onopen = () => { clearTimeout(t); try { ws.close(); } catch(_) {} finish(true, url); };
+      ws.onerror = () => { clearTimeout(t); finish(false, url); };
+    });
+  }
+
+  function setText(id, v) { const el=document.getElementById(id); if (el) el.textContent = v; }
+  function setHtml(id, v) { const el=document.getElementById(id); if (el) el.innerHTML = v; }
+
+  function render(rows) {
+    const body = document.getElementById('rows');
+    if (!body) return;
+    body.innerHTML = rows.map(r => {
+      return '<tr>' +
+        '<td class="py-3 pr-3 font-semibold text-slate-800">' + esc(r.name) + '</td>' +
+        '<td class="py-3 pr-3">' + badge(r.cls, r.status) + '</td>' +
+        '<td class="py-3 pr-3 text-slate-600">' + esc(r.detail || '') + '</td>' +
+        '<td class="py-3 text-slate-700">' + (r.actionHtml || '') + '</td>' +
+      '</tr>';
+    }).join('');
+  }
+
+  function renderWalkthrough(steps) {
+    const el = document.getElementById('walkthrough');
+    if (!el) return;
+    el.innerHTML = steps.map(s => '<li>' + s + '</li>').join('');
+  }
+
+  async function loadDebugBundle(backendOrigin, wsOk, wsDetail, healthOk, controlsMode) {
+    const bundle = {
+      ts: new Date().toISOString(),
+      frontend: { origin: window.location.origin, path: window.location.pathname },
+      backend: { origin: backendOrigin },
+      ws: { ok: !!wsOk, detail: wsDetail || '' },
+      health: { ok: !!healthOk },
+      treasury_controls_mode: controlsMode || '',
+    };
+
+    // Best-effort enrich with live map/report + treasury status (safe reads)
+    try {
+      const [liveMap, liveReport, treasStatus] = await Promise.all([
+        tryFetch(backendOrigin.replace(/\/$/, '') + '/api/live/map').then(r => r.ok ? r.json() : null),
+        tryFetch(backendOrigin.replace(/\/$/, '') + '/api/live/report').then(r => r.ok ? r.json() : null),
+        tryFetch(backendOrigin.replace(/\/$/, '') + '/api/treasury/status').then(r => r.ok ? r.json() : null),
+      ]);
+      if (liveMap) bundle.live_map = liveMap;
+      if (liveReport) bundle.live_report = liveReport;
+      if (treasStatus) bundle.treasury_status = treasStatus;
+    } catch (_) {}
+
+    return bundle;
+  }
+
+  function commandCard(title, cmd, hint) {
+    const safeCmd = (cmd || '').trim();
+    if (!safeCmd) return '';
+    return (
+      '<div class="rounded border border-slate-200 p-3 bg-slate-50">' +
+        '<div class="flex items-start justify-between gap-3">' +
+          '<div>' +
+            '<div class="font-semibold text-slate-800">' + esc(title) + '</div>' +
+            (hint ? '<div class="text-xs text-slate-500 mt-0.5">' + esc(hint) + '</div>' : '') +
+          '</div>' +
+          '<div class="flex items-center gap-2">' +
+            '<button class="run-cmd px-2 py-1 rounded bg-slate-800 text-white text-xs hover:bg-slate-700 hidden" data-ps="">Run</button>' +
+            '<button class="copy-cmd px-2 py-1 rounded border border-slate-300 text-xs hover:bg-white" data-cmd="' + esc(safeCmd) + '">Copy</button>' +
+          '</div>' +
+        '</div>' +
+        '<pre class="mt-2 text-xs bg-slate-900 text-slate-100 rounded p-2 overflow-auto mono">' + esc(safeCmd) + '</pre>' +
+      '</div>'
+    );
+  }
+
+  function wireCopyButtons() {
+    document.querySelectorAll('.copy-cmd').forEach(btn => {
+      btn.addEventListener('click', async () => {
+        const cmd = btn.getAttribute('data-cmd') || '';
+        try { await navigator.clipboard.writeText(cmd); btn.textContent = 'Copied'; setTimeout(()=>btn.textContent='Copy', 1200); } catch(_) {}
+      });
+    });
+  }
+
+  function inferCmdIdFromScript(ps) {
+    const s = String(ps || '').toLowerCase();
+    if (s.includes('audit-wall.ps1')) return 'audit:wall';
+    if (s.includes('sync-twins-wiki.ps1')) return 'sync:twins-wiki';
+    if (s.includes('port-handler.ps1') && s.includes(' list')) return 'ports:list';
+    if (s.includes('\\update.ps1') || s.endsWith('update.ps1')) return 'wall:update';
+    return '';
+  }
+
+  async function enqueueCliJob(backendOrigin, cmd_id, args) {
+    const r = await tryFetch(backendOrigin.replace(/\/$/, '') + '/api/cli/enqueue', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ cmd_id, args: Array.isArray(args) ? args : [] })
+    });
+    if (!r.ok) {
+      let detail = '';
+      try { const j = await r.json(); detail = (j && (j.detail || j.error)) ? String(j.detail || j.error) : ''; } catch(_) {}
+      throw new Error(detail || ('enqueue failed (' + r.status + ')'));
+    }
+    return await r.json();
+  }
+
+  async function refresh() {
+    setText('front-origin', window.location.origin);
+    setText('updated-at', new Date().toLocaleTimeString());
+
+    const backendOrigin = await resolveBackendOrigin();
+    setText('backend-origin', backendOrigin);
+
+    const rows = [];
+    const steps = [];
+
+    // Backend health
+    const health = await tryFetch(backendOrigin.replace(/\/$/, '') + '/health');
+    rows.push({
+      name: 'Bridge API',
+      cls: health.ok ? 'ok' : 'bad',
+      status: health.ok ? 'LIVE' : 'OFFLINE',
+      detail: health.ok ? (backendOrigin + ' /health') : 'Backend not reachable',
+      actionHtml: health.ok ? '<a class="text-blue-600 hover:underline" href="/docs.html">Open Docs → API links</a>' : '<span class="text-slate-500">Start backend</span>',
+    });
+
+    // Live report
+    const live = await tryFetch(backendOrigin.replace(/\/$/, '') + '/api/live/report');
+    rows.push({
+      name: 'Deterministic Orchestration (live/report)',
+      cls: live.ok ? 'ok' : (health.ok ? 'warn' : 'bad'),
+      status: live.ok ? 'LIVE' : (health.ok ? 'DEGRADED' : 'OFFLINE'),
+      detail: live.ok ? 'Live report available' : 'No live report',
+      actionHtml: live.ok ? '<a class="text-blue-600 hover:underline" href="/agents.html">Open Agents</a>' : '',
+    });
+
+    // WebSocket
+    const ws = await checkWs(backendOrigin.replace(/^http/, 'ws'));
+    rows.push({
+      name: 'WebSocket (/ws/mission)',
+      cls: ws.ok ? 'ok' : (health.ok ? 'warn' : 'bad'),
+      status: ws.ok ? 'LIVE' : (health.ok ? 'DEGRADED' : 'OFFLINE'),
+      detail: ws.detail || '',
+      actionHtml: ws.ok ? '<a class="text-blue-600 hover:underline" href="/">Open Digital Twin</a>' : '<span class="text-slate-500">Check WS proxy</span>',
+    });
+
+    // Treasury + UBI
+    const treas = await tryFetch(backendOrigin.replace(/\/$/, '') + '/api/treasury/status');
+    const controls = await tryFetch(backendOrigin.replace(/\/$/, '') + '/api/treasury/controls');
+    let controlsMode = '';
+    if (controls.ok) { const c = await controls.json(); controlsMode = (c && c.mode) ? String(c.mode) : ''; }
+    rows.push({
+      name: 'Treasury',
+      cls: treas.ok ? 'ok' : (health.ok ? 'warn' : 'bad'),
+      status: treas.ok ? 'LIVE' : (health.ok ? 'DEGRADED' : 'OFFLINE'),
+      detail: treas.ok ? ('Controls: ' + (controlsMode || 'unknown')) : 'Treasury status unavailable',
+      actionHtml: '<a class="text-blue-600 hover:underline" href="/cfo.html">Open CFO</a>',
+    });
+
+    // Pages
+    rows.push({ name: 'CFO Page', cls: 'ok', status: 'LIVE', detail: 'Local UI', actionHtml: '<a class="text-blue-600 hover:underline" href="/cfo.html">Open</a>' });
+    rows.push({ name: 'Agents Page', cls: 'ok', status: 'LIVE', detail: 'Local UI', actionHtml: '<a class="text-blue-600 hover:underline" href="/agents.html">Open</a>' });
+    rows.push({ name: 'Dashboards Hub', cls: 'ok', status: 'LIVE', detail: 'All dashboards, full integration', actionHtml: '<a class="text-blue-600 hover:underline" href="/dashboards.html">Open</a>' });
+    rows.push({ name: 'Executive Dashboard', cls: 'ok', status: 'LIVE', detail: 'Local UI', actionHtml: '<a class="text-blue-600 hover:underline" href="/executive-dashboard.html">Open</a>' });
+    rows.push({ name: 'Network Dashboard', cls: 'ok', status: 'LIVE', detail: 'Live API topology', actionHtml: '<a class="text-blue-600 hover:underline" href="/network-dashboard.html">Open</a>' });
+
+    // Overall + walkthrough
+    const overallOk = health.ok && live.ok && ws.ok;
+    setHtml('overall', badge(overallOk ? 'ok' : (health.ok ? 'warn' : 'bad'), overallOk ? 'SYSTEM LIVE' : (health.ok ? 'SYSTEM DEGRADED' : 'SYSTEM OFFLINE')));
+
+    if (!health.ok) {
+      steps.push('Start the backend (FastAPI) and re-open this Status page.');
+    } else {
+      steps.push('Backend is live. Open `Digital Twin` to verify 3D render + terminal.');
+      steps.push(ws.ok ? 'WebSocket is live. Terminal + live updates should be real-time.' : 'WebSocket is down. You are in degraded (polling) mode—check `/ws` proxy and backend WS.');
+      steps.push('Open `CFO` to confirm Treasury buckets + ledger are updating.');
+      steps.push('Open `Agents` to confirm Swarm Health + Reputation + Demand Pump are visible.');
+      if (controlsMode && controlsMode !== 'env_local' && controlsMode !== 'allow_flag' && controlsMode !== 'token') {
+        steps.push('Treasury controls are locked (expected). To enable locally: set `ENV=local` or `BRIDGE_ALLOW_TREASURY_WRITES=1`, or configure `CFO_TOKEN`.');
+      } else {
+        steps.push('Treasury controls are enabled. Use responsibly—every write goes into the unified ledger.');
+      }
+    }
+
+    render(rows);
+    renderWalkthrough(steps.map(esc));
+
+    // Smart debug section
+    try {
+      const bundle = await loadDebugBundle(backendOrigin, ws.ok, ws.detail, health.ok, controlsMode);
+      const diagEl = document.getElementById('diag');
+      const rawEl = document.getElementById('diag-raw');
+      if (rawEl) rawEl.textContent = JSON.stringify(bundle, null, 2);
+      if (diagEl) {
+        const treas = bundle.treasury_status || {};
+        const buckets = (treas && treas.buckets) ? treas.buckets : {};
+        diagEl.innerHTML =
+          '<div><span class="text-slate-500">Backend</span> <span class="mono">' + esc(bundle.backend.origin) + '</span></div>' +
+          '<div><span class="text-slate-500">WS</span> ' + (bundle.ws.ok ? '<span class="badge ok">LIVE</span>' : '<span class="badge warn">DEGRADED</span>') +
+            ' <span class="mono">' + esc(bundle.ws.detail || '') + '</span></div>' +
+          '<div><span class="text-slate-500">Treasury</span> total=' + esc(num(treas.total_collected_brdg, 2)) +
+            ' · ubi=' + esc(num(buckets.ubi, 2)) + ' · treasury=' + esc(num(buckets.treasury, 2)) + '</div>';
+      }
+
+      // Pull safe directives from backend (copy/paste scripts, no execution)
+      const dir = await tryFetch(backendOrigin.replace(/\/$/, '') + '/api/orchestrate/directives');
+      const cliStatus = await tryFetch(backendOrigin.replace(/\/$/, '') + '/api/cli/status');
+      let cliEnabled = false;
+      if (cliStatus.ok) { try { const cs = await cliStatus.json(); cliEnabled = !!(cs && cs.enabled); } catch(_) {} }
+      const cmdsEl = document.getElementById('cmds');
+      let cards = '';
+      if (dir.ok) {
+        const data = await dir.json();
+        const list = data && Array.isArray(data.directives) ? data.directives : [];
+        cards += list.map(d => {
+          const ps = d && d.script ? String(d.script) : '';
+          const cwd = d && d.cwd ? String(d.cwd) : '';
+          const cmd = cwd ? ('Set-Location "' + cwd + '"; ' + ps) : ps;
+          const title = d.label || d.id || 'Directive';
+          // Embed the raw script on the Run button so we can map it to a runner cmd_id.
+          return commandCard(title, cmd, d.description || '').replace('data-ps=\"\"', 'data-ps=\"' + esc(ps) + '\"');
+        }).join('');
+      } else {
+        cards += '<div class="text-slate-500">No directives available (backend offline or endpoint missing).</div>';
+      }
+
+      // Add “quick commands” for the current environment (ports resolved)
+      const be = backendOrigin.replace(/\/$/, '');
+      const startBackend = 'Set-Location \"E:\\\\BridgeAI\\\\BridgeLiveWall\\\\backend\"; $env:ENV=\"local\"; python -m uvicorn app.main:app --app-dir \"E:/BridgeAI/BridgeLiveWall/backend\" --host 0.0.0.0 --port 8020 --reload';
+      const startFrontend = 'Set-Location \"E:\\\\BridgeAI\\\\BridgeLiveWall\\\\frontend\"; $env:BRIDGE_API_URL=\"' + be + '\"; $env:BRIDGE_WS_URL=\"' + be.replace(/^http/, 'ws') + '\"; npm run dev -- --host';
+      cards = commandCard('Start backend (local)', startBackend, 'Runs FastAPI with ENV=local (enables local controls)') +
+              commandCard('Start frontend (proxy to backend)', startFrontend, 'Runs Vite and proxies /api + /ws to current backend') +
+              cards;
+
+      if (cmdsEl) cmdsEl.innerHTML = cards;
+      wireCopyButtons();
+
+      // Turn on "Run" buttons when we can map a directive to an allowlisted cmd_id.
+      document.querySelectorAll('.run-cmd').forEach(btn => {
+        const ps = btn.getAttribute('data-ps') || '';
+        const cmd_id = inferCmdIdFromScript(ps);
+        if (cliEnabled && cmd_id) {
+          btn.classList.remove('hidden');
+          btn.addEventListener('click', async () => {
+            const prev = btn.textContent;
+            try {
+              btn.textContent = 'Queued…';
+              await enqueueCliJob(backendOrigin, cmd_id, []);
+              btn.textContent = 'Queued';
+              setTimeout(()=>btn.textContent=prev, 1200);
+            } catch (e) {
+              btn.textContent = 'Failed';
+              setTimeout(()=>btn.textContent=prev, 1200);
+              alert(String(e && e.message ? e.message : e));
+            }
+          }, { once: true });
+        } else {
+          btn.classList.add('hidden');
+        }
+      });
+
+      // Copy bundle button
+      document.getElementById('copy-bundle')?.addEventListener('click', async () => {
+        try { await navigator.clipboard.writeText(JSON.stringify(bundle, null, 2)); } catch(_) {}
+      }, { once: true });
+
+      // Raw toggle
+      document.getElementById('toggle-raw')?.addEventListener('click', () => {
+        if (!rawEl) return;
+        const isHidden = rawEl.classList.contains('hidden');
+        rawEl.classList.toggle('hidden');
+        document.getElementById('toggle-raw').textContent = isHidden ? 'Hide raw' : 'Show raw';
+      }, { once: false });
+    } catch (_) {}
+  }
+
+  document.getElementById('refresh-btn')?.addEventListener('click', refresh);
+  document.getElementById('debug-refresh')?.addEventListener('click', refresh);
+  if (document.readyState === 'loading') document.addEventListener('DOMContentLoaded', refresh);
+  else refresh();
+  setInterval(refresh, 15000);
+})();
+  </script>
+  <script src="/bridge-nav.js"></script>
+</body>
+</html>
+

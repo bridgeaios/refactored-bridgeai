@@ -1,0 +1,2565 @@
+{
+  "openapi": "3.1.0",
+  "info": {
+    "title": "Bridge AI OS Runtime Supplement",
+    "version": "1.0.0",
+    "description": "Supplemental live endpoints present in code but not in canonical openapi.json."
+  },
+  "paths": {
+    "/api/audit/drift": {
+      "get": {
+        "summary": "Audit Drift",
+        "description": "Drift detection \u2014 immune system logic.\nCompare current state to baseline mission vector.\nIf drift > threshold: trigger governanceVote or training (caller responsibility).",
+        "operationId": "audit_drift_api_audit_drift_get",
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {}
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/auth/siwe": {
+      "post": {
+        "summary": "Siwe Login",
+        "description": "SIWE login: verify signature, check nonce (replay protection), optionally verify on-chain role, issue JWT.",
+        "operationId": "siwe_login_api_auth_siwe_post",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/SiweLoginRequest"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {}
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/capabilities": {
+      "get": {
+        "summary": "Get Capabilities",
+        "description": "Capability registry. Twins read flags before acting. Scale to 100 variants.",
+        "operationId": "get_capabilities_api_capabilities_get",
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {}
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/cli/enqueue": {
+      "post": {
+        "summary": "Cli Enqueue",
+        "operationId": "cli_enqueue_api_cli_enqueue_post",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "additionalProperties": true,
+                "type": "object",
+                "title": "Payload"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {}
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/cli/history": {
+      "get": {
+        "summary": "Cli History",
+        "operationId": "cli_history_api_cli_history_get",
+        "parameters": [
+          {
+            "name": "limit",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "integer",
+              "default": 30,
+              "title": "Limit"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {}
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/cli/queue/next": {
+      "get": {
+        "summary": "Cli Queue Next",
+        "operationId": "cli_queue_next_api_cli_queue_next_get",
+        "parameters": [
+          {
+            "name": "runner_id",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "string",
+              "default": "runner",
+              "title": "Runner Id"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {}
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/cli/report": {
+      "post": {
+        "summary": "Cli Report",
+        "operationId": "cli_report_api_cli_report_post",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "additionalProperties": true,
+                "type": "object",
+                "title": "Payload"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {}
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/cli/status": {
+      "get": {
+        "summary": "Cli Status",
+        "operationId": "cli_status_api_cli_status_get",
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {}
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/demand/pump": {
+      "post": {
+        "summary": "Demand Pump",
+        "description": "Create new tasks if backlog is low.\nBody: { target_backlog?: int, max_create?: int }",
+        "operationId": "demand_pump_api_demand_pump_post",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "anyOf": [
+                  {
+                    "additionalProperties": true,
+                    "type": "object"
+                  },
+                  {
+                    "type": "null"
+                  }
+                ],
+                "title": "Payload"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {}
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/econ/circuit-breaker": {
+      "get": {
+        "summary": "Get Circuit Breaker Status",
+        "description": "Economic circuit breaker status. When tripped: all economic actions blocked.",
+        "operationId": "get_circuit_breaker_status_api_econ_circuit_breaker_get",
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {}
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/econ/reset-breaker": {
+      "post": {
+        "summary": "Reset Circuit Breaker",
+        "description": "Reset economic circuit breaker. Orchestrator authority required.\nUse after investigating root cause (entropy spike, trade frequency exceeded).",
+        "operationId": "reset_circuit_breaker_api_econ_reset_breaker_post",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "additionalProperties": true,
+                "type": "object",
+                "title": "Payload",
+                "default": {}
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {}
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/econ/weights": {
+      "get": {
+        "summary": "Get Econ Weights",
+        "description": "Global weight vector. State-controlled. score = w \u00b7 P(task).",
+        "operationId": "get_econ_weights_api_econ_weights_get",
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {}
+              }
+            }
+          }
+        }
+      },
+      "post": {
+        "summary": "Set Econ Weights",
+        "description": "Governance-controlled. Merge with defaults. Valid keys: impact, revenue, risk, latency, trust.",
+        "operationId": "set_econ_weights_api_econ_weights_post",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "additionalProperties": true,
+                "type": "object",
+                "title": "Payload"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {}
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/founder-todo": {
+      "get": {
+        "summary": "Get Founder Todo",
+        "description": "GET founder objectives. Wallpaper reads this; updates live when objectives met.",
+        "operationId": "get_founder_todo_api_founder_todo_get",
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {}
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/founder-todo/{obj_id}/complete": {
+      "patch": {
+        "summary": "Complete Founder Objective",
+        "description": "Mark objective complete. Wallpaper will update on next refresh (run-wallpaper-live.ps1).",
+        "operationId": "complete_founder_objective_api_founder_todo__obj_id__complete_patch",
+        "parameters": [
+          {
+            "name": "obj_id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "title": "Obj Id"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {}
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/google-sheets/{spreadsheet_id}/append": {
+      "post": {
+        "summary": "Append Google Sheet",
+        "description": "Append data to a Google Spreadsheet",
+        "operationId": "append_google_sheet_api_google_sheets__spreadsheet_id__append_post",
+        "parameters": [
+          {
+            "name": "spreadsheet_id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "title": "Spreadsheet Id"
+            }
+          },
+          {
+            "name": "sheet_name",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "string",
+              "default": "Sheet1",
+              "title": "Sheet Name"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "array",
+                "items": {
+                  "type": "array",
+                  "items": {}
+                },
+                "title": "Values"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {}
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/google-sheets/{spreadsheet_id}/info": {
+      "get": {
+        "summary": "Get Google Sheet Info",
+        "description": "Get information about a Google Spreadsheet",
+        "operationId": "get_google_sheet_info_api_google_sheets__spreadsheet_id__info_get",
+        "parameters": [
+          {
+            "name": "spreadsheet_id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "title": "Spreadsheet Id"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {}
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/google-sheets/{spreadsheet_id}/read": {
+      "get": {
+        "summary": "Read Google Sheet",
+        "description": "Read data from a Google Spreadsheet",
+        "operationId": "read_google_sheet_api_google_sheets__spreadsheet_id__read_get",
+        "parameters": [
+          {
+            "name": "spreadsheet_id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "title": "Spreadsheet Id"
+            }
+          },
+          {
+            "name": "range_name",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "string",
+              "default": "A:Z",
+              "title": "Range Name"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {}
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/google-sheets/{spreadsheet_id}/write": {
+      "post": {
+        "summary": "Write Google Sheet",
+        "description": "Write data to a Google Spreadsheet",
+        "operationId": "write_google_sheet_api_google_sheets__spreadsheet_id__write_post",
+        "parameters": [
+          {
+            "name": "spreadsheet_id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "title": "Spreadsheet Id"
+            }
+          },
+          {
+            "name": "range_name",
+            "in": "query",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "title": "Range Name"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "array",
+                "items": {
+                  "type": "array",
+                  "items": {}
+                },
+                "title": "Values"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {}
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/health/extended": {
+      "get": {
+        "summary": "Health Extended",
+        "description": "Composite health score. One number: is the organism stable?\nhealth = (1 - error_rate) \u00d7 (1 - silence_spike_deviation) \u00d7 latency_factor \u00d7 invariant_integrity",
+        "operationId": "health_extended_api_health_extended_get",
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {}
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/ingest/goassl": {
+      "post": {
+        "summary": "Ingest Goassl",
+        "description": "Ingest GOASSL protocol messages into Digital Twin cognition.",
+        "operationId": "ingest_goassl_api_ingest_goassl_post",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "additionalProperties": true,
+                "type": "object",
+                "title": "Body"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {}
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/ingest/skills": {
+      "post": {
+        "summary": "Ingest Skills",
+        "description": "Add skills to Digital Twin's skill stack.",
+        "operationId": "ingest_skills_api_ingest_skills_post",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "additionalProperties": true,
+                "type": "object",
+                "title": "Body"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {}
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/ingest/status": {
+      "get": {
+        "summary": "Ingest Status",
+        "description": "Get ingestion pipeline status.",
+        "operationId": "ingest_status_api_ingest_status_get",
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {}
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/ingest/tasks": {
+      "post": {
+        "summary": "Ingest Tasks",
+        "description": "Auto-create tasks from external signals into mission board.",
+        "operationId": "ingest_tasks_api_ingest_tasks_post",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "additionalProperties": true,
+                "type": "object",
+                "title": "Body"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {}
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/live/map": {
+      "get": {
+        "summary": "Live Map",
+        "description": "Map everything: pboots, runbs, state version, services, twins, capabilities, telemetry, wiki.\nFor orchestration and live display. Poll this or /api/live/report for live display.",
+        "operationId": "live_map_api_live_map_get",
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {}
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/live/report": {
+      "get": {
+        "summary": "Live Report",
+        "description": "Single payload for live display. Report live: map + status. Poll e.g. every 5s for dashboard.",
+        "operationId": "live_report_api_live_report_get",
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {}
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/marketplace/complete": {
+      "post": {
+        "summary": "Complete Task",
+        "description": "Complete a task. Payout = _priority_locked * quality. Value-conserving economic loop.",
+        "operationId": "complete_task_api_marketplace_complete_post",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "additionalProperties": true,
+                "type": "object",
+                "title": "Data"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {}
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/marketplace/pledge": {
+      "post": {
+        "summary": "Pledge Task",
+        "description": "Pledge to an upliftment task.\nAccepts optional event_id for idempotency (so clients can retry safely).",
+        "operationId": "pledge_task_api_marketplace_pledge_post",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "additionalProperties": true,
+                "type": "object",
+                "title": "Data"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {}
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/orchestrate/directives": {
+      "get": {
+        "summary": "Orchestrate Directives",
+        "description": "Orchestrate and direct: list of actions (scripts/commands) to run for sync, audit, wallpaper.\nFrontend can display these and user runs them (or a scheduler). No execution from API.",
+        "operationId": "orchestrate_directives_api_orchestrate_directives_get",
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {}
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/payments/webhook/crypto": {
+      "post": {
+        "summary": "Webhook Crypto",
+        "description": "Crypto / on-chain payment webhook.\nCalled by contract_listener or external bridge node.",
+        "operationId": "webhook_crypto_api_payments_webhook_crypto_post",
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {}
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/payments/webhook/paypal": {
+      "post": {
+        "summary": "Webhook Paypal",
+        "description": "PayPal webhook endpoint.\nSet in PayPal developer dashboard: https://api.bridge-ai-os.tech/api/payments/webhook/paypal",
+        "operationId": "webhook_paypal_api_payments_webhook_paypal_post",
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {}
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/payments/webhook/paystack": {
+      "post": {
+        "summary": "Webhook Paystack",
+        "description": "Paystack webhook endpoint.\nSet this URL in Paystack dashboard: https://api.bridge-ai-os.tech/api/payments/webhook/paystack",
+        "operationId": "webhook_paystack_api_payments_webhook_paystack_post",
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {}
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/payments/webhook/{rail}": {
+      "post": {
+        "summary": "Webhook Generic",
+        "description": "Generic webhook for any internal project.\nCalled by AOE, Supaco, Taurus, etc. to route revenue into the unified treasury.\nBody: { amount, currency, source_project, type, customer, reference, meta }",
+        "operationId": "webhook_generic_api_payments_webhook__rail__post",
+        "parameters": [
+          {
+            "name": "rail",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "title": "Rail"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {}
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/projects": {
+      "get": {
+        "summary": "List Projects",
+        "description": "Return all registered projects \u2014 the single source of truth for the full ecosystem.\nAny project or UI can call this to discover the live platform map.",
+        "operationId": "list_projects_api_projects_get",
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {}
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/projects/register": {
+      "post": {
+        "summary": "Register Project",
+        "description": "Register or update a project in the central registry.\nAny project (AOE, Supaco, Taurus, Next.js, etc.) calls this at startup.\n\nRequired: { \"id\": \"my-project\" }\nOptional: label, type, baseUrl, apiUrl, health, port, capabilities, meta, status",
+        "operationId": "register_project_api_projects_register_post",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "additionalProperties": true,
+                "type": "object",
+                "title": "Data"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {}
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/projects/{project_id}": {
+      "get": {
+        "summary": "Get Project",
+        "description": "Get a specific registered project by id.",
+        "operationId": "get_project_api_projects__project_id__get",
+        "parameters": [
+          {
+            "name": "project_id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "title": "Project Id"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {}
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      },
+      "delete": {
+        "summary": "Deregister Project",
+        "description": "Remove a project from the registry.",
+        "operationId": "deregister_project_api_projects__project_id__delete",
+        "parameters": [
+          {
+            "name": "project_id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "title": "Project Id"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {}
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/projects/{project_id}/heartbeat": {
+      "post": {
+        "summary": "Project Heartbeat",
+        "description": "Keep-alive endpoint. Projects call this periodically to report they are online.\nOptional body: { \"status\": \"online\" | \"degraded\" | \"offline\" }",
+        "operationId": "project_heartbeat_api_projects__project_id__heartbeat_post",
+        "parameters": [
+          {
+            "name": "project_id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "title": "Project Id"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "anyOf": [
+                  {
+                    "type": "object",
+                    "additionalProperties": true
+                  },
+                  {
+                    "type": "null"
+                  }
+                ],
+                "title": "Data"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {}
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/replication/nodes": {
+      "get": {
+        "summary": "Get Replication Nodes",
+        "description": "Registered nodes for mesh discovery.",
+        "operationId": "get_replication_nodes_api_replication_nodes_get",
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {}
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/replication/register": {
+      "post": {
+        "summary": "Post Replication Register",
+        "description": "Register a node for discovery (node_id, url, capabilities).",
+        "operationId": "post_replication_register_api_replication_register_post",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "additionalProperties": true,
+                "type": "object",
+                "title": "Data"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {}
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/replication/status": {
+      "get": {
+        "summary": "Get Replication Status",
+        "description": "Replication engine status: last run, open_tasks, twin_count, rules_evaluated, twins_created.",
+        "operationId": "get_replication_status_api_replication_status_get",
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {}
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/reputation/top": {
+      "get": {
+        "summary": "Reputation Top",
+        "description": "Top agents by composite reputation score.",
+        "operationId": "reputation_top_api_reputation_top_get",
+        "parameters": [
+          {
+            "name": "limit",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "integer",
+              "default": 20,
+              "title": "Limit"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {}
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/sensors/mouse": {
+      "get": {
+        "summary": "Sensors Mouse Get",
+        "description": "Return latest mouse sensor sample plus lifetime session earnings.",
+        "operationId": "sensors_mouse_get_api_sensors_mouse_get",
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {}
+              }
+            }
+          }
+        }
+      },
+      "post": {
+        "summary": "Sensors Mouse Post",
+        "description": "Ingest mouse position/activity from mouse-tracker-boot.ps1.\nEvery 12 active (moved=true) samples a marketplace task is auto-created\nand completed, earning the user 0.5 BRDG in the revenue pool.",
+        "operationId": "sensors_mouse_post_api_sensors_mouse_post",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "additionalProperties": true,
+                "type": "object",
+                "title": "Payload"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {}
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/sensors/wifi": {
+      "get": {
+        "summary": "Sensors Wifi Get",
+        "description": "Return latest WiFi sensor sample.",
+        "operationId": "sensors_wifi_get_api_sensors_wifi_get",
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {}
+              }
+            }
+          }
+        }
+      },
+      "post": {
+        "summary": "Sensors Wifi Post",
+        "description": "Ingest WiFi RF sample from wifi-rf-boot.ps1. Expects signal, ssid, etc.",
+        "operationId": "sensors_wifi_post_api_sensors_wifi_post",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "additionalProperties": true,
+                "type": "object",
+                "title": "Payload"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {}
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/skills/definitions": {
+      "get": {
+        "summary": "List Skill Definitions",
+        "description": "Return all hardcoded skill definitions registered in the system.",
+        "operationId": "list_skill_definitions_api_skills_definitions_get",
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {}
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/skills/learn-from-youtube": {
+      "post": {
+        "summary": "Learn From Youtube",
+        "description": "Fetch full YouTube video metadata and extract a Bridge skill definition.\nIf save=true, persists the skill definition to memory for the engine + SVG renderer.",
+        "operationId": "learn_from_youtube_api_skills_learn_from_youtube_post",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/LearnFromYouTubeModel"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {}
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/skills/youtube-recommend/{skill_id}": {
+      "get": {
+        "summary": "Youtube Recommend",
+        "description": "Auto-recommend YouTube tutorials for an existing skill_id.",
+        "operationId": "youtube_recommend_api_skills_youtube_recommend__skill_id__get",
+        "parameters": [
+          {
+            "name": "skill_id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "title": "Skill Id"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {}
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/skills/youtube-search": {
+      "get": {
+        "summary": "Youtube Search",
+        "description": "Search YouTube for skill-related videos. Requires YOUTUBE_API_KEY.",
+        "operationId": "youtube_search_api_skills_youtube_search_get",
+        "parameters": [
+          {
+            "name": "q",
+            "in": "query",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "title": "Q"
+            }
+          },
+          {
+            "name": "limit",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "integer",
+              "default": 8,
+              "title": "Limit"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {}
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/state/reducers": {
+      "get": {
+        "summary": "List Sanctioned Reducers",
+        "description": "Immutable snapshot. Ties allowed mutation to system identity. SPINE: no rogue mutation.",
+        "operationId": "list_sanctioned_reducers_api_state_reducers_get",
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {}
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/state/snapshot": {
+      "get": {
+        "summary": "State Snapshot",
+        "description": "Full state snapshot. Version without snapshot is memory without recall.\nReturns: state, state_version, state_hash, priority_distribution.",
+        "operationId": "state_snapshot_api_state_snapshot_get",
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {}
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/status": {
+      "get": {
+        "summary": "Status",
+        "description": "Status check - alias for health.",
+        "operationId": "status_api_status_get",
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {}
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/svg-build/history": {
+      "get": {
+        "summary": "Svg Build History",
+        "description": "Return last N SVG build log summaries from E:\\A\\logs for Taurus dashboard.",
+        "operationId": "svg_build_history_api_svg_build_history_get",
+        "parameters": [
+          {
+            "name": "limit",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "integer",
+              "default": 5,
+              "title": "Limit"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {}
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/swarm/health": {
+      "get": {
+        "summary": "Swarm Health",
+        "description": "Swarm Health Index (0\u20131).\nPulls from currently available runtime signals; degrades gracefully when unknown.",
+        "operationId": "swarm_health_api_swarm_health_get",
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {}
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/system/comprehension": {
+      "get": {
+        "summary": "Get System Comprehension",
+        "description": "Return full structural mapping: mission, architecture, economic engine, roles, governance, revenue.",
+        "operationId": "get_system_comprehension_api_system_comprehension_get",
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {}
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/system/comprehension/check-alignment": {
+      "post": {
+        "summary": "Check Alignment",
+        "description": "Alignment filter. Returns aligned, reason, confidence, clarification_needed.",
+        "operationId": "check_alignment_api_system_comprehension_check_alignment_post",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "additionalProperties": true,
+                "type": "object",
+                "title": "Payload"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {}
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/system/comprehension/evolve": {
+      "post": {
+        "summary": "System Comprehension Evolve",
+        "description": "Adaptive learning loop: ingest structural change. Requires orchestrator + evolution budget.",
+        "operationId": "system_comprehension_evolve_api_system_comprehension_evolve_post",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "additionalProperties": true,
+                "type": "object",
+                "title": "Payload"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {}
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/system/comprehension/explain": {
+      "get": {
+        "summary": "Explain System",
+        "description": "Explain The Bridge at Level 1 (simple), 2 (operational), or 3 (strategic).",
+        "operationId": "explain_system_api_system_comprehension_explain_get",
+        "parameters": [
+          {
+            "name": "level",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "integer",
+              "default": 1,
+              "title": "Level"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {}
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/system/comprehension/operational-model": {
+      "get": {
+        "summary": "Get Operational Model",
+        "description": "Input \u2192 Processing \u2192 Output \u2192 Feedback \u2192 Reinforcement.",
+        "operationId": "get_operational_model_api_system_comprehension_operational_model_get",
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {}
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/system/comprehension/role-awareness": {
+      "get": {
+        "summary": "Get Role Awareness",
+        "description": "Twin function, authority boundaries, decision constraints.",
+        "operationId": "get_role_awareness_api_system_comprehension_role_awareness_get",
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {}
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/system/comprehension/skill": {
+      "get": {
+        "summary": "Get System Comprehension Skill",
+        "description": "Return skill definition for Bridge_System_Comprehension.",
+        "operationId": "get_system_comprehension_skill_api_system_comprehension_skill_get",
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {}
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/telemetry": {
+      "get": {
+        "summary": "Get Telemetry",
+        "description": "Observability: decision_latency, speech_latency, silence_rate, state_mutation_frequency, economic_conversion_rate.",
+        "operationId": "get_telemetry_api_telemetry_get",
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {}
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/telemetry/events": {
+      "post": {
+        "summary": "Telemetry Events Post",
+        "description": "Ingest telemetry events (e.g. svg_build_completed) for usage accounting,\ntreasury, and Taurus dashboard. Events flow to billing/reputation.",
+        "operationId": "telemetry_events_post_api_telemetry_events_post",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "additionalProperties": true,
+                "type": "object",
+                "title": "Payload"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {}
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/telemetry/events/svg-build": {
+      "get": {
+        "summary": "Telemetry Events Svg Build",
+        "description": "Return last SVG build event for Taurus dashboard.",
+        "operationId": "telemetry_events_svg_build_api_telemetry_events_svg_build_get",
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {}
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/treasury/collect": {
+      "post": {
+        "summary": "Treasury Collect",
+        "description": "Collect revenue from any project into the unified treasury.\nRequired: amount (float)\nOptional: currency (default BRDG), source_project, method, type, meta",
+        "operationId": "treasury_collect_api_treasury_collect_post",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "additionalProperties": true,
+                "type": "object",
+                "title": "Payload"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {}
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/treasury/controls": {
+      "get": {
+        "summary": "Treasury Controls",
+        "description": "Status endpoint for CFO UI to determine whether controls are armed.\nThis does NOT enable anything; it only reports current policy.",
+        "operationId": "treasury_controls_api_treasury_controls_get",
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {}
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/treasury/disburse": {
+      "post": {
+        "summary": "Treasury Disburse",
+        "description": "Record a treasury disbursement from a bucket.\nRequired: bucket (ubi|treasury|ops|founder), amount, destination\nOptional: authorized_by",
+        "operationId": "treasury_disburse_api_treasury_disburse_post",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "additionalProperties": true,
+                "type": "object",
+                "title": "Payload"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {}
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/treasury/ingest": {
+      "post": {
+        "summary": "Treasury Ingest",
+        "description": "Universal ingest: any internal service or external agent posts revenue here.\nRoutes directly to treasury_service \u2014 no revenue_service layer.\nBody: { amount, currency?, source_project?, method?, type?, meta? }",
+        "operationId": "treasury_ingest_api_treasury_ingest_post",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "additionalProperties": true,
+                "type": "object",
+                "title": "Payload"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {}
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/treasury/ledger": {
+      "get": {
+        "summary": "Treasury Ledger",
+        "description": "Recent treasury transactions (most recent first). Max 200.",
+        "operationId": "treasury_ledger_api_treasury_ledger_get",
+        "parameters": [
+          {
+            "name": "limit",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "integer",
+              "default": 50,
+              "title": "Limit"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {}
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/treasury/rails": {
+      "get": {
+        "summary": "List Rails",
+        "description": "List all supported payment rails and their status.",
+        "operationId": "list_rails_api_treasury_rails_get",
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {}
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/treasury/status": {
+      "get": {
+        "summary": "Treasury Status",
+        "description": "Full treasury status: totals, buckets, by-project, by-method, by-currency.",
+        "operationId": "treasury_status_api_treasury_status_get",
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {}
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/treasury/summary": {
+      "get": {
+        "summary": "Treasury Summary",
+        "description": "Compact treasury snapshot for dashboards and live map.\nFull ledger + disbursements at GET /api/treasury/status and GET /api/treasury/ledger.",
+        "operationId": "treasury_summary_api_treasury_summary_get",
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {}
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/tts/available": {
+      "get": {
+        "summary": "Tts Available",
+        "description": "Check if TTS backend is available (e.g. ElevenLabs configured).",
+        "operationId": "tts_available_api_tts_available_get",
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {}
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/twin/env-keys": {
+      "get": {
+        "summary": "Get Twin Env Keys",
+        "description": "Digital Twin holds env API key status. Call this to get which keys are configured/missing/placeholder. Never returns secret values.",
+        "operationId": "get_twin_env_keys_api_twin_env_keys_get",
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {}
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/twins": {
+      "get": {
+        "summary": "List Twins",
+        "operationId": "list_twins_api_twins_get",
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {}
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/twins/allocate": {
+      "post": {
+        "summary": "Twins Allocate",
+        "description": "Allocate top-priority task to twin. No random. No manual override. Execution = argmax(w\u00b7P).",
+        "operationId": "twins_allocate_api_twins_allocate_post",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "additionalProperties": true,
+                "type": "object",
+                "title": "Data"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {}
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/twins/auto-add": {
+      "post": {
+        "summary": "Twins Auto Add",
+        "description": "Auto-add a random task from the Bridge task pool.",
+        "operationId": "twins_auto_add_api_twins_auto_add_post",
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {}
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/twins/leaderboard": {
+      "get": {
+        "summary": "Twins Leaderboard",
+        "operationId": "twins_leaderboard_api_twins_leaderboard_get",
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {}
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/twins/teach": {
+      "post": {
+        "summary": "Twins Teach",
+        "description": "One twin teaches another a skill. Teacher must have the skill verified and sufficient trust.",
+        "operationId": "twins_teach_api_twins_teach_post",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "additionalProperties": true,
+                "type": "object",
+                "title": "Data"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {}
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/ubi/distribute": {
+      "post": {
+        "summary": "Claim Ubi",
+        "description": "UBI claim/distribute. Economic risk governor: max exposure, cooldown.",
+        "operationId": "claim_ubi_api_ubi_distribute_post",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "additionalProperties": true,
+                "type": "object",
+                "title": "Payload"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {}
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/user/settings": {
+      "get": {
+        "summary": "Get User Settings",
+        "description": "Get user settings (shared per user across all domains).\nUser id from X-User-Id or X-Bridge-User-Id header; otherwise \"default\".",
+        "operationId": "get_user_settings_api_user_settings_get",
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {}
+              }
+            }
+          }
+        }
+      },
+      "put": {
+        "summary": "Put User Settings",
+        "description": "Save user settings (shared per user across all domains).\nBody: { \"settings\": { ... } } or { ... } (whole object as settings).",
+        "operationId": "put_user_settings_api_user_settings_put",
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {}
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/wiki/registry": {
+      "get": {
+        "summary": "Get Wiki Registry",
+        "description": "Return twin registry if sync-twins-wiki.ps1 has been run. All digital twins + state version + versioned artifacts from C:\\Downloads.",
+        "operationId": "get_wiki_registry_api_wiki_registry_get",
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {}
+              }
+            }
+          }
+        }
+      }
+    },
+    "/health": {
+      "get": {
+        "summary": "Health Root",
+        "description": "Root-level health check for monitoring and node console.",
+        "operationId": "health_root_health_get",
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {}
+              }
+            }
+          }
+        }
+      }
+    }
+  },
+  "components": {
+    "schemas": {
+      "HTTPValidationError": {
+        "properties": {
+          "detail": {
+            "items": {
+              "$ref": "#/components/schemas/ValidationError"
+            },
+            "type": "array",
+            "title": "Detail"
+          }
+        },
+        "type": "object",
+        "title": "HTTPValidationError"
+      },
+      "LearnFromYouTubeModel": {
+        "properties": {
+          "video_id": {
+            "type": "string",
+            "title": "Video Id"
+          },
+          "save": {
+            "type": "boolean",
+            "title": "Save",
+            "default": false
+          }
+        },
+        "type": "object",
+        "required": [
+          "video_id"
+        ],
+        "title": "LearnFromYouTubeModel"
+      },
+      "SiweLoginRequest": {
+        "properties": {
+          "message": {
+            "type": "string",
+            "title": "Message"
+          },
+          "signature": {
+            "type": "string",
+            "title": "Signature"
+          }
+        },
+        "type": "object",
+        "required": [
+          "message",
+          "signature"
+        ],
+        "title": "SiweLoginRequest"
+      },
+      "SkillModel": {
+        "properties": {
+          "name": {
+            "type": "string",
+            "title": "Name"
+          },
+          "tags": {
+            "items": {
+              "type": "string"
+            },
+            "type": "array",
+            "title": "Tags"
+          },
+          "description": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Description"
+          }
+        },
+        "type": "object",
+        "required": [
+          "name",
+          "tags"
+        ],
+        "title": "SkillModel"
+      },
+      "ValidationError": {
+        "properties": {
+          "loc": {
+            "items": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "integer"
+                }
+              ]
+            },
+            "type": "array",
+            "title": "Location"
+          },
+          "msg": {
+            "type": "string",
+            "title": "Message"
+          },
+          "type": {
+            "type": "string",
+            "title": "Error Type"
+          },
+          "input": {
+            "title": "Input"
+          },
+          "ctx": {
+            "type": "object",
+            "title": "Context"
+          }
+        },
+        "type": "object",
+        "required": [
+          "loc",
+          "msg",
+          "type"
+        ],
+        "title": "ValidationError"
+      }
+    }
+  }
+}

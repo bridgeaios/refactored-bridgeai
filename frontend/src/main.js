@@ -21,6 +21,8 @@ import { initCognitiveTwin } from './cognitiveTwin.js';
 import { initTwinPanel } from './twinPanel.js';
 import { initTwinCompetition } from './twinCompetition.js';
 import { initSystemComprehension } from './systemComprehension.js';
+import { initTabs } from './tabs.js';
+import { initControlPanel } from './controlPanel.js';
 
 const loadingEl = document.getElementById('loading');
 const canvas = document.getElementById('renderCanvas');
@@ -71,6 +73,8 @@ let lastFps = 60;
     try { initLipSync(scene); } catch (e) { console.warn('initLipSync:', e); }
     try { initVoice(); } catch (e) { console.warn('initVoice:', e); }
     try { initSpeechEmbodiment(scene); } catch (e) { console.warn('initSpeechEmbodiment:', e); }
+    try { initTabs(); } catch (e) { console.warn('initTabs:', e); }
+    try { initControlPanel(); } catch (e) { console.warn('initControlPanel:', e); }
     try { initTerminal(); } catch (e) { console.warn('initTerminal:', e); }
     try { initMissionBoard(); } catch (e) { console.warn('initMissionBoard:', e); }
     try { initFounderTodo(); } catch (e) { console.warn('initFounderTodo:', e); }
@@ -102,4 +106,11 @@ let lastFps = 60;
     });
 
     window.addEventListener('resize', () => engine.resize());
+    window.addEventListener('bridge:tab', (e) => {
+        // When switching to the 3D tab, force a resize so the canvas fits.
+        try {
+            const tab = e?.detail?.tab;
+            if (tab === 'twin') setTimeout(() => engine.resize(), 0);
+        } catch (_) {}
+    });
 })();

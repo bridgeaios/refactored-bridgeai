@@ -1,0 +1,337 @@
+{
+  "canonical_count": 29,
+  "runtime_count": 109,
+  "overlap_count": 29,
+  "only_canonical_count": 0,
+  "only_runtime_count": 80,
+  "only_canonical": [],
+  "only_runtime": [
+    "/api/audit/drift",
+    "/api/auth/siwe",
+    "/api/capabilities",
+    "/api/cli/enqueue",
+    "/api/cli/history",
+    "/api/cli/queue/next",
+    "/api/cli/report",
+    "/api/cli/status",
+    "/api/demand/pump",
+    "/api/econ/circuit-breaker",
+    "/api/econ/reset-breaker",
+    "/api/econ/weights",
+    "/api/founder-todo",
+    "/api/founder-todo/{obj_id}/complete",
+    "/api/google-sheets/{spreadsheet_id}/append",
+    "/api/google-sheets/{spreadsheet_id}/info",
+    "/api/google-sheets/{spreadsheet_id}/read",
+    "/api/google-sheets/{spreadsheet_id}/write",
+    "/api/health/extended",
+    "/api/ingest/goassl",
+    "/api/ingest/skills",
+    "/api/ingest/status",
+    "/api/ingest/tasks",
+    "/api/live/map",
+    "/api/live/report",
+    "/api/marketplace/complete",
+    "/api/marketplace/pledge",
+    "/api/orchestrate/directives",
+    "/api/payments/webhook/crypto",
+    "/api/payments/webhook/paypal",
+    "/api/payments/webhook/paystack",
+    "/api/payments/webhook/{rail}",
+    "/api/projects",
+    "/api/projects/register",
+    "/api/projects/{project_id}",
+    "/api/projects/{project_id}/heartbeat",
+    "/api/replication/nodes",
+    "/api/replication/register",
+    "/api/replication/status",
+    "/api/reputation/top",
+    "/api/sensors/mouse",
+    "/api/sensors/wifi",
+    "/api/skills/definitions",
+    "/api/skills/learn-from-youtube",
+    "/api/skills/youtube-recommend/{skill_id}",
+    "/api/skills/youtube-search",
+    "/api/state/reducers",
+    "/api/state/snapshot",
+    "/api/status",
+    "/api/svg-build/history",
+    "/api/swarm/health",
+    "/api/system/comprehension",
+    "/api/system/comprehension/check-alignment",
+    "/api/system/comprehension/evolve",
+    "/api/system/comprehension/explain",
+    "/api/system/comprehension/operational-model",
+    "/api/system/comprehension/role-awareness",
+    "/api/system/comprehension/skill",
+    "/api/telemetry",
+    "/api/telemetry/events",
+    "/api/telemetry/events/svg-build",
+    "/api/treasury/collect",
+    "/api/treasury/controls",
+    "/api/treasury/disburse",
+    "/api/treasury/ingest",
+    "/api/treasury/ledger",
+    "/api/treasury/rails",
+    "/api/treasury/status",
+    "/api/treasury/summary",
+    "/api/tts/available",
+    "/api/twin/env-keys",
+    "/api/twins",
+    "/api/twins/allocate",
+    "/api/twins/auto-add",
+    "/api/twins/leaderboard",
+    "/api/twins/teach",
+    "/api/ubi/distribute",
+    "/api/user/settings",
+    "/api/wiki/registry",
+    "/health"
+  ],
+  "extra_methods": {
+    "/api/audit/drift": [
+      "get"
+    ],
+    "/api/auth/siwe": [
+      "post"
+    ],
+    "/api/capabilities": [
+      "get"
+    ],
+    "/api/cli/enqueue": [
+      "post"
+    ],
+    "/api/cli/history": [
+      "get"
+    ],
+    "/api/cli/queue/next": [
+      "get"
+    ],
+    "/api/cli/report": [
+      "post"
+    ],
+    "/api/cli/status": [
+      "get"
+    ],
+    "/api/demand/pump": [
+      "post"
+    ],
+    "/api/econ/circuit-breaker": [
+      "get"
+    ],
+    "/api/econ/reset-breaker": [
+      "post"
+    ],
+    "/api/econ/weights": [
+      "get",
+      "post"
+    ],
+    "/api/founder-todo": [
+      "get"
+    ],
+    "/api/founder-todo/{obj_id}/complete": [
+      "patch"
+    ],
+    "/api/google-sheets/{spreadsheet_id}/append": [
+      "post"
+    ],
+    "/api/google-sheets/{spreadsheet_id}/info": [
+      "get"
+    ],
+    "/api/google-sheets/{spreadsheet_id}/read": [
+      "get"
+    ],
+    "/api/google-sheets/{spreadsheet_id}/write": [
+      "post"
+    ],
+    "/api/health/extended": [
+      "get"
+    ],
+    "/api/ingest/goassl": [
+      "post"
+    ],
+    "/api/ingest/skills": [
+      "post"
+    ],
+    "/api/ingest/status": [
+      "get"
+    ],
+    "/api/ingest/tasks": [
+      "post"
+    ],
+    "/api/live/map": [
+      "get"
+    ],
+    "/api/live/report": [
+      "get"
+    ],
+    "/api/marketplace/complete": [
+      "post"
+    ],
+    "/api/marketplace/pledge": [
+      "post"
+    ],
+    "/api/orchestrate/directives": [
+      "get"
+    ],
+    "/api/payments/webhook/crypto": [
+      "post"
+    ],
+    "/api/payments/webhook/paypal": [
+      "post"
+    ],
+    "/api/payments/webhook/paystack": [
+      "post"
+    ],
+    "/api/payments/webhook/{rail}": [
+      "post"
+    ],
+    "/api/projects": [
+      "get"
+    ],
+    "/api/projects/register": [
+      "post"
+    ],
+    "/api/projects/{project_id}": [
+      "delete",
+      "get"
+    ],
+    "/api/projects/{project_id}/heartbeat": [
+      "post"
+    ],
+    "/api/replication/nodes": [
+      "get"
+    ],
+    "/api/replication/register": [
+      "post"
+    ],
+    "/api/replication/status": [
+      "get"
+    ],
+    "/api/reputation/top": [
+      "get"
+    ],
+    "/api/sensors/mouse": [
+      "get",
+      "post"
+    ],
+    "/api/sensors/wifi": [
+      "get",
+      "post"
+    ],
+    "/api/skills/definitions": [
+      "get"
+    ],
+    "/api/skills/learn-from-youtube": [
+      "post"
+    ],
+    "/api/skills/youtube-recommend/{skill_id}": [
+      "get"
+    ],
+    "/api/skills/youtube-search": [
+      "get"
+    ],
+    "/api/state/reducers": [
+      "get"
+    ],
+    "/api/state/snapshot": [
+      "get"
+    ],
+    "/api/status": [
+      "get"
+    ],
+    "/api/svg-build/history": [
+      "get"
+    ],
+    "/api/swarm/health": [
+      "get"
+    ],
+    "/api/system/comprehension": [
+      "get"
+    ],
+    "/api/system/comprehension/check-alignment": [
+      "post"
+    ],
+    "/api/system/comprehension/evolve": [
+      "post"
+    ],
+    "/api/system/comprehension/explain": [
+      "get"
+    ],
+    "/api/system/comprehension/operational-model": [
+      "get"
+    ],
+    "/api/system/comprehension/role-awareness": [
+      "get"
+    ],
+    "/api/system/comprehension/skill": [
+      "get"
+    ],
+    "/api/telemetry": [
+      "get"
+    ],
+    "/api/telemetry/events": [
+      "post"
+    ],
+    "/api/telemetry/events/svg-build": [
+      "get"
+    ],
+    "/api/treasury/collect": [
+      "post"
+    ],
+    "/api/treasury/controls": [
+      "get"
+    ],
+    "/api/treasury/disburse": [
+      "post"
+    ],
+    "/api/treasury/ingest": [
+      "post"
+    ],
+    "/api/treasury/ledger": [
+      "get"
+    ],
+    "/api/treasury/rails": [
+      "get"
+    ],
+    "/api/treasury/status": [
+      "get"
+    ],
+    "/api/treasury/summary": [
+      "get"
+    ],
+    "/api/tts/available": [
+      "get"
+    ],
+    "/api/twin/env-keys": [
+      "get"
+    ],
+    "/api/twins": [
+      "get"
+    ],
+    "/api/twins/allocate": [
+      "post"
+    ],
+    "/api/twins/auto-add": [
+      "post"
+    ],
+    "/api/twins/leaderboard": [
+      "get"
+    ],
+    "/api/twins/teach": [
+      "post"
+    ],
+    "/api/ubi/distribute": [
+      "post"
+    ],
+    "/api/user/settings": [
+      "get",
+      "put"
+    ],
+    "/api/wiki/registry": [
+      "get"
+    ],
+    "/health": [
+      "get"
+    ]
+  }
+}
