@@ -1,4 +1,5 @@
 # BridgeLiveWall Codebase Refactor — Design Spec
+
 **Date:** 2026-03-23
 **Branch:** `refactor/domain-modular` (parallel to `win-for-twin`)
 **Approach:** Domain-Driven Modular Monolith + Unified React SPA
@@ -41,18 +42,59 @@ The BridgeLiveWall codebase has grown organically and suffers from five compound
 ### Migration Strategy
 
 Parallel rewrite on branch `refactor/domain-modular`. Old code stays untouched on `win-for-twin`. Cut over when:
+
 1. All existing API endpoints reachable at same paths
 2. CI green (ruff, mypy, pytest, frontend build)
 3. Playwright E2E passes for 5 critical flows
 4. Docker Compose stack boots clean
 
+### Migration Order
+
+Work in this sequence to minimize cross-domain conflicts and keep CI green at each step:
+
+1. **Scaffold `core/`** — errors, types, base DI factories. No business logic; all domains depend on this.
+2. **Migrate `economy` domain end-to-end** — it has the most existing test coverage and touches treasury, marketplace, UBI, and payment_rails. Use it as the template for all other domains.
+3. **Migrate `infra` domain** — memory_store, telemetry, siwe_auth. Other domains depend on these services; having them in the new structure unblocks parallel work.
+4. **Migrate remaining domains in parallel** — `twins`, `governance`, `network` can proceed concurrently once `core/` and `infra` are stable.
+5. **Freeze vanilla JS frontend** — once all backend domains are migrated and CI is green.
+6. **Build React SPA** — scaffold `AppShell`, then migrate pages domain by domain following the same economy-first ordering.
+
 ---
 
 ## Backend Architecture
 
+### Current State of Routes (Partial Split Already Exists)
+
+The backend routes layer has already been partially extracted. The following files exist and must be accounted for in the domain mapping:
+
+| Existing File | Lines | Disposition |
+| --- | --- | --- |
+| `routes/api.py` | 68.5K | Split — each endpoint group moves into its domain router |
+| `routes/auth.py` | 1.9K | Folds into `domains/infra/router.py` |
+| `routes/treasury.py` | 11.3K | Folds into `domains/economy/router.py` |
+| `routes/projects.py` | 2.8K | Folds into `domains/network/router.py` |
+| `routes/cli.py` | 5.3K | Folds into `domains/infra/router.py` |
+
+None of these files are discarded — their logic is absorbed into domain routers.
+
+The `routes/` directory becomes a thin aggregator. After migration it contains a single `__init__.py` that includes all domain routers into the main app:
+
+```python
+# routes/__init__.py
+from app.domains.economy.router import router as economy_router
+from app.domains.twins.router import router as twins_router
+from app.domains.governance.router import router as governance_router
+from app.domains.network.router import router as network_router
+from app.domains.infra.router import router as infra_router
+
+all_routers = [economy_router, twins_router, governance_router, network_router, infra_router]
+```
+
+All individual route files under `routes/` are deleted after their logic is absorbed.
+
 ### Domain Package Structure
 
-```
+```text
 backend/app/
 ├── domains/
 │   ├── economy/          # treasury, revenue, ubi, marketplace, payment_rails, demand_engine, econ_control
@@ -69,7 +111,8 @@ backend/app/
 ```
 
 Each domain package is self-contained:
-```
+
+```text
 economy/
 ├── __init__.py
 ├── router.py       # FastAPI router (replaces slice of api.py)
@@ -108,6 +151,7 @@ class NetworkError(BridgeError): ...
 ```
 
 Global FastAPI exception handler converts all `BridgeError` subclasses to consistent JSON:
+
 ```json
 { "ok": false, "code": "ECONOMIC_GATE_ERROR", "message": "Task value ≤ cost, rejected" }
 ```
@@ -124,12 +168,18 @@ Global FastAPI exception handler converts all `BridgeError` subclasses to consis
 
 ### Unified React SPA
 
-All frontend functionality consolidates into `bridge_defi/frontend` (already React 18 + TypeScript). The vanilla JS app (`frontend/`) is frozen — no new development.
+#### Current State of `bridge_defi/frontend`
 
-```
+`bridge_defi/frontend` is currently a **DeFi-specific app** — it contains `Dashboard.tsx`, `Lending.tsx`, `Staking.tsx`, `Dex.tsx`, `Treasury.tsx`, and `Terminal.tsx`. It has no AppShell, no router, and no page structure beyond the DeFi use case.
+
+The refactor **substantially restructures** this directory rather than building on an existing scaffold. The DeFi components (`Lending`, `Staking`, `Dex`) are preserved as the `economy` domain. The rest of the domain structure is new. A new `frontend-v2/` directory is **not** created — the refactor happens in place within `bridge_defi/frontend` to keep the git history and avoid renaming the Docker build target.
+
+All frontend functionality consolidates here. The vanilla JS app (`frontend/`) is frozen — no new development.
+
+```text
 bridge_defi/frontend/src/
 ├── domains/
-│   ├── economy/          # Treasury, Revenue, UBI, Marketplace, CFO
+│   ├── economy/          # Treasury, Revenue, UBI, Marketplace, CFO (includes existing Lending/Staking/Dex)
 │   ├── twins/            # DigitalTwin, Agents, Competition, Speech, Emotion
 │   ├── governance/       # Governance, KnowledgeGraph, Reputation, Missions
 │   ├── network/          # NetworkDashboard, Swarm, BAN, Status
@@ -149,7 +199,7 @@ bridge_defi/frontend/src/
 ### Page → Route Mapping
 
 | Current HTML | React Route |
-|---|---|
+| --- | --- |
 | `index.html` | `/` |
 | `executive-dashboard.html` | `/dashboard` |
 | `gateway/index.html` | `/gateway` |
@@ -185,7 +235,18 @@ React manages layout, data, and nav. Babylon manages the canvas. No 3D code rewr
 
 ### Typed API Client
 
-Generated from existing OpenAPI specs via `openapi-typescript`:
+#### Prerequisite: Reconcile OpenAPI Specs
+
+The repo contains multiple spec files (`openapi.internal.json`, `openapi.v2.public.json`, `openapi.runtime-expanded.json`, `openapi.runtime-supplement.json`) that have drifted from the live API (see `docs/API-DRIFT-REPORT.md`). Before generating the client:
+
+1. Boot the backend and capture the live spec: `GET /openapi.json`
+2. Reconcile against `openapi.v2.public.json` using the drift report as a guide
+3. Establish `openapi.v2.public.json` as the single source of truth
+4. Add a CI step: `diff <(curl localhost:8000/openapi.json) openapi.v2.public.json` to catch future drift
+
+The cut-over checklist verifies against the **live `/openapi.json` endpoint**, not the static file.
+
+Generated from the reconciled spec via `openapi-typescript`:
 
 ```typescript
 // core/api/client.ts
@@ -211,11 +272,13 @@ Frontend/backend contract is enforced at build time. API drift is caught before 
 ## Error Handling
 
 ### Backend
+
 - Domain exception hierarchy (see above)
 - Global FastAPI handler → consistent `{ ok, code, message }` JSON
 - No bare `except:` anywhere — lint rule enforced via ruff
 
 ### Frontend
+
 - React Error Boundaries per domain (economy, twins, governance, network)
 - Shared `useApi` hook surfaces errors to UI rather than swallowing them
 - All API calls return `{ ok: boolean, data?: T, error?: ApiError }`
@@ -225,13 +288,14 @@ Frontend/backend contract is enforced at build time. API drift is caught before 
 ## Testing Strategy
 
 | Layer | Tool | Coverage Target |
-|---|---|---|
+| --- | --- | --- |
 | Backend unit | `pytest` + `pytest-asyncio` | Each service in isolation via DI mocking |
 | Backend integration | `pytest` + `httpx.AsyncClient` | Route → service → store round-trips |
 | Frontend unit | `vitest` + `@testing-library/react` | Components, hooks, API client |
 | Frontend E2E | `playwright` | 5 critical flows (see below) |
 
 ### 5 Critical E2E Flows (cut-over gate)
+
 1. Gateway SIWE auth → redirect to dashboard
 2. Marketplace: post task → accept → complete → revenue collected
 3. Treasury collect → UBI bucket debited → UBI claim succeeds
@@ -244,7 +308,7 @@ Existing `conftest.py` fixtures are extended, not replaced.
 
 ## Cut-Over Checklist
 
-- [ ] All API endpoints reachable at same paths (verified via `openapi.v2.public.json`)
+- [ ] All API endpoints reachable at same paths (verified via live `GET /openapi.json` diff against reconciled `openapi.v2.public.json`)
 - [ ] `ruff check` clean
 - [ ] `mypy` clean
 - [ ] `pytest` green with coverage ≥ existing baseline
@@ -258,11 +322,11 @@ Existing `conftest.py` fixtures are extended, not replaced.
 ## File Disposition
 
 | Current | Action |
-|---|---|
+| --- | --- |
 | `backend/app/routes/api.py` (68.5K) | Split into 5 domain routers |
 | `backend/app/services/*.py` (43 files) | Moved into domain packages, consolidated where duplicated |
-| `backend/app/runtime.py` | Replaced by DI via `Depends()` |
-| `backend/main.py` (root) | Kept as standalone merkle/telemetry service |
+| `backend/app/runtime.py` | Lifespan logic moves to `app/main.py` lifespan context manager; global singleton accessor pattern replaced by `Depends()` |
+| `backend/main.py` (root) | Kept as a **separate standalone process** (merkle tree + telemetry); reassigned to port **8010** to avoid collision with the FastAPI app on 8000. Add as its own Docker Compose service on 8010. |
 | `frontend/` (vanilla JS) | Frozen — no new development |
-| `bridge_defi/frontend/` | Becomes the unified frontend |
+| `bridge_defi/frontend/` | Substantially restructured in-place to become the unified frontend |
 | `backend/app/main.py` | Becomes pure app factory |
