@@ -55,3 +55,22 @@ class NetworkServices:
 
     async def deregister_project(self, project_id: str) -> bool:
         return await self._projects.deregister(project_id)
+
+    # ------------------------------------------------------------------
+    # Replication engine
+    # ------------------------------------------------------------------
+
+    async def replication_status(self) -> dict[str, Any]:
+        from app.runtime import replication_engine
+        return await replication_engine.get_status()
+
+    async def replication_nodes(self) -> list[dict]:
+        from app.runtime import replication_engine
+        return await replication_engine.get_nodes()
+
+    async def replication_register(
+        self, node_id: str, url: str, capabilities: list | None = None
+    ) -> dict[str, Any]:
+        from app.runtime import replication_engine
+        await replication_engine.register_node(node_id, url, capabilities)
+        return {"ok": True, "node_id": node_id, "url": url}

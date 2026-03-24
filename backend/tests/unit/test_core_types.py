@@ -1,7 +1,8 @@
 """Unit tests for core/types.py."""
-from app.core.types import OkResponse, ErrorResponse, BridgeBaseModel
 import pytest
 from pydantic import ValidationError as PydanticValidationError
+
+from app.core.types import BridgeBaseModel, ErrorResponse, OkResponse
 
 
 def test_ok_response_defaults():

@@ -1,6 +1,7 @@
 """Integration tests — BridgeError exception handler maps to correct HTTP status codes."""
 import pytest
-from fastapi import FastAPI
+from fastapi import FastAPI, Request
+from fastapi.responses import JSONResponse
 from fastapi.testclient import TestClient
 
 from app.core.errors import (
@@ -12,8 +13,6 @@ from app.core.errors import (
     ValidationError,
     error_response,
 )
-from fastapi.responses import JSONResponse
-from fastapi import Request
 
 
 def _make_app(*error_cls_list):

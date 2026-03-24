@@ -83,3 +83,30 @@ async def deregister_project(project_id: str, svc: NetworkDep) -> dict[str, Any]
     if not removed:
         raise HTTPException(status_code=404, detail=f"project '{project_id}' not found")
     return {"ok": True, "removed": project_id}
+
+
+# ------------------------------------------------------------------
+# Replication engine (from routes/api.py)
+# ------------------------------------------------------------------
+
+@router.get("/replication/status")
+async def replication_status(svc: NetworkDep) -> dict[str, Any]:
+    return await svc.replication_status()
+
+
+@router.get("/replication/nodes")
+async def replication_nodes(svc: NetworkDep) -> dict[str, Any]:
+    nodes = await svc.replication_nodes()
+    return {"ok": True, "nodes": nodes}
+
+
+@router.post("/replication/register")
+async def replication_register(data: dict[str, Any], svc: NetworkDep) -> dict[str, Any]:
+    node_id = data.get("node_id")
+    url = data.get("url")
+    if not node_id or not url:
+        raise HTTPException(status_code=400, detail="node_id and url required")
+    capabilities = data.get("capabilities")
+    if isinstance(capabilities, str):
+        capabilities = [c.strip() for c in capabilities.split(",") if c.strip()]
+    return await svc.replication_register(node_id=str(node_id), url=str(url), capabilities=capabilities)

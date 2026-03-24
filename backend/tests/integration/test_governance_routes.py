@@ -1,10 +1,12 @@
 """Integration tests for governance domain routes."""
-import pytest
 from unittest.mock import AsyncMock, MagicMock
-from httpx import ASGITransport, AsyncClient
+
+import pytest
 from fastapi import FastAPI
-from app.domains.governance.router import router as gov_router
+from httpx import ASGITransport, AsyncClient
+
 from app.domains.governance.deps import get_governance
+from app.domains.governance.router import router as gov_router
 from app.domains.governance.services import GovernanceServices
 
 

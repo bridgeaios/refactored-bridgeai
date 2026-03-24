@@ -141,3 +141,109 @@ async def cli_report(payload: dict[str, Any], svc: InfraDep) -> dict[str, Any]:
 @router.get("/cli/history")
 async def cli_history(svc: InfraDep, limit: int = 30) -> dict[str, Any]:
     return await svc.cli_history(limit=limit)
+
+
+# ------------------------------------------------------------------
+# Skills (from routes/api.py)
+# ------------------------------------------------------------------
+
+@router.get("/skills")
+async def list_skills(svc: InfraDep) -> dict[str, Any]:
+    return await svc.list_skills()
+
+
+@router.post("/skills")
+async def add_skill(skill: dict[str, Any], svc: InfraDep) -> dict[str, Any]:
+    return await svc.add_skill(skill)
+
+
+# ------------------------------------------------------------------
+# User settings (from routes/api.py)
+# ------------------------------------------------------------------
+
+def _uid_from_request(request: Request) -> str:
+    uid = request.headers.get("X-User-Id") or request.headers.get("X-Bridge-User-Id")
+    if uid and isinstance(uid, str) and uid.strip():
+        return uid.strip()[:128]
+    return "default"
+
+
+@router.get("/user/settings")
+async def get_user_settings(request: Request, svc: InfraDep) -> dict[str, Any]:
+    return await svc.user_settings_get(_uid_from_request(request))
+
+
+@router.put("/user/settings")
+async def put_user_settings(request: Request, svc: InfraDep) -> dict[str, Any]:
+    try:
+        payload = await request.json()
+    except Exception:
+        payload = {}
+    uid = _uid_from_request(request)
+    settings = payload.get("settings") if isinstance(payload.get("settings"), dict) else (payload if isinstance(payload, dict) else {})
+    return await svc.user_settings_put(uid, settings)
+
+
+# ------------------------------------------------------------------
+# Health extended (from routes/api.py)
+# ------------------------------------------------------------------
+
+@router.get("/health/extended")
+async def health_extended(svc: InfraDep) -> dict[str, Any]:
+    return svc.health_extended()
+
+
+# ------------------------------------------------------------------
+# Sensors (from routes/api.py)
+# ------------------------------------------------------------------
+
+@router.post("/sensors/wifi")
+async def sensors_wifi_post(payload: dict[str, Any], svc: InfraDep) -> dict[str, Any]:
+    return await svc.sensors_wifi_post(payload)
+
+
+@router.get("/sensors/wifi")
+async def sensors_wifi_get(svc: InfraDep) -> dict[str, Any]:
+    return await svc.sensors_wifi_get()
+
+
+@router.post("/sensors/mouse")
+async def sensors_mouse_post(payload: dict[str, Any], svc: InfraDep) -> dict[str, Any]:
+    return await svc.sensors_mouse_post(payload)
+
+
+@router.get("/sensors/mouse")
+async def sensors_mouse_get(svc: InfraDep) -> dict[str, Any]:
+    return await svc.sensors_mouse_get()
+
+
+# ------------------------------------------------------------------
+# Live map / report (from routes/api.py)
+# ------------------------------------------------------------------
+
+@router.get("/live/map")
+async def live_map(svc: InfraDep) -> dict[str, Any]:
+    return await svc.live_map()
+
+
+@router.get("/live/report")
+async def live_report(svc: InfraDep) -> dict[str, Any]:
+    from datetime import datetime
+    data = await svc.live_map()
+    data["report_at"] = datetime.utcnow().isoformat() + "Z"
+    data["live_display"] = True
+    return data
+
+
+# ------------------------------------------------------------------
+# Orchestrate + Wiki (from routes/api.py)
+# ------------------------------------------------------------------
+
+@router.get("/orchestrate/directives")
+async def orchestrate_directives(svc: InfraDep) -> dict[str, Any]:
+    return svc.orchestrate_directives()
+
+
+@router.get("/wiki/registry")
+async def wiki_registry(svc: InfraDep) -> dict[str, Any]:
+    return await svc.wiki_registry()

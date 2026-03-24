@@ -140,6 +140,31 @@ class EconomyServices:
                 return t
         raise NotFoundError(f"task {task_id} not found")
 
+    def add_task_raw(self, task: dict) -> dict[str, Any]:
+        """Direct add_task for legacy /marketplace/task path (no title validation)."""
+        t = self._marketplace.add_task(task)
+        try:
+            reward = float(task.get("reward", 0))
+            fee = reward * 0.05
+            self._revenue.collect(fee, source="marketplace", method="marketplace")
+        except Exception:
+            pass
+        return {"status": "created", "task": t}
+
+    def pledge_task(
+        self, task_id: int, wallet: str, amount: float, event_id: str | None = None
+    ) -> dict[str, Any]:
+        if amount <= 0:
+            raise ValidationError("amount must be > 0")
+        t = self._marketplace.pledge_task(task_id, wallet, amount, event_id)
+        if not t:
+            raise NotFoundError(f"task {task_id} not found")
+        try:
+            self._revenue.collect(max(0.01, amount * 0.01), source="marketplace", method="marketplace")
+        except Exception:
+            pass
+        return {"status": "pledged", "task": t, "event_id": event_id}
+
     # ------------------------------------------------------------------
     # Revenue
     # ------------------------------------------------------------------
@@ -171,6 +196,7 @@ class EconomyServices:
 
     async def webhook_paystack(self, body: bytes, signature: str) -> dict[str, Any]:
         import json as _json
+
         from app.services.payment_rails import PaymentRails
         if not PaymentRails.verify_paystack(body, signature):
             raise AuthError("invalid Paystack signature")
@@ -193,6 +219,7 @@ class EconomyServices:
 
     async def webhook_paypal(self, body: bytes, headers: dict) -> dict[str, Any]:
         import json as _json
+
         from app.services.payment_rails import PaymentRails
         if not PaymentRails.verify_paypal(body, headers):
             raise AuthError("invalid PayPal signature")
@@ -215,6 +242,7 @@ class EconomyServices:
 
     async def webhook_crypto(self, body: bytes) -> dict[str, Any]:
         import json as _json
+
         from app.services.payment_rails import PaymentRails
         try:
             payload = _json.loads(body)
@@ -235,6 +263,7 @@ class EconomyServices:
 
     async def webhook_generic(self, rail: str, body: bytes, source_project: str | None = None) -> dict[str, Any]:
         import json as _json
+
         from app.services.payment_rails import PaymentRails
         try:
             payload = _json.loads(body)

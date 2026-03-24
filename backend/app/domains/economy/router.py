@@ -185,12 +185,52 @@ async def marketplace_task(
     return {"ok": True, "task": task}
 
 
+@router.post("/marketplace/task")
+async def marketplace_add_task_raw(
+    task: dict[str, Any],
+    svc: EconomyDep,
+) -> dict[str, Any]:
+    """Legacy add-task path (no schema validation, accepts any dict)."""
+    if not isinstance(task, dict):
+        raise HTTPException(400, detail="invalid task")
+    return svc.add_task_raw(task)
+
+
+@router.post("/marketplace/pledge")
+async def marketplace_pledge(
+    data: dict[str, Any],
+    svc: EconomyDep,
+) -> dict[str, Any]:
+    task_id = data.get("task_id")
+    wallet = data.get("wallet")
+    amount = data.get("amount")
+    if not task_id or not wallet:
+        raise HTTPException(400, detail="task_id and wallet required")
+    try:
+        amt = float(amount)  # type: ignore[arg-type]
+    except Exception:
+        raise HTTPException(400, detail="valid amount required") from None
+    event_id = data.get("event_id")
+    return svc.pledge_task(
+        task_id=int(task_id),
+        wallet=str(wallet),
+        amount=amt,
+        event_id=str(event_id) if event_id else None,
+    )
+
+
 # ------------------------------------------------------------------
 # Revenue
 # ------------------------------------------------------------------
 
 @router.get("/revenue/summary")
 async def revenue_summary(svc: EconomyDep) -> dict[str, Any]:
+    return await svc.revenue_summary()
+
+
+@router.get("/revenue/status")
+async def revenue_status(svc: EconomyDep) -> dict[str, Any]:
+    """Alias for /revenue/summary — legacy path compatibility."""
     return await svc.revenue_summary()
 
 

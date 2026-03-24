@@ -14,15 +14,15 @@ _log = logging.getLogger(__name__)
 class GovernanceServices:
     """Aggregates all governance-domain services."""
 
-    def __init__(self, memory=None) -> None:
+    def __init__(self, memory: Any | None = None) -> None:
         self._gov = GovernanceService()
         self._rep = get_reputation_service()
         self._sdg = SdgService()
         self._kg = None
         self._mission = None
         try:
-            from app.services.knowledge_graph import KnowledgeGraphService
-            self._kg = KnowledgeGraphService()
+            from app.services.knowledge_graph import KnowledgeGraph
+            self._kg = KnowledgeGraph()
         except Exception as exc:
             _log.warning("KnowledgeGraph unavailable: %s", exc)
         if memory:

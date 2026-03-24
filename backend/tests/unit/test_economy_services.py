@@ -2,10 +2,12 @@
 Unit tests for economy domain service facade.
 Uses mocked memory so no Redis needed.
 """
-import pytest
 from unittest.mock import AsyncMock, MagicMock
-from app.domains.economy.services import EconomyServices
+
+import pytest
+
 from app.core.errors import NotFoundError, ValidationError
+from app.domains.economy.services import EconomyServices
 
 
 @pytest.fixture

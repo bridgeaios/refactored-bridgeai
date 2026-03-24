@@ -2,13 +2,14 @@
 Integration tests for infra domain routes.
 Uses httpx.AsyncClient against a minimal app with InfraServices overridden.
 """
-import pytest
 from unittest.mock import AsyncMock, MagicMock
-from httpx import ASGITransport, AsyncClient
-from fastapi import FastAPI
 
-from app.domains.infra.router import router as infra_router
+import pytest
+from fastapi import FastAPI
+from httpx import ASGITransport, AsyncClient
+
 from app.domains.infra.deps import get_infra
+from app.domains.infra.router import router as infra_router
 from app.domains.infra.services import InfraServices
 
 
@@ -80,6 +81,7 @@ async def test_youtube_search_503_when_unavailable(client, mock_infra):
     # Wire the BridgeError handler so 503 is returned
     from fastapi import Request
     from fastapi.responses import JSONResponse
+
     from app.core.errors import BridgeError, error_response
     from app.main import _BRIDGE_STATUS_MAP
 

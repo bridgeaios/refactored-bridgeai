@@ -179,7 +179,7 @@ class TestDecisionIntegrity:
 
     def test_execution_gate_module(self):
         """Test execution_gate evaluate and select functions"""
-        from app.services.execution_gate import evaluate, select, THETA
+        from app.services.execution_gate import evaluate, select
 
         valid_task = {
             "id": "task1",

@@ -1,16 +1,15 @@
 """Unit tests for economy domain models."""
 import pytest
 from pydantic import ValidationError
+
 from app.domains.economy.models import (
+    AcceptTaskRequest,
     CollectRequest,
     CollectResponse,
+    CompleteTaskRequest,
+    PostTaskRequest,
     TreasuryStatus,
     UbiClaimRequest,
-    UbiClaimResponse,
-    MarketplaceTask,
-    PostTaskRequest,
-    AcceptTaskRequest,
-    CompleteTaskRequest,
 )
 
 

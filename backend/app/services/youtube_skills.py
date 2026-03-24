@@ -282,7 +282,7 @@ def _extract_steps(lines: list[str]) -> list[dict[str, str]]:
 def _extract_description(lines: list[str]) -> str:
     """Extract the first meaningful paragraph from description lines."""
     paragraphs = []
-    current = []
+    current: list[str] = []
     for line in lines:
         line = line.strip()
         if not line:

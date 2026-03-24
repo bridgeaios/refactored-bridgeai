@@ -341,7 +341,7 @@ class KnowledgeGraph:
         if not agent:
             return {}
 
-        network = {"direct": [], "indirect": []}
+        network: dict[str, list[dict[str, str]]] = {"direct": [], "indirect": []}
 
         for src, rel, tgt in self._relationships:
             if src == agent_id and tgt in self._agents:

@@ -1,4 +1,5 @@
 import os
+from collections.abc import AsyncIterator
 
 import aiohttp
 
@@ -14,7 +15,7 @@ class VoiceBroker:
             self._session = aiohttp.ClientSession()
         return self._session
 
-    async def stream_tts(self, text: str, voice_id: str = "21m00Tcm4TlvDq8ikWAM"):
+    async def stream_tts(self, text: str, voice_id: str = "21m00Tcm4TlvDq8ikWAM") -> AsyncIterator[bytes]:
         session = self._get_session()
         if ELEVEN_API:
             url = f"https://api.elevenlabs.io/v1/text-to-speech/{voice_id}/stream"

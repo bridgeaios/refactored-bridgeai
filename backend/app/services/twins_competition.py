@@ -4,6 +4,7 @@ Twins compete to build the most and get more done for the Bridge.
 """
 import random
 from dataclasses import dataclass, field
+from typing import Any
 
 
 @dataclass
@@ -107,7 +108,7 @@ class TwinsCompetitionService:
             results.append({"twin_id": t.id, "asset": asset, "signal": signal, "pnl": round(pnl, 4)})
         return results
 
-    def auto_add_task(self, marketplace) -> dict | None:
+    def auto_add_task(self, marketplace: Any) -> dict[str, Any] | None:
         """Pick from pool (priority-weighted: prefer higher reward). Add to marketplace."""
         from app.services.priority_routing import (
             compute_priority_score,
@@ -128,7 +129,7 @@ class TwinsCompetitionService:
             return None
         return marketplace.add_task(payload)
 
-    def allocate_top_task(self, twin_id: str, marketplace) -> dict | None:
+    def allocate_top_task(self, twin_id: str, marketplace: Any) -> dict[str, Any] | None:
         """
         Allocate top-priority task to twin. No random. No manual override.
         Execution = argmax(priority_score).
@@ -153,7 +154,7 @@ class TwinsCompetitionService:
                 twin.skills_learned.append(skill)
         return task
 
-    def allocate_task(self, task_id: int, twin_id: str, marketplace) -> dict | None:
+    def allocate_task(self, task_id: int, twin_id: str, marketplace: Any) -> dict[str, Any] | None:
         """Legacy: allocate specific task. Prefer allocate_top_task for canonical flow."""
         if twin_id not in self.twins:
             return None

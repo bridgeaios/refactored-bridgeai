@@ -1,10 +1,12 @@
 """Integration tests for twins domain routes."""
-import pytest
 from unittest.mock import AsyncMock, MagicMock
-from httpx import ASGITransport, AsyncClient
+
+import pytest
 from fastapi import FastAPI
-from app.domains.twins.router import router as twins_router
+from httpx import ASGITransport, AsyncClient
+
 from app.domains.twins.deps import get_twins
+from app.domains.twins.router import router as twins_router
 from app.domains.twins.services import TwinsServices
 
 

@@ -1,7 +1,10 @@
-﻿from fastapi import FastAPI, WebSocket
-from fastapi.staticfiles import StaticFiles
+﻿import asyncio
+import hashlib
+import os
 from datetime import datetime
-import hashlib, os, json, asyncio
+
+from fastapi import FastAPI, WebSocket
+from fastapi.staticfiles import StaticFiles
 
 app = FastAPI()
 
@@ -33,7 +36,8 @@ def build_merkle():
             p = os.path.join(root,f)
             hashes.append(hash_file(p))
     hashes.sort()
-    if not hashes: return None
+    if not hashes:
+        return None
     while len(hashes) > 1:
         hashes = [
             hashlib.sha256((hashes[i] + hashes[i+1]).encode()).hexdigest()
@@ -95,7 +99,7 @@ async def ws(ws: WebSocket):
         while True:
             await asyncio.sleep(1)
             await ws.send_json(STATE)
-    except:
+    except Exception:
         clients.remove(ws)
 
 # -------------------------

@@ -4,6 +4,7 @@ Uses the real app instance so any missing include_router() call is caught.
 """
 import pytest
 from httpx import ASGITransport, AsyncClient
+
 from app.main import app
 
 EXPECTED_PREFIXES = [

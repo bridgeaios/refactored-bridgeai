@@ -58,7 +58,6 @@ from app.physics import (
     telemetry,
 )
 from app.reducers import STRICT_MODE, get_registry_snapshot, is_sanctioned
-from app.routes.api import router as api_router
 from app.runtime import (
     bossbots_service,
     marketplace_service,
@@ -236,11 +235,9 @@ async def cortex_middleware(request: Request, call_next):
     return response
 
 
-# Legacy route file — kept while state/*, cortex/*, websocket, autonomous/*, ingestion/* migrate
-app.include_router(api_router, prefix="/api")
+# Domain routers — all routes now in domain packages
+from app.routes import all_routers
 
-# Domain routers — loaded via aggregator
-from app.routes import all_routers  # noqa: E402
 for _router in all_routers:
     app.include_router(_router, prefix="/api")
 

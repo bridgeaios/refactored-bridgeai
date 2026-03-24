@@ -3,13 +3,14 @@ Integration tests for economy domain routes.
 Uses httpx.AsyncClient against a minimal FastAPI app that includes only
 the economy router, with EconomyServices dependency overridden.
 """
-import pytest
 from unittest.mock import AsyncMock, MagicMock
-from httpx import ASGITransport, AsyncClient
-from fastapi import FastAPI
 
-from app.domains.economy.router import router as economy_router
+import pytest
+from fastapi import FastAPI
+from httpx import ASGITransport, AsyncClient
+
 from app.domains.economy.deps import get_economy
+from app.domains.economy.router import router as economy_router
 from app.domains.economy.services import EconomyServices
 
 

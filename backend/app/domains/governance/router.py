@@ -75,3 +75,9 @@ async def kg_query(
 @router.get("/mission/board")
 async def mission_board(svc: GovernanceDep) -> dict[str, Any]:
     return await svc.mission_board()
+
+
+@router.get("/sdg/metrics")
+async def sdg_metrics(svc: GovernanceDep) -> dict[str, Any]:
+    """Alias for /sdg/status — legacy path compatibility."""
+    return await svc.sdg_status()

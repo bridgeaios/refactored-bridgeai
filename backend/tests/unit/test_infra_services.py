@@ -1,6 +1,7 @@
 """Unit tests for infra domain services."""
+from unittest.mock import AsyncMock, MagicMock
+
 import pytest
-from unittest.mock import MagicMock, patch, AsyncMock
 
 
 @pytest.fixture
@@ -42,8 +43,9 @@ def test_youtube_available_without_key(mock_memory):
     import os
     original = os.environ.pop("YOUTUBE_API_KEY", None)
     try:
-        from app.domains.infra import services as infra_mod
         import importlib
+
+        from app.domains.infra import services as infra_mod
         importlib.reload(infra_mod)
         svc = infra_mod.InfraServices(memory=mock_memory)
         # When key is absent the YouTubeSkillsService initialises but available=False

@@ -1,12 +1,11 @@
 """Unit tests for core/errors.py."""
-import pytest
 from app.core.errors import (
+    AuthError,
     BridgeError,
+    EconomicGateError,
+    NetworkError,
     NotFoundError,
     ValidationError,
-    EconomicGateError,
-    AuthError,
-    NetworkError,
     error_response,
 )
 

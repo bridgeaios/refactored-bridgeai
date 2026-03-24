@@ -39,14 +39,15 @@ class ReplicationEngine:
         return len(getattr(self.twins, "twins", {}))
 
     def _open_task_count(self) -> int:
-        return self.marketplace.get_open_count()
+        return int(self.marketplace.get_open_count())
 
     def _best_twin_id_for_variant(self) -> str | None:
         """Twin with highest completed count above threshold."""
         leaderboard = self.twins.get_leaderboard()
         for e in leaderboard:
             if e.get("completed", 0) >= self.performance_threshold:
-                return e.get("id")
+                twin_id = e.get("id")
+                return str(twin_id) if twin_id is not None else None
         return None
 
     def _next_variant_name(self) -> str:

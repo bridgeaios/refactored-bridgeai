@@ -7,35 +7,36 @@ Tests for:
 - Knowledge Graph Service
 - Swarm Message Bus Service
 """
-import pytest
-from decimal import Decimal
-from datetime import datetime
-import sys
 import os
+import sys
+from datetime import datetime
+from decimal import Decimal
+
+import pytest
 
 sys.path.insert(0, os.path.abspath(os.path.join(os.path.dirname(__file__), '..')))
 
-from app.services.mission_economy import (
-    MissionEconomyService,
-    MissionTier,
-    MissionStatus,
-)
 from app.services.evolution_governance import (
-    EvolutionGovernance,
-    MutationType,
-    MutationStatus,
     AgentStatus,
-    VoteType,
+    EvolutionGovernance,
+    MutationStatus,
+    MutationType,
     VoteOption,
+    VoteType,
 )
 from app.services.knowledge_graph import (
     KnowledgeGraph,
     SkillLevel,
 )
+from app.services.mission_economy import (
+    MissionEconomyService,
+    MissionStatus,
+    MissionTier,
+)
 from app.services.swarm_message_bus import (
-    SwarmMessageBus,
-    AgentMessage,
     AgentEvent,
+    AgentMessage,
+    SwarmMessageBus,
 )
 
 

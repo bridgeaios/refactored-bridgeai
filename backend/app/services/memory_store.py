@@ -2,14 +2,15 @@ import asyncio
 import json
 import os
 from pathlib import Path
+from typing import Any
 
 from redis.asyncio import from_url
 
 
 class MemoryStore:
-    def __init__(self):
+    def __init__(self) -> None:
         self.url = os.getenv("REDIS_URL", "redis://localhost:6379/0")
-        self._r = None
+        self._r: Any | None = None
         # File-backed fallback so the system remains stateful without Redis/Docker.
         # Keep runtime state OUTSIDE the Merkle-hashed code tree.
         # `.bridge-state/` is excluded by the verifier by design.
@@ -18,7 +19,7 @@ class MemoryStore:
         self._file_path = Path(os.getenv("BRIDGE_STATE_FILE", str(default_file))).resolve()
         self._lock = asyncio.Lock()
 
-    async def connect(self):
+    async def connect(self) -> None:
         try:
             r = from_url(self.url, encoding="utf-8", decode_responses=True, socket_connect_timeout=2)
             await r.ping()
@@ -28,11 +29,11 @@ class MemoryStore:
         # Always initialize file store (even if Redis is up, used for bootstrap/dev fallback).
         await self._ensure_file()
 
-    async def disconnect(self):
+    async def disconnect(self) -> None:
         if self._r:
             await self._r.aclose()
 
-    async def _ensure_file(self):
+    async def _ensure_file(self) -> None:
         # IMPORTANT: do not take self._lock here.
         # Callers already guard critical sections with self._lock, and re-entrant lock
         # would deadlock during startup (e.g., verify_boot_identity -> memory.get()).
@@ -44,7 +45,7 @@ class MemoryStore:
             # Best-effort fallback.
             pass
 
-    async def _read_file_state(self) -> dict:
+    async def _read_file_state(self) -> dict[str, Any]:
         await self._ensure_file()
         try:
             raw = self._file_path.read_text(encoding="utf-8")
@@ -66,7 +67,7 @@ class MemoryStore:
             raise FileNotFoundError(f"temporary state file was not created: {tmp}")
         os.replace(tmp, self._file_path)
 
-    async def append(self, key: str, value):
+    async def append(self, key: str, value: Any) -> None:
         if self._r:
             await self._r.rpush(key, json.dumps(value))
             return
@@ -83,7 +84,7 @@ class MemoryStore:
             state[key] = arr
             await self._write_file_state(state)
 
-    async def get_recent(self, key: str, n: int = 20):
+    async def get_recent(self, key: str, n: int = 20) -> list[Any]:
         if self._r:
             arr = await self._r.lrange(key, -n, -1)
             return [json.loads(x) for x in arr]
@@ -96,7 +97,7 @@ class MemoryStore:
 
     async def get(self, key: str) -> str | None:
         if self._r:
-            val = await self._r.get(key)
+            val: str | None = await self._r.get(key)
             return val
         async with self._lock:
             state = await self._read_file_state()
@@ -126,7 +127,8 @@ class MemoryStore:
     async def incr(self, key: str) -> int:
         """Atomic increment. Monotonic across cluster when using Redis."""
         if self._r:
-            return await self._r.incr(key)
+            result: int = await self._r.incr(key)
+            return result
         async with self._lock:
             state = await self._read_file_state()
             cur = state.get(key)
@@ -138,4 +140,17 @@ class MemoryStore:
             state[key] = cur_i
             await self._write_file_state(state)
             return cur_i
+
+    async def delete(self, key: str) -> bool:
+        """Delete a key. Returns True if deleted, False if key did not exist."""
+        if self._r:
+            deleted: int = await self._r.delete(key)
+            return deleted > 0
+        async with self._lock:
+            state = await self._read_file_state()
+            if key not in state:
+                return False
+            del state[key]
+            await self._write_file_state(state)
+            return True
 

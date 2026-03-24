@@ -1,10 +1,12 @@
 """Integration tests for network domain routes."""
-import pytest
 from unittest.mock import AsyncMock, MagicMock
-from httpx import ASGITransport, AsyncClient
+
+import pytest
 from fastapi import FastAPI
-from app.domains.network.router import router as network_router
+from httpx import ASGITransport, AsyncClient
+
 from app.domains.network.deps import get_network
+from app.domains.network.router import router as network_router
 from app.domains.network.services import NetworkServices
 
 
