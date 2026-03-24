@@ -8,7 +8,6 @@ import uuid
 from dataclasses import dataclass, field
 from datetime import datetime
 from enum import Enum
-from typing import Optional
 
 
 class MutationType(str, Enum):
@@ -65,7 +64,7 @@ class MutationProposal:
     status: MutationStatus = MutationStatus.PROPOSED
     proposer_id: str = ""
     created_at: datetime = field(default_factory=datetime.utcnow)
-    test_results: Optional[dict] = None
+    test_results: dict | None = None
     approval_votes: int = 0
     rejection_votes: int = 0
 
@@ -87,7 +86,7 @@ class QuarantineRecord:
     severity: str
     violations: list[str]
     quarantined_at: datetime
-    released_at: Optional[datetime] = None
+    released_at: datetime | None = None
     release_conditions: list[str] = field(default_factory=list)
 
 
@@ -206,7 +205,6 @@ class EvolutionGovernance:
         if not snapshots:
             return False
 
-        last_snapshot = snapshots[-1]
         mutation = next(
             (m for m in self._mutations.values() if m.agent_id == agent_id),
             None,
@@ -240,7 +238,7 @@ class EvolutionGovernance:
         self._agent_status[agent_id] = AgentStatus.QUARANTINED
         return record
 
-    def get_quarantine_status(self, agent_id: str) -> Optional[QuarantineRecord]:
+    def get_quarantine_status(self, agent_id: str) -> QuarantineRecord | None:
         """Get quarantine status."""
         return self._quarantine.get(agent_id)
 
@@ -322,11 +320,11 @@ class EvolutionGovernance:
         """Get agent operational status."""
         return self._agent_status.get(agent_id, AgentStatus.ACTIVE)
 
-    def get_mutation(self, mutation_id: str) -> Optional[MutationProposal]:
+    def get_mutation(self, mutation_id: str) -> MutationProposal | None:
         """Get mutation by ID."""
         return self._mutations.get(mutation_id)
 
-    def list_mutations(self, status: Optional[MutationStatus] = None) -> list[MutationProposal]:
+    def list_mutations(self, status: MutationStatus | None = None) -> list[MutationProposal]:
         """List mutations with optional filter."""
         mutations = list(self._mutations.values())
         if status:
@@ -344,7 +342,7 @@ class EvolutionGovernance:
         }
 
 
-_governance_service: Optional[EvolutionGovernance] = None
+_governance_service: EvolutionGovernance | None = None
 
 
 def get_governance_service() -> EvolutionGovernance:

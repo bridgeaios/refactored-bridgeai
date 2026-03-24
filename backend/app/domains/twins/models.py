@@ -1,6 +1,8 @@
 """Pydantic schemas for the twins domain."""
 from __future__ import annotations
-from typing import Any, Optional
+
+from typing import Any
+
 from pydantic import BaseModel, Field
 
 
@@ -12,14 +14,14 @@ class DecideRequest(BaseModel):
 
 class DecideResponse(BaseModel):
     ok: bool
-    decision: Optional[str] = None
-    reasoning: Optional[str] = None
+    decision: str | None = None
+    reasoning: str | None = None
     deterministic: bool = False
 
 
 class TwinProfile(BaseModel):
     twin_id: str
-    name: Optional[str] = None
+    name: str | None = None
     status: str = "active"
     capabilities: list[str] = Field(default_factory=list)
 
@@ -27,7 +29,7 @@ class TwinProfile(BaseModel):
 class SpeakRequest(BaseModel):
     text: str = Field(..., min_length=1)
     twin_id: str = "default"
-    voice: Optional[str] = None
+    voice: str | None = None
 
 
 class EmotionUpdateRequest(BaseModel):

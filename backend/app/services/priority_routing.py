@@ -8,7 +8,7 @@ Governing law of execution. No bypass. Canonical ordering.
 """
 import os
 import time
-from typing import Callable, Optional
+from collections.abc import Callable
 
 # Global backpressure. Apply to accept, allocate, demand/pump.
 # Set via env: BRIDGE_PRIORITY_MIN_THRESHOLD
@@ -30,8 +30,8 @@ def normalize_trust(reputation: float) -> float:
 def get_latency_cost(
     task: dict,
     *,
-    telemetry_getter: Optional[Callable[[str], float]] = None,
-    now_ts: Optional[float] = None,
+    telemetry_getter: Callable[[str], float] | None = None,
+    now_ts: float | None = None,
 ) -> float:
     """
     Latency cost for priority. Prefer telemetry by task type; else task age.
@@ -55,14 +55,14 @@ def compute_priority_score(
     task: dict,
     *,
     trust: float = 0.5,
-    now_ts: Optional[float] = None,
-    latency_cost: Optional[float] = None,
-    telemetry_getter: Optional[Callable[[str], float]] = None,
+    now_ts: float | None = None,
+    latency_cost: float | None = None,
+    telemetry_getter: Callable[[str], float] | None = None,
     idle_hours: float = 0.0,
     failure_rate: float = 0.0,
     variance: float = 0.0,
     required_resources: float = 1.0,
-    sdg_getter: Optional[Callable[[str], float]] = None,
+    sdg_getter: Callable[[str], float] | None = None,
 ) -> tuple[float, dict]:
     """
     Returns (score, inputs_dict) for audit.
@@ -71,9 +71,9 @@ def compute_priority_score(
     """
     if USE_VECTOR_PRIORITY:
         from app.services.priority_vector import (
+            RISK_THRESHOLD,
             compute_priority_vector,
             passes_risk_threshold,
-            RISK_THRESHOLD,
         )
         pv, raw = compute_priority_vector(
             task,

@@ -13,8 +13,11 @@ import hashlib
 import time
 from dataclasses import dataclass
 
-from app.services.priority_routing import compute_priority_score, passes_threshold, TARGET_PRIORITY
-
+from app.services.priority_routing import (
+    TARGET_PRIORITY,
+    compute_priority_score,
+    passes_threshold,
+)
 
 DEFAULT_TASK_TEMPLATES: list[dict] = [
     {

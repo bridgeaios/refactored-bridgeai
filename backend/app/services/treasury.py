@@ -168,7 +168,7 @@ class TreasuryService:
         status["total_tx"] = status.get("total_tx", 0) + 1
 
         # Buckets
-        buckets = status.setdefault("buckets", {k: 0.0 for k in SPLIT})
+        buckets = status.setdefault("buckets", dict.fromkeys(SPLIT, 0.0))
         for k, v in split.items():
             buckets[k] = round(float(buckets.get(k, 0.0)) + v, 6)
 
@@ -192,7 +192,7 @@ def _empty_status() -> dict[str, Any]:
     return {
         "total_collected_brdg": 0.0,
         "total_tx": 0,
-        "buckets": {k: 0.0 for k in SPLIT},
+        "buckets": dict.fromkeys(SPLIT, 0.0),
         "by_project": {},
         "by_method": {},
         "by_currency": {},

@@ -4,7 +4,6 @@ Never let raw speech directly trigger execution. This is the buffer.
 """
 import re
 from dataclasses import dataclass
-from typing import Optional
 
 # Filler patterns (case-insensitive, whole-word)
 FILLER_PATTERN = re.compile(
@@ -69,7 +68,7 @@ class ReasoningResult:
     confidence: float
     clarification_needed: bool
     response: str
-    execution_plan: Optional[dict] = None
+    execution_plan: dict | None = None
 
 
 class SpeechReasoningService:
@@ -78,7 +77,7 @@ class SpeechReasoningService:
     scores confidence, and produces validated response.
     """
 
-    def process(self, raw_transcript: str, context: Optional[dict] = None) -> ReasoningResult:
+    def process(self, raw_transcript: str, context: dict | None = None) -> ReasoningResult:
         """
         Full pipeline: normalize → detect → validate → score → respond.
         """
@@ -189,7 +188,7 @@ class SpeechReasoningService:
         emotion: str,
         urgency: str,
         context: dict,
-    ) -> tuple[str, Optional[dict]]:
+    ) -> tuple[str, dict | None]:
         """
         Generate response and optional execution plan.
         Aligned with mission: poverty reduction, infrastructure, lawful execution.
@@ -283,7 +282,7 @@ class SpeechReasoningService:
             None,
         )
 
-    def _infer_execution_plan(self, normalized: str, lower: str, context: dict) -> Optional[dict]:
+    def _infer_execution_plan(self, normalized: str, lower: str, context: dict) -> dict | None:
         """Map command phrases to structured execution plan."""
         if "claim" in lower and ("ubi" in lower or "basic" in lower):
             return {"action": "ubi_claim", "params": {"source": "speech"}, "validated": True}

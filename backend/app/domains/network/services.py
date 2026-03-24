@@ -1,9 +1,10 @@
 """Network domain service facade."""
 from __future__ import annotations
-from typing import Any, Optional, TYPE_CHECKING
+
+from typing import TYPE_CHECKING, Any
 
 from app.services.projects import ProjectsService
-from app.services.swarm_health import SwarmHealthService, SwarmHealthComponents
+from app.services.swarm_health import SwarmHealthComponents, SwarmHealthService
 
 if TYPE_CHECKING:
     from app.services.memory_store import MemoryStore
@@ -12,7 +13,7 @@ if TYPE_CHECKING:
 class NetworkServices:
     """Aggregates all network-domain services."""
 
-    def __init__(self, memory: "MemoryStore") -> None:
+    def __init__(self, memory: MemoryStore) -> None:
         self._memory = memory
         self._projects = ProjectsService(memory)
         self._swarm_health = SwarmHealthService()
@@ -21,7 +22,7 @@ class NetworkServices:
         return await self._projects.list_projects()
 
     async def register_project(
-        self, name: str, url: Optional[str] = None, meta: Optional[dict] = None
+        self, name: str, url: str | None = None, meta: dict | None = None
     ) -> dict[str, Any]:
         return await self._projects.register({"id": name, "label": name, "apiUrl": url or "", **(meta or {})})
 

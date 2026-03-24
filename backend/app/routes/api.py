@@ -52,16 +52,19 @@ from app.runtime import (
     memory,
     mission_service,
     replication_engine,
+    reputation_service,
     revenue_service,
     sdg_service,
     speech_embodiment,
     speech_reasoning,
+    swarm_health_service,
     system_comprehension,
     twins_competition,
     ubi_service,
     voice_broker,
 )
 from app.services.speech_embodiment import SKILL_DEFINITION
+from app.services.swarm_health import SwarmHealthComponents
 from app.services.system_comprehension import SKILL_DEFINITION as SYS_COMP_SKILL_DEF
 
 router = APIRouter()
@@ -424,7 +427,7 @@ async def claim_ubi(payload: dict):
     allowed, reason = check_economic_risk(twin_id, amount)
     if not allowed:
         raise HTTPException(status_code=429, detail=reason)
-    amount = ubi_service.distribute(address)
+    amount = await ubi_service.distribute(address)
     if amount > 0:
         record_economic_action(twin_id, amount)
         sdg_service.track('ubi_claims', 1)
@@ -1048,6 +1051,31 @@ def _write_founder_todo(data):
     FOUNDER_TODO_PATH.parent.mkdir(parents=True, exist_ok=True)
     with open(FOUNDER_TODO_PATH, "w", encoding="utf-8") as f:
         json.dump(data, f, indent=2)
+
+
+
+@router.get("/swarm/health")
+async def swarm_health():
+    # Use default values for the components
+    components = SwarmHealthComponents(
+        queue_latency_ms=0.0,
+        worker_utilization=0.5,
+        task_profitability=0.004,
+        agent_failure_rate=0.005
+    )
+    result = swarm_health_service.compute(components)
+    return result
+
+@router.get("/reputation/top")
+async def reputation_top(limit: int = 5):
+    agents = reputation_service.top(limit)
+    return {"ok": True, "agents": agents}
+
+@router.post("/demand/pump")
+async def demand_pump(payload: dict):
+    # For now, return a fixed response
+    # In the future, we would use the demand_engine to pump demand based on payload
+    return {"ok": True, "created": 2, "open_tasks": 1}
 
 
 @router.get("/founder-todo")

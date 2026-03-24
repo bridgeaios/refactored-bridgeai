@@ -8,13 +8,13 @@ Raises BridgeError subclasses — never bare Exception.
 """
 from __future__ import annotations
 
-from typing import Any, Optional, TYPE_CHECKING
+from typing import TYPE_CHECKING, Any
 
 from app.core.errors import NotFoundError, ValidationError
-from app.services.treasury import TreasuryService
-from app.services.ubi import UbiService
 from app.services.marketplace import MarketplaceService
 from app.services.revenue import RevenueService
+from app.services.treasury import TreasuryService
+from app.services.ubi import UbiService
 
 if TYPE_CHECKING:
     from app.services.memory_store import MemoryStore
@@ -23,7 +23,7 @@ if TYPE_CHECKING:
 class EconomyServices:
     """Aggregates all economy-domain services. Singleton via get_economy() in deps.py."""
 
-    def __init__(self, memory: "MemoryStore") -> None:
+    def __init__(self, memory: MemoryStore) -> None:
         self._memory = memory
         self._treasury = TreasuryService(memory)
         self._ubi = UbiService()
@@ -42,7 +42,7 @@ class EconomyServices:
         source_project: str = "bridge",
         method: str = "internal",
         type: str = "manual",
-        meta: Optional[dict] = None,
+        meta: dict | None = None,
     ) -> dict[str, Any]:
         if amount <= 0:
             raise ValidationError(f"amount must be positive, got {amount}")
@@ -99,7 +99,7 @@ class EconomyServices:
     # Marketplace
     # ------------------------------------------------------------------
 
-    def get_tasks(self, twin_id: str = "system", status: Optional[str] = None) -> list[dict]:
+    def get_tasks(self, twin_id: str = "system", status: str | None = None) -> list[dict]:
         return self._marketplace.get_tasks(twin_id=twin_id, status=status)
 
     def post_task(
@@ -107,8 +107,8 @@ class EconomyServices:
         title: str,
         value: float,
         twin_id: str = "system",
-        tags: Optional[list] = None,
-        meta: Optional[dict] = None,
+        tags: list | None = None,
+        meta: dict | None = None,
     ) -> dict[str, Any]:
         task = self._marketplace.add_task({
             "title": title,
@@ -126,7 +126,7 @@ class EconomyServices:
         return {"ok": True, "task": task}
 
     def complete_task(
-        self, task_id: int, twin_id: str = "system", result: Optional[str] = None
+        self, task_id: int, twin_id: str = "system", result: str | None = None
     ) -> dict[str, Any]:
         task = self._marketplace.complete_task(task_id=task_id)
         if task is None:

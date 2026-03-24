@@ -10,7 +10,7 @@ Status is stored in memory (replication:status) for GET /api/replication/status.
 
 import os
 import time
-from typing import Any, Optional
+from typing import Any
 
 
 def _env_int(name: str, default: int) -> int:
@@ -41,7 +41,7 @@ class ReplicationEngine:
     def _open_task_count(self) -> int:
         return self.marketplace.get_open_count()
 
-    def _best_twin_id_for_variant(self) -> Optional[str]:
+    def _best_twin_id_for_variant(self) -> str | None:
         """Twin with highest completed count above threshold."""
         leaderboard = self.twins.get_leaderboard()
         for e in leaderboard:
@@ -146,7 +146,7 @@ class ReplicationEngine:
             "rules_evaluated": [],
         }
 
-    async def register_node(self, node_id: str, url: str, capabilities: Optional[list[str]] = None) -> None:
+    async def register_node(self, node_id: str, url: str, capabilities: list[str] | None = None) -> None:
         """Register this or a peer node for discovery (store in memory)."""
         import json
         nodes = await self.get_nodes()

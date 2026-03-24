@@ -6,7 +6,7 @@ In production this would integrate with the blockchain service to mint
 and transfer tokens, persist claim timestamps to a DB, and enforce rate limits.
 """
 import time
-from typing import Optional, Any
+from typing import Any
 
 
 class UbiService:

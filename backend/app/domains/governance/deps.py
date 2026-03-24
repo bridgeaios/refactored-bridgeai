@@ -1,5 +1,6 @@
 """FastAPI Depends() factories for the governance domain."""
 from __future__ import annotations
+
 from app.domains.governance.services import GovernanceServices
 
 _singleton: GovernanceServices | None = None

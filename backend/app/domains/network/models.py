@@ -1,6 +1,8 @@
 """Pydantic schemas for the network domain."""
 from __future__ import annotations
-from typing import Any, Optional
+
+from typing import Any
+
 from pydantic import BaseModel, Field
 
 
@@ -19,7 +21,7 @@ class SwarmMessageRequest(BaseModel):
 
 class ProjectRegisterRequest(BaseModel):
     name: str = Field(..., min_length=1)
-    url: Optional[str] = None
+    url: str | None = None
     meta: dict[str, Any] = Field(default_factory=dict)
 
 

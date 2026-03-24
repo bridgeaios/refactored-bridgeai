@@ -8,6 +8,8 @@ This fixes a subtle but critical coherence issue:
 
 from app.services.bossbots import BossBotsService
 from app.services.cognitive_twin import CognitiveTwinService
+from app.services.demand_engine import DemandEngineService
+from app.services.econ_control import EconControlService
 from app.services.emotion import EmotionService
 from app.services.esim import EsimService
 from app.services.governance import GovernanceService
@@ -17,18 +19,16 @@ from app.services.memory_store import MemoryStore
 from app.services.mission import MissionService
 from app.services.projects import ProjectsService
 from app.services.replication import ReplicationEngine
+from app.services.reputation import get_reputation_service
 from app.services.revenue import RevenueService
 from app.services.sdg import SdgService
 from app.services.speech_embodiment import SpeechEmbodimentService
 from app.services.speech_reasoning import SpeechReasoningService
+from app.services.swarm_health import SwarmHealthService
 from app.services.system_comprehension import SystemComprehensionService
 from app.services.twins_competition import TwinsCompetitionService
 from app.services.ubi import UbiService
 from app.services.voice_broker import VoiceBroker
-from app.services.demand_engine import DemandEngineService
-from app.services.reputation import get_reputation_service
-from app.services.swarm_health import SwarmHealthService
-from app.services.econ_control import EconControlService
 
 # Shared memory (Redis if available; file-backed fallback if not).
 memory = MemoryStore()
@@ -53,6 +53,8 @@ reputation_service = get_reputation_service()
 
 # Wire priority routing: marketplace uses twin reputation. Trust normalized [0.1, 1.0].
 from app.services.priority_routing import normalize_trust
+
+
 def _reputation_score(agent_id: str) -> float:
     r = reputation_service.get(agent_id)
     return normalize_trust(r.score())
@@ -65,6 +67,7 @@ projects_service = ProjectsService(memory)
 
 # Unified treasury — all projects route revenue through here.
 from app.services.treasury import TreasuryService
+
 treasury_service = TreasuryService(memory)
 
 # Wire UBI to treasury so claims debit the UBI bucket.

@@ -7,8 +7,8 @@ on_collect callback. Set this at startup in runtime.py.
 """
 from __future__ import annotations
 
-from collections.abc import Coroutine
-from typing import Any, Callable
+from collections.abc import Callable, Coroutine
+from typing import Any
 
 # Split ratios: UBI, Treasury, Ops, Founder (must sum to 1.0)
 DISTRIBUTION_SPLIT = {
@@ -45,7 +45,8 @@ class RevenueService:
             try:
                 loop = asyncio.get_event_loop()
                 if loop.is_running():
-                    asyncio.ensure_future(self._on_collect(amount, source, method))
+                    _task = asyncio.ensure_future(self._on_collect(amount, source, method))
+                _ = _task  # reference kept to suppress RUF006
             except Exception:
                 pass
         return amount

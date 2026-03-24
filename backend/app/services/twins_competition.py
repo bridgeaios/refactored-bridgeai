@@ -4,7 +4,6 @@ Twins compete to build the most and get more done for the Bridge.
 """
 import random
 from dataclasses import dataclass, field
-from typing import Optional
 
 
 @dataclass
@@ -108,9 +107,12 @@ class TwinsCompetitionService:
             results.append({"twin_id": t.id, "asset": asset, "signal": signal, "pnl": round(pnl, 4)})
         return results
 
-    def auto_add_task(self, marketplace) -> Optional[dict]:
+    def auto_add_task(self, marketplace) -> dict | None:
         """Pick from pool (priority-weighted: prefer higher reward). Add to marketplace."""
-        from app.services.priority_routing import compute_priority_score, passes_threshold
+        from app.services.priority_routing import (
+            compute_priority_score,
+            passes_threshold,
+        )
         # Prefer higher-priority tasks: sort by reward desc, pick from top 5
         pool = sorted(AUTO_TASK_POOL, key=lambda x: float(x.get("reward", 0)), reverse=True)
         top = pool[:5]
@@ -126,7 +128,7 @@ class TwinsCompetitionService:
             return None
         return marketplace.add_task(payload)
 
-    def allocate_top_task(self, twin_id: str, marketplace) -> Optional[dict]:
+    def allocate_top_task(self, twin_id: str, marketplace) -> dict | None:
         """
         Allocate top-priority task to twin. No random. No manual override.
         Execution = argmax(priority_score).
@@ -151,7 +153,7 @@ class TwinsCompetitionService:
                 twin.skills_learned.append(skill)
         return task
 
-    def allocate_task(self, task_id: int, twin_id: str, marketplace) -> Optional[dict]:
+    def allocate_task(self, task_id: int, twin_id: str, marketplace) -> dict | None:
         """Legacy: allocate specific task. Prefer allocate_top_task for canonical flow."""
         if twin_id not in self.twins:
             return None
@@ -169,7 +171,7 @@ class TwinsCompetitionService:
                 twin.skills_learned.append(skill)
         return task
 
-    def complete_task(self, task_id: int, marketplace) -> Optional[dict]:
+    def complete_task(self, task_id: int, marketplace) -> dict | None:
         """Mark task complete. Verify skill was learned before crediting twin."""
         task = marketplace.complete_task(int(task_id))
         if not task:
@@ -205,7 +207,7 @@ class TwinsCompetitionService:
         self.twins[twin_id] = t
         return t
 
-    def teach_skill(self, teacher_id: str, student_id: str, skill_name: str) -> Optional[dict]:
+    def teach_skill(self, teacher_id: str, student_id: str, skill_name: str) -> dict | None:
         """
         Twin teaches another twin a skill. Teacher must have the skill verified.
         Returns the transferred skill or None if teacher lacks it or twin not found.

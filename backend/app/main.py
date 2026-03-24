@@ -14,13 +14,12 @@ from fastapi.responses import JSONResponse
 def _load_twin_env():
     try:
         import os
+
         from dotenv import dotenv_values
         repo_root = Path(__file__).resolve().parents[2]
         aoe = Path("E:/AOE/.env")
         v1_env = Path("E:/AOE/v1/.env")
         unified = Path(r"D:\\.env.unified")
-        local_unified = repo_root.parent / ".env.secure.json"
-
         for p in [repo_root / ".env", unified, aoe, v1_env]:
             if not p.exists() or p.suffix == ".json":
                 continue
@@ -77,16 +76,16 @@ from app.runtime import (
 )
 from app.services.automation import AutomationLoops
 from app.services.cognitive_twin import CognitiveTwinService
+from app.services.execution_gate import evaluate as gate_evaluate
 from app.services.ingestion import (
     GoASSLMessage,
     SkillCategory,
     SkillData,
+    TaskData,
     TaskPriority,
     TaskStatus,
-    TaskData,
     get_ingestion_service,
 )
-from app.services.execution_gate import evaluate as gate_evaluate
 from app.services.speech_reasoning import SpeechReasoningService
 from app.websockets.hub import ConnectionManager
 
@@ -118,7 +117,8 @@ async def lifespan(app: FastAPI):
             _cfg = _json.loads(_cfg_path.read_text(encoding="utf-8"))
             await projects_service.seed_from_config(_cfg)
         # Wire revenue → treasury unified flow
-        from app.runtime import revenue_service, treasury_service as _ts
+        from app.runtime import revenue_service
+        from app.runtime import treasury_service as _ts
         async def _rev_to_treasury(amount: float, source: str, method: str) -> None:
             await _ts.collect(amount=amount, currency="BRDG", source_project=source, method=method, type_="revenue")
         revenue_service.set_treasury_callback(_rev_to_treasury)
@@ -158,14 +158,16 @@ async def lifespan(app: FastAPI):
 app = FastAPI(title="Bridge AI OS", lifespan=lifespan)
 
 # --- BridgeError global exception handler ---
-from app.core.errors import (  # noqa: E402
+from app.core.errors import (
     AuthError,
     BridgeError,
     EconomicGateError,
     NetworkError,
     NotFoundError,
-    ValidationError as BridgeValidationError,
     error_response,
+)
+from app.core.errors import (
+    ValidationError as BridgeValidationError,
 )
 
 _BRIDGE_STATUS_MAP: dict[type, int] = {
@@ -186,7 +188,7 @@ _CANONICAL_OPENAPI_PATH = Path(__file__).resolve().parents[2] / "openapi.json"
 
 
 def _load_canonical_openapi() -> dict[str, Any]:
-    return json.loads(_CANONICAL_OPENAPI_PATH.read_text(encoding="utf-8"))
+    return json.loads(_CANONICAL_OPENAPI_PATH.read_text(encoding="utf-8"))  # type: ignore[no-any-return]
 
 
 def _canonical_frontend_url() -> str:
@@ -200,9 +202,10 @@ def custom_openapi() -> dict[str, Any]:
     return app.openapi_schema
 
 
-app.openapi = custom_openapi
+app.openapi = custom_openapi  # type: ignore[method-assign]
 
 import os as _os
+
 _extra_origins = [o.strip() for o in _os.environ.get("BRIDGE_CORS_ORIGINS", "").split(",") if o.strip()]
 origins = [
     "http://localhost:3000", "http://localhost:3001", "http://localhost:3010",
@@ -243,19 +246,26 @@ app.include_router(cli_router, prefix="/api")
 app.include_router(projects_router, prefix="/api")
 app.include_router(treasury_router, prefix="/api")
 
-from app.domains.economy.router import router as economy_domain_router  # noqa: E402
+from app.domains.economy.router import router as economy_domain_router
+
 app.include_router(economy_domain_router, prefix="/api")
 
-from app.domains.infra.router import router as infra_domain_router  # noqa: E402
+from app.domains.infra.router import router as infra_domain_router
+
 app.include_router(infra_domain_router, prefix="/api")
 
-from app.domains.twins.router import router as twins_domain_router  # noqa: E402
+from app.domains.twins.router import router as twins_domain_router
+
 app.include_router(twins_domain_router, prefix="/api")
 
-from app.domains.governance.router import router as governance_domain_router  # noqa: E402
+from app.domains.governance.router import (
+    router as governance_domain_router,
+)
+
 app.include_router(governance_domain_router, prefix="/api")
 
-from app.domains.network.router import router as network_domain_router  # noqa: E402
+from app.domains.network.router import router as network_domain_router
+
 app.include_router(network_domain_router, prefix="/api")
 
 
@@ -342,10 +352,10 @@ async def deploy_50_applications(request: Request):
     """
     import logging
     logger = logging.getLogger(__name__)
-    
+
     _require_auth(request)
     svc = get_ingestion_service()
-    
+
     apps_data = [
         {"id": 1, "title": "Smart City Digital Twin", "type": "infrastructure", "skills": ["digital-twin", "iot", "data-engineering"]},
         {"id": 2, "title": "Traffic Optimization AI", "type": "infrastructure", "skills": ["ai-agent", "optimization", "computer-vision"]},
@@ -398,11 +408,11 @@ async def deploy_50_applications(request: Request):
         {"id": 49, "title": "Decentralized Work Platforms", "type": "consumer", "skills": ["marketplace", "blockchain", "freelance"]},
         {"id": 50, "title": "Global AI Agent Economy", "type": "consumer", "skills": ["ai-agent", "economy", "multi-agent-patterns"]},
     ]
-    
+
     deployed = []
     errors = []
     total = len(apps_data)
-    
+
     async def deploy_single_app(idx: int, app: dict) -> dict:
         try:
             progress = {
@@ -412,15 +422,15 @@ async def deploy_50_applications(request: Request):
                 "current_app": app["title"],
             }
             logger.info(f"Deploying app {idx+1}/{total}: {app['title']}")
-            
+
             task = TaskData(
                 title=f"Autonomous: {app['title']}",
                 description=f"Build and run {app['title']} using skills: {', '.join(app['skills'])}",
                 priority=TaskPriority.HIGH,
                 status=TaskStatus.BACKLOG,
             )
-            result = await svc.ingest_task(task)
-            
+            await svc.ingest_task(task)
+
             for skill_name in app['skills']:
                 skill = SkillData(
                     name=skill_name,
@@ -428,30 +438,30 @@ async def deploy_50_applications(request: Request):
                     proficiency=1.0,
                 )
                 await svc.ingest_skill(skill)
-            
+
             return {
-                "app_id": app["id"], 
-                "title": app["title"], 
+                "app_id": app["id"],
+                "title": app["title"],
                 "status": "deployed",
                 "progress": progress,
             }
-            
+
         except Exception as e:
-            logger.error(f"Error deploying app {app['title']}: {str(e)}")
+            logger.error(f"Error deploying app {app['title']}: {e!s}")
             return {
                 "app_id": app["id"],
                 "title": app["title"],
                 "error": str(e),
             }
-    
+
     results = await asyncio.gather(*[deploy_single_app(idx, app) for idx, app in enumerate(apps_data)])
-    
+
     for result in results:
         if "error" in result:
             errors.append(result)
         else:
             deployed.append(result)
-    
+
     return {
         "status": "autonomous_deployment_complete" if not errors else "autonomous_deployment_partial",
         "deployed_count": len(deployed),
@@ -570,8 +580,8 @@ async def state_snapshot():
     Full state snapshot. Version without snapshot is memory without recall.
     Returns: state, state_version, state_hash, priority_distribution.
     """
-    from app.services.mission import MissionService
     from app.runtime import marketplace_service
+    from app.services.mission import MissionService
     mission_svc = MissionService(memory)
     state_version = await get_state_version(memory)
     state_hash = await get_state_hash(memory)

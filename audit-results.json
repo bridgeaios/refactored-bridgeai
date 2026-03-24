@@ -1,0 +1,38 @@
+﻿{
+    "recommendations":  [
+                            "Optional: Cloudflare Turnstile not set"
+                        ],
+    "ok":  [
+               "OpenAI OK",
+               "Hugging Face OK",
+               "Hugging Face (alt) OK",
+               "Cloudflare Account OK",
+               "JWT Secret OK",
+               "JWT Secret Key OK",
+               "ElevenLabs OK",
+               "Anthropic OK",
+               "SMTP OK",
+               "PayPal OK",
+               "Discord Bot OK",
+               "Cloudflare R2 Bucket OK",
+               "AWS credentials file exists",
+               "DNS api.bridge-ai-os.tech resolves",
+               "AWS CLI installed",
+               "E: AOE exists",
+               "E: BridgeLiveWall exists",
+               "E: AOE .env exists",
+               "C: AWS credentials exists",
+               "D: BridgeLiveWall (optional) exists",
+               "D: data (optional) exists",
+               "Config (config\\bridge-wall.config.json) found"
+           ],
+    "timestamp":  "2026-03-24T11:14:02.1436222+02:00",
+    "summary":  {
+                    "criticalCount":  0,
+                    "okCount":  22,
+                    "recCount":  1
+                },
+    "critical":  [
+
+                 ]
+}

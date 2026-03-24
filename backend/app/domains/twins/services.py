@@ -1,14 +1,15 @@
 """Twins domain service facade."""
 from __future__ import annotations
-from typing import Any, Optional
 
+from typing import Any
+
+from app.services.bossbots import BossBotsService
 from app.services.cognitive_twin import CognitiveTwinService
 from app.services.emotion import EmotionService
-from app.services.twins_competition import TwinsCompetitionService
+from app.services.learning import LearningService
 from app.services.speech_embodiment import SpeechEmbodimentService
 from app.services.speech_reasoning import SpeechReasoningService
-from app.services.bossbots import BossBotsService
-from app.services.learning import LearningService
+from app.services.twins_competition import TwinsCompetitionService
 
 
 class TwinsServices:
@@ -31,7 +32,7 @@ class TwinsServices:
         raw = self._twin.get_profile()
         return {"twin_id": twin_id, "status": "active", **(raw if isinstance(raw, dict) else {})}
 
-    async def decide(self, prompt: str, twin_id: str = "default", context: Optional[dict] = None) -> dict[str, Any]:
+    async def decide(self, prompt: str, twin_id: str = "default", context: dict | None = None) -> dict[str, Any]:
         # CognitiveTwinService.decide() takes structured args; use context to build candidates
         ctx = context or {}
         candidates = ctx.get("candidates", [{"expected_value": 1.0, "ethical_compliance": 1.0,
@@ -67,13 +68,13 @@ class TwinsServices:
     # Speech
     # ------------------------------------------------------------------
 
-    async def speak(self, text: str, twin_id: str = "default", voice: Optional[str] = None) -> dict[str, Any]:
+    async def speak(self, text: str, twin_id: str = "default", voice: str | None = None) -> dict[str, Any]:
         if hasattr(self._speech_em, "speak"):
             result = await self._speech_em.speak(text=text, twin_id=twin_id, voice=voice)
             return result if isinstance(result, dict) else {"ok": True, "text": text}
         return {"ok": True, "text": text}
 
-    async def speech_reason(self, prompt: str, context: Optional[dict] = None) -> dict[str, Any]:
+    async def speech_reason(self, prompt: str, context: dict | None = None) -> dict[str, Any]:
         if hasattr(self._speech_re, "reason"):
             result = await self._speech_re.reason(prompt=prompt, context=context or {})
             return result if isinstance(result, dict) else {"ok": True, "result": str(result)}

@@ -6,7 +6,7 @@ don't crash serialisation.
 """
 from __future__ import annotations
 
-from typing import Any, Optional
+from typing import Any
 
 from pydantic import BaseModel, Field
 
@@ -22,16 +22,16 @@ class CollectRequest(BaseModel):
 
 class CollectResponse(BaseModel):
     ok: bool
-    tx_id: Optional[str] = None
+    tx_id: str | None = None
     splits: dict[str, float] = Field(default_factory=dict)
-    message: Optional[str] = None
+    message: str | None = None
 
 
 class TreasuryStatus(BaseModel):
     total: float
     buckets: dict[str, float] = Field(default_factory=dict)
     ledger_size: int = 0
-    last_tx: Optional[dict[str, Any]] = None
+    last_tx: dict[str, Any] | None = None
 
 
 class UbiClaimRequest(BaseModel):
@@ -41,7 +41,7 @@ class UbiClaimRequest(BaseModel):
 class UbiClaimResponse(BaseModel):
     ok: bool
     amount: float = 0.0
-    message: Optional[str] = None
+    message: str | None = None
 
 
 class MarketplaceTask(BaseModel):
@@ -49,8 +49,8 @@ class MarketplaceTask(BaseModel):
     title: str
     value: float
     status: str
-    posted_by: Optional[str] = None
-    claimed_by: Optional[str] = None
+    posted_by: str | None = None
+    claimed_by: str | None = None
     priority_score: float = 0.0
 
 
@@ -70,4 +70,4 @@ class AcceptTaskRequest(BaseModel):
 class CompleteTaskRequest(BaseModel):
     task_id: int
     twin_id: str = "system"
-    result: Optional[str] = None
+    result: str | None = None

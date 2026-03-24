@@ -1,6 +1,8 @@
 """
 SIWE Auth Routes — Backend signature verification, nonce replay protection, JWT issuance.
 """
+from typing import Any
+
 from fastapi import APIRouter, HTTPException, Request
 from pydantic import BaseModel
 
@@ -24,7 +26,7 @@ class SiweLoginRequest(BaseModel):
 
 
 @router.post("/auth/siwe")
-async def siwe_login(req: SiweLoginRequest, request: Request):
+async def siwe_login(req: SiweLoginRequest, request: Request) -> dict[str, Any]:
     """
     SIWE login: verify signature, check nonce (replay protection), optionally verify on-chain role, issue JWT.
     """

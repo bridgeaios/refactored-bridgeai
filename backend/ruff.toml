@@ -10,6 +10,7 @@ ignore = [
 [lint.per-file-ignores]
 "__init__.py" = ["F401"]
 "app/main.py" = ["E402"]        # env loading must precede app imports
+"app/runtime.py" = ["E402"]     # priority routing + treasury wired after services created
 "app/services/emotion.py" = ["N812"]    # torch.nn.functional as F is PyTorch convention
 "app/services/learning.py" = ["N806"]  # X is standard ML notation for feature matrix
 

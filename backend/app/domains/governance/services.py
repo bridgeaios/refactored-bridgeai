@@ -1,7 +1,8 @@
 """Governance domain service facade."""
 from __future__ import annotations
+
 import logging
-from typing import Any, Optional
+from typing import Any
 
 from app.services.governance import GovernanceService
 from app.services.reputation import get_reputation_service
@@ -54,7 +55,7 @@ class GovernanceServices:
         metrics = self._sdg.get_metrics()
         return {"ok": True, "sdgs": metrics}
 
-    async def knowledge_graph_query(self, label: str, properties: Optional[dict] = None) -> dict[str, Any]:
+    async def knowledge_graph_query(self, label: str, properties: dict | None = None) -> dict[str, Any]:
         if self._kg and hasattr(self._kg, "query"):
             return await self._kg.query(label=label, properties=properties or {})
         return {"ok": True, "nodes": []}

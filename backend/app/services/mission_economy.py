@@ -13,8 +13,6 @@ from dataclasses import dataclass
 from datetime import datetime
 from decimal import Decimal
 from enum import Enum
-from typing import Optional
-
 
 from pydantic import BaseModel
 
@@ -61,9 +59,9 @@ class Mission(BaseModel):
     status: MissionStatus = MissionStatus.PENDING
     created_at: datetime
     updated_at: datetime
-    assignee_id: Optional[str] = None
+    assignee_id: str | None = None
     creator_id: str
-    rating: Optional[float] = None
+    rating: float | None = None
 
 
 @dataclass
@@ -92,7 +90,7 @@ class MissionEconomyService:
         description: str,
         tier: MissionTier,
         creator_id: str,
-        required_skills: Optional[list[str]] = None,
+        required_skills: list[str] | None = None,
     ) -> Mission:
         """Create a new mission."""
         config = MISSION_TIERS[tier]
@@ -111,14 +109,14 @@ class MissionEconomyService:
         self._missions[mission.id] = mission
         return mission
 
-    def get_mission(self, mission_id: str) -> Optional[Mission]:
+    def get_mission(self, mission_id: str) -> Mission | None:
         """Get mission by ID."""
         return self._missions.get(mission_id)
 
     def list_missions(
         self,
-        status: Optional[MissionStatus] = None,
-        tier: Optional[MissionTier] = None,
+        status: MissionStatus | None = None,
+        tier: MissionTier | None = None,
     ) -> list[Mission]:
         """List missions with optional filters."""
         missions = list(self._missions.values())
@@ -142,7 +140,7 @@ class MissionEconomyService:
         self,
         mission_id: str,
         rating: float,
-    ) -> Optional[TokenAllocation]:
+    ) -> TokenAllocation | None:
         """Complete mission and calculate token allocation."""
         mission = self._missions.get(mission_id)
         if not mission or mission.status != MissionStatus.IN_PROGRESS:
@@ -207,7 +205,7 @@ class MissionEconomyService:
         }
 
 
-_economy_service: Optional[MissionEconomyService] = None
+_economy_service: MissionEconomyService | None = None
 
 
 def get_economy_service() -> MissionEconomyService:

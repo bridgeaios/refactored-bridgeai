@@ -13,8 +13,8 @@ import json
 import os
 import time
 from collections import deque
+from collections.abc import Callable
 from dataclasses import dataclass, field
-from typing import Callable
 
 # =============================================================================
 # 1. Determinism Layer — Same inputs + state → same output. Auditability.
@@ -48,7 +48,7 @@ _subscribers: dict[str, list[Callable]] = {
 _event_queues: dict[str, deque] = {}
 for k in _subscribers:
     _event_queues[k] = deque(maxlen=EVENT_QUEUE_MAX)
-_event_backlog_depth: dict[str, int] = {k: 0 for k in _subscribers}
+_event_backlog_depth: dict[str, int] = dict.fromkeys(_subscribers, 0)
 
 
 def subscribe(channel: str, handler: Callable) -> None:
@@ -225,7 +225,7 @@ def get_baseline_drift() -> dict:
     combined = (silence_dev + min(1, latency_dev) + min(1, econ_dev)) / 3
     if combined > DRIFT_DEVIATION_THRESHOLD:
         emit("system_drift", {"deviation": combined, "silence_dev": silence_dev, "latency_dev": latency_dev})
-    
+
     # Push to Prometheus telemetry
     try:
         from app.services.telemetry import get_telemetry
@@ -236,7 +236,7 @@ def get_baseline_drift() -> dict:
             _telem.update_swarm_latency(p50, dl[int(len(dl) * 0.99)] if len(dl) > 1 else p50)
     except Exception:
         pass  # Telemetry is optional
-    
+
     return {
         "silence_deviation": round(silence_dev, 4),
         "latency_deviation": round(latency_dev, 4),

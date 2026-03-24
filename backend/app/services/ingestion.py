@@ -7,7 +7,7 @@ import os
 import time
 from dataclasses import dataclass
 from enum import Enum
-from typing import Any, Optional
+from typing import Any
 
 from fastapi import HTTPException
 
@@ -48,8 +48,8 @@ class TaskStatus(str, Enum):
 @dataclass
 class GoASSLMessage:
     goassl_message: str
-    signature: Optional[str] = None
-    timestamp: Optional[float] = None
+    signature: str | None = None
+    timestamp: float | None = None
 
 
 @dataclass
@@ -68,10 +68,10 @@ class SkillData:
 
 
 class IngestionService:
-    def __init__(self, memory: Optional[MemoryStore] = None):
+    def __init__(self, memory: MemoryStore | None = None):
         self._memory = memory
-        self._mission: Optional[MissionService] = None
-        self._twin: Optional[CognitiveTwinService] = None
+        self._mission: MissionService | None = None
+        self._twin: CognitiveTwinService | None = None
         self._stats = {
             "goassl_ingested": 0,
             "tasks_ingested": 0,
@@ -100,7 +100,7 @@ class IngestionService:
     async def ingest_goassl(self, data: GoASSLMessage) -> dict[str, Any]:
         if not data.goassl_message:
             raise HTTPException(status_code=400, detail="goassl_message required")
-        
+
         timestamp = data.timestamp or time.time()
         entry = {
             "goassl_message": data.goassl_message,
@@ -108,13 +108,13 @@ class IngestionService:
             "timestamp": timestamp,
             "ingested_at": time.time(),
         }
-        
+
         await self.memory.append("goassl_messages", entry)
         self._stats["goassl_ingested"] += 1
         self._stats["last_ingestion"] = time.time()
-        
+
         logger.info(f"GOASSL message ingested: {data.goassl_message[:50]}...")
-        
+
         return {
             "status": "ingested",
             "type": "goassl",
@@ -125,7 +125,7 @@ class IngestionService:
     async def ingest_task(self, data: TaskData) -> dict[str, Any]:
         if not data.title:
             raise HTTPException(status_code=400, detail="title required")
-        
+
         task_entry = {
             "title": data.title,
             "description": data.description,
@@ -134,21 +134,21 @@ class IngestionService:
             "source": "external_ingestion",
             "created_at": time.time(),
         }
-        
+
         await self.memory.append("ingested_tasks", task_entry)
-        
+
         board = await self.mission.get_counts()
         status_field = data.status.value
         if status_field in board:
             board[status_field] = board.get(status_field, 0) + 1
         board["backlog"] = board.get("backlog", 0) + 1
         await self.memory.append("mission_board", board)
-        
+
         self._stats["tasks_ingested"] += 1
         self._stats["last_ingestion"] = time.time()
-        
+
         logger.info(f"Task ingested: {data.title}")
-        
+
         return {
             "status": "ingested",
             "type": "task",
@@ -160,31 +160,31 @@ class IngestionService:
     async def ingest_skill(self, data: SkillData) -> dict[str, Any]:
         if not data.name:
             raise HTTPException(status_code=400, detail="skill name required")
-        
+
         profile = self.twin.get_profile()
         skill_stack = profile.get("skill_stack", {})
-        
+
         category_key = data.category.value
         current_skills = skill_stack.get(category_key, [])
-        
+
         if data.name not in current_skills:
             current_skills.append(data.name)
-        
+
         updated_stack = SkillStack(
             hard=skill_stack.get("hard", []),
             soft=skill_stack.get("soft", []),
             meta=skill_stack.get("meta", []),
         )
-        
+
         if data.category == SkillCategory.HARD:
             updated_stack.hard = current_skills
         elif data.category == SkillCategory.SOFT:
             updated_stack.soft = current_skills
         else:
             updated_stack.meta = current_skills
-        
+
         effective_skill = updated_stack.effective_skill()
-        
+
         skill_entry = {
             "name": data.name,
             "category": data.category.value,
@@ -192,15 +192,15 @@ class IngestionService:
             "effective_skill": effective_skill,
             "ingested_at": time.time(),
         }
-        
+
         await self.memory.append("ingested_skills", skill_entry)
         await self.mission.save_skill(skill_entry)
-        
+
         self._stats["skills_ingested"] += 1
         self._stats["last_ingestion"] = time.time()
-        
+
         logger.info(f"Skill ingested: {data.name} ({data.category.value})")
-        
+
         return {
             "status": "ingested",
             "type": "skill",
@@ -213,7 +213,7 @@ class IngestionService:
         recent_goassl = await self.memory.get_recent("goassl_messages", 5)
         recent_tasks = await self.memory.get_recent("ingested_tasks", 5)
         recent_skills = await self.memory.get_recent("ingested_skills", 5)
-        
+
         return {
             "status": "operational",
             "pipeline": "active",
@@ -229,14 +229,14 @@ class IngestionService:
     async def scan_and_import_all_skills(self) -> dict[str, Any]:
         """Scan all drives for skills and import to Digital Twin."""
         all_skills = []
-        
+
         for scan_path in SCAN_PATHS:
             if not os.path.exists(scan_path):
                 logger.warning(f"Scan path not found: {scan_path}")
                 continue
-            
+
             try:
-                for root, dirs, files in os.walk(scan_path):
+                for root, _dirs, files in os.walk(scan_path):
                     for f in files:
                         if f.endswith(".md"):
                             skill_name = os.path.splitext(f)[0]
@@ -251,10 +251,10 @@ class IngestionService:
                             })
             except Exception as e:
                 logger.error(f"Error scanning {scan_path}: {e}")
-        
+
         profile = self.twin.get_profile()
         skill_stack = profile.get("skill_stack", {})
-        
+
         imported_count = 0
         for skill in all_skills:
             category_key = skill["category"]
@@ -263,13 +263,13 @@ class IngestionService:
                 current_skills.append(skill["name"])
                 skill_stack[category_key] = current_skills
                 imported_count += 1
-        
+
         await self.memory.set("skill_stack", skill_stack)
         await self.memory.set("all_scanned_skills", all_skills)
-        
+
         self._stats["skills_ingested"] += imported_count
         self._stats["last_ingestion"] = time.time()
-        
+
         return {
             "status": "imported",
             "total_scanned": len(all_skills),
@@ -291,7 +291,7 @@ class IngestionService:
             return "meta"
 
 
-_ingestion_service: Optional[IngestionService] = None
+_ingestion_service: IngestionService | None = None
 
 
 def get_ingestion_service() -> IngestionService:

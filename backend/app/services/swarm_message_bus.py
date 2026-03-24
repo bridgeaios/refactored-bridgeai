@@ -12,7 +12,6 @@ import json
 import logging
 from datetime import datetime
 from enum import Enum
-from typing import Optional
 
 import redis.asyncio as redis
 from pydantic import BaseModel
@@ -35,18 +34,18 @@ class AgentEvent(str, Enum):
 class AgentMessage(BaseModel):
     """Message structure for agent communication."""
     sender_id: str
-    recipient_id: Optional[str] = None
+    recipient_id: str | None = None
     channel: str
     payload: dict
     correlation_id: str
     timestamp: datetime
-    event_type: Optional[AgentEvent] = None
+    event_type: AgentEvent | None = None
 
 
 class SwarmMessageBus:
     """Redis-based message bus for swarm communication."""
 
-    CHANNELS = {
+    CHANNELS: dict[str, str] = {  # noqa: RUF012
         "broadcast": "swarm:broadcast",
         "tasks": "agent:{id}:tasks",
         "events": "agent:{id}:events",
@@ -56,7 +55,7 @@ class SwarmMessageBus:
 
     def __init__(self, redis_url: str = "redis://localhost:6379"):
         self.redis_url = redis_url
-        self._client: Optional[redis.Redis] = None
+        self._client: redis.Redis | None = None
         self._pubsub = None
 
     async def connect(self) -> None:
@@ -165,7 +164,7 @@ class SwarmMessageBus:
             logger.error(f"Failed to push task: {e}")
             return False
 
-    async def pop_task(self, agent_id: str, timeout: int = 0) -> Optional[dict]:
+    async def pop_task(self, agent_id: str, timeout: int = 0) -> dict | None:
         """Pop task from agent's queue."""
         if not self._client:
             return None
@@ -185,7 +184,7 @@ class SwarmMessageBus:
 
 
 # Global instance
-_message_bus: Optional[SwarmMessageBus] = None
+_message_bus: SwarmMessageBus | None = None
 
 
 async def get_message_bus() -> SwarmMessageBus:

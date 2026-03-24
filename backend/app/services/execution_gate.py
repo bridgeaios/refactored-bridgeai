@@ -7,7 +7,6 @@ Enforces:
 - Singleton execution: only highest-value task selected per cycle
 """
 from dataclasses import dataclass
-from typing import Optional
 
 THETA = {"F", "P", "J", "X"}
 
@@ -19,7 +18,7 @@ class ScoredTask:
     reason: str
 
 
-def evaluate(task: dict) -> Optional[ScoredTask]:
+def evaluate(task: dict) -> ScoredTask | None:
     """Validate task type and compute value score."""
     if task.get("type") not in THETA:
         return None
@@ -37,7 +36,7 @@ def evaluate(task: dict) -> Optional[ScoredTask]:
     return ScoredTask(task=task, score=value, reason="passed_gate")
 
 
-def select(tasks: list[dict]) -> Optional[ScoredTask]:
+def select(tasks: list[dict]) -> ScoredTask | None:
     """Select highest value task (singleton execution)."""
     valid = [t for t in (evaluate(x) for x in tasks) if t]
     if not valid:

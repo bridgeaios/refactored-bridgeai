@@ -1,7 +1,8 @@
 """Pydantic schemas for the infra domain."""
 from __future__ import annotations
 
-from typing import Any, Optional
+from typing import Any
+
 from pydantic import BaseModel, Field
 
 
@@ -18,8 +19,8 @@ class SiweLoginRequest(BaseModel):
 
 class SiweLoginResponse(BaseModel):
     ok: bool
-    token: Optional[str] = None
-    message: Optional[str] = None
+    token: str | None = None
+    message: str | None = None
 
 
 class CliCommandRequest(BaseModel):
@@ -40,4 +41,4 @@ class MemoryGetRequest(BaseModel):
 class MemorySetRequest(BaseModel):
     key: str
     value: Any
-    ttl: Optional[int] = None
+    ttl: int | None = None

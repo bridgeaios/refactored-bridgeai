@@ -8,7 +8,6 @@ import uuid
 from dataclasses import dataclass, field
 from datetime import datetime
 from enum import Enum
-from typing import Optional
 
 
 class NodeType(str, Enum):
@@ -95,7 +94,7 @@ class KnowledgeGraph:
         role: str,
         expertise: list[str],
         capabilities: list[str],
-        collaboration_preferences: list[str] = None,
+        collaboration_preferences: list[str] | None = None,
     ) -> AgentNode:
         """Register agent in knowledge graph."""
         agent = AgentNode(
@@ -137,8 +136,8 @@ class KnowledgeGraph:
         name: str,
         category: str,
         description: str,
-        related_skills: list[str] = None,
-        prerequisites: list[str] = None,
+        related_skills: list[str] | None = None,
+        prerequisites: list[str] | None = None,
     ) -> SkillNode:
         """Add skill to knowledge graph."""
         skill = SkillNode(
@@ -159,7 +158,7 @@ class KnowledgeGraph:
 
         return skill
 
-    def get_agent(self, agent_id: str) -> Optional[AgentNode]:
+    def get_agent(self, agent_id: str) -> AgentNode | None:
         """Get agent by ID."""
         return self._agents.get(agent_id)
 
@@ -256,8 +255,8 @@ class KnowledgeGraph:
         a_skills = set(agent_a.skills.keys())
         b_skills = set(agent_b.skills.keys())
 
-        a_weak = {s for s, l in agent_a.skills.items() if l in (SkillLevel.NOVICE, SkillLevel.BEGINNER)}
-        b_weak = {s for s, l in agent_b.skills.items() if l in (SkillLevel.NOVICE, SkillLevel.BEGINNER)}
+        a_weak = {s for s, lvl in agent_a.skills.items() if lvl in (SkillLevel.NOVICE, SkillLevel.BEGINNER)}
+        b_weak = {s for s, lvl in agent_b.skills.items() if lvl in (SkillLevel.NOVICE, SkillLevel.BEGINNER)}
 
         b_strong = b_skills - a_skills
         a_strong = a_skills - b_skills
@@ -318,7 +317,7 @@ class KnowledgeGraph:
 
         return True
 
-    def get_skill_taxonomy(self, category: Optional[str] = None) -> list[SkillNode]:
+    def get_skill_taxonomy(self, category: str | None = None) -> list[SkillNode]:
         """Get skill taxonomy."""
         skills = list(self._skills.values())
         if category:
@@ -370,11 +369,11 @@ class KnowledgeGraph:
             "total_skills": len(self._skills),
             "total_relationships": len(self._relationships),
             "collaboration_pairs": len(self._collaboration_history),
-            "skill_categories": len(set(s.category for s in self._skills.values())),
+            "skill_categories": len({s.category for s in self._skills.values()}),
         }
 
 
-_knowledge_graph: Optional[KnowledgeGraph] = None
+_knowledge_graph: KnowledgeGraph | None = None
 
 
 def get_knowledge_graph() -> KnowledgeGraph:

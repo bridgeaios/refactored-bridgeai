@@ -6,13 +6,13 @@ Priority = governing law of execution. Canonical ordering, no bypass.
 Dual mode: _priority_locked (audit) + _priority_live (routing).
 Execution claim lock: claimed_by, claim_ttl prevent duplicate execution.
 """
+# Claim TTL seconds; claim expires if not executed in time.
+import os as _os
 import time
-from typing import Callable, Optional
+from collections.abc import Callable
 
 from app.services.priority_routing import compute_priority_score, passes_threshold
 
-# Claim TTL seconds; claim expires if not executed in time.
-import os as _os
 CLAIM_TTL_SEC = int(_os.getenv("BRIDGE_CLAIM_TTL_SEC", "300"))
 
 
@@ -21,7 +21,7 @@ class MarketplaceService:
         self.tasks: list[dict] = []
         self._next_id = 1
         self._seen_pledge_event_ids: set[str] = set()
-        self._reputation_getter: Optional[Callable[[str], float]] = None
+        self._reputation_getter: Callable[[str], float] | None = None
 
     def set_reputation_getter(self, fn: Callable[[str], float]) -> None:
         self._reputation_getter = fn
@@ -31,7 +31,7 @@ class MarketplaceService:
             return self._reputation_getter(twin_id)
         return 0.5
 
-    def get_tasks(self, twin_id: str = "system", status: Optional[str] = None) -> list[dict]:
+    def get_tasks(self, twin_id: str = "system", status: str | None = None) -> list[dict]:
         """
         Canonical: always sorted by priority. twin_id required (use "system" for neutral).
         No bypass path. Every consumer gets same ordering.
@@ -59,7 +59,7 @@ class MarketplaceService:
         enriched.sort(key=lambda x: float(x.get("_priority_score", 0.0)), reverse=True)
         return enriched
 
-    def get_tasks_raw(self, status: Optional[str] = None) -> list[dict]:
+    def get_tasks_raw(self, status: str | None = None) -> list[dict]:
         """Tasks without priority enrichment. For async econ scoring in routes."""
         if status == "all":
             return list(self.tasks)
@@ -73,7 +73,7 @@ class MarketplaceService:
         """Internal: count open tasks without enrichment."""
         return len([t for t in self.tasks if t.get("status") == "open"])
 
-    def get_top_task_for_twin(self, twin_id: str) -> Optional[dict]:
+    def get_top_task_for_twin(self, twin_id: str) -> dict | None:
         """Top open task by priority for this twin. None if none pass threshold."""
         tasks = self.get_tasks(twin_id=twin_id, status="open")
         if not tasks:
@@ -83,7 +83,7 @@ class MarketplaceService:
             return None
         return top
 
-    def get_task_by_id(self, task_id: int) -> Optional[dict]:
+    def get_task_by_id(self, task_id: int) -> dict | None:
         for t in self.tasks:
             if t.get("id") == task_id:
                 return t
@@ -101,12 +101,12 @@ class MarketplaceService:
             task_copy["pledged_total"] = float(task_copy.get("pledged_total", 0) or 0)
         except Exception:
             task_copy["pledged_total"] = 0.0
-        score, inputs = compute_priority_score(task_copy, trust=0.5, now_ts=now)
+        score, _inputs = compute_priority_score(task_copy, trust=0.5, now_ts=now)
         task_copy["_priority_locked"] = score
         self.tasks.append(task_copy)
         return task_copy
 
-    def _claim_valid(self, task: dict, node_id: Optional[str], now: float) -> bool:
+    def _claim_valid(self, task: dict, node_id: str | None, now: float) -> bool:
         """True if task is unclaimed or claim expired or claimed by this node."""
         claimed = task.get("claimed_by")
         ttl = task.get("claim_ttl") or 0
@@ -116,7 +116,7 @@ class MarketplaceService:
             return True
         return node_id is not None and claimed == node_id
 
-    def try_claim_task(self, task_id: int, node_id: str) -> Optional[dict]:
+    def try_claim_task(self, task_id: int, node_id: str) -> dict | None:
         """
         Execution claim lock. Sets claimed_by, claim_ttl.
         Returns task if claim succeeds; None if already claimed and valid.
@@ -134,7 +134,7 @@ class MarketplaceService:
                 return t
         return None
 
-    def accept_task(self, task_id: int, wallet: str, node_id: Optional[str] = None) -> Optional[dict]:
+    def accept_task(self, task_id: int, wallet: str, node_id: str | None = None) -> dict | None:
         """
         Backpressure: reject if task priority < GLOBAL_MIN_PRIORITY.
         Sets execution claim lock (claimed_by, claim_ttl) when accepting.
@@ -158,14 +158,14 @@ class MarketplaceService:
                 return t
         return None
 
-    def complete_task(self, task_id: int) -> Optional[dict]:
+    def complete_task(self, task_id: int) -> dict | None:
         for t in self.tasks:
             if t.get("id") == task_id and t.get("status") == "in_progress":
                 t["status"] = "completed"
                 return t
         return None
 
-    def pledge_task(self, task_id: int, wallet: str, amount: float, event_id: str | None = None) -> Optional[dict]:
+    def pledge_task(self, task_id: int, wallet: str, amount: float, event_id: str | None = None) -> dict | None:
         if amount is None or amount <= 0:
             return None
         if event_id and event_id in self._seen_pledge_event_ids:

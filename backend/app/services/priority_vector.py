@@ -7,8 +7,8 @@ Supports: risk, capital, impact, time-decay, trust decay, anti-gaming.
 import math
 import os
 import time
-from dataclasses import dataclass, field
-from typing import Callable, Optional
+from collections.abc import Callable
+from dataclasses import dataclass
 
 # Governance-controlled weights (env overridable). Collapse: score = sum(plus) - sum(minus)
 W_VALUE = float(os.getenv("BRIDGE_PRIORITY_W_VALUE", "0.30"))
@@ -87,7 +87,7 @@ def _risk_score(failure_rate: float, variance: float, trust_decay: float) -> flo
     return min(1.0, failure_rate * 0.5 + variance * 0.3 + (1 - trust_decay) * 0.2)
 
 
-def _impact_score(task: dict, sdg_getter: Optional[Callable[[str], float]] = None) -> float:
+def _impact_score(task: dict, sdg_getter: Callable[[str], float] | None = None) -> float:
     """Tie into SDG. impact_score = sdg_weight(task_type)."""
     if sdg_getter:
         try:
@@ -115,12 +115,12 @@ def compute_priority_vector(
     task: dict,
     *,
     trust: float = 0.5,
-    now_ts: Optional[float] = None,
+    now_ts: float | None = None,
     idle_hours: float = 0.0,
     failure_rate: float = 0.0,
     variance: float = 0.0,
     required_resources: float = 1.0,
-    sdg_getter: Optional[Callable[[str], float]] = None,
+    sdg_getter: Callable[[str], float] | None = None,
 ) -> tuple[PriorityVector, dict]:
     """
     Build multi-objective priority vector. Returns (vector, raw_inputs).

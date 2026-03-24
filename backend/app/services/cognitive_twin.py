@@ -11,7 +11,6 @@ Constraints:
 """
 from dataclasses import dataclass
 from enum import Enum
-from typing import Optional
 
 # =============================================================================
 # Phase 1 — Identity Mapping
@@ -229,7 +228,7 @@ class CognitiveTwinService:
         constraints: set[str],
         risk_threshold: float,
         candidates: list[dict],
-    ) -> Optional[dict]:
+    ) -> dict | None:
         """
         Decision function. Ranks action candidates.
         Returns None (silence) if no positive-value output exists.

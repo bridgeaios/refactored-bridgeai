@@ -7,7 +7,7 @@ Exposed via Depends() — no module-level globals.
 from __future__ import annotations
 
 import logging
-from typing import Any, TYPE_CHECKING
+from typing import TYPE_CHECKING, Any
 
 from app.core.errors import AuthError, NetworkError
 
@@ -20,7 +20,7 @@ _log = logging.getLogger(__name__)
 class InfraServices:
     """Aggregates all infra-domain services. Singleton via get_infra() in deps.py."""
 
-    def __init__(self, memory: "MemoryStore") -> None:
+    def __init__(self, memory: MemoryStore) -> None:
         self._memory = memory
         self._google_sheets: Any = None
         self._youtube: Any = None

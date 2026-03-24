@@ -9,9 +9,9 @@ All endpoints preserved at identical paths. No breaking changes.
 """
 from __future__ import annotations
 
-from typing import Any
+from typing import Annotated, Any
 
-from fastapi import APIRouter, Depends, HTTPException, Request
+from fastapi import APIRouter, Depends, HTTPException
 
 from app.domains.economy.deps import get_economy
 from app.domains.economy.models import (
@@ -25,6 +25,8 @@ from app.domains.economy.services import EconomyServices
 
 router = APIRouter(tags=["economy"])
 
+EconomyDep = Annotated[EconomyServices, Depends(get_economy)]
+
 
 # ------------------------------------------------------------------
 # Treasury
@@ -33,7 +35,7 @@ router = APIRouter(tags=["economy"])
 @router.post("/treasury/collect")
 async def treasury_collect(
     payload: CollectRequest,
-    svc: EconomyServices = Depends(get_economy),
+    svc: EconomyDep,
 ) -> dict[str, Any]:
     return await svc.collect(
         amount=payload.amount,
@@ -46,14 +48,14 @@ async def treasury_collect(
 
 
 @router.get("/treasury/status")
-async def treasury_status(svc: EconomyServices = Depends(get_economy)) -> dict[str, Any]:
+async def treasury_status(svc: EconomyDep) -> dict[str, Any]:
     return await svc.treasury_status()
 
 
 @router.get("/treasury/ledger")
 async def treasury_ledger(
+    svc: EconomyDep,
     limit: int = 50,
-    svc: EconomyServices = Depends(get_economy),
 ) -> dict[str, Any]:
     ledger = await svc.treasury_ledger(limit=limit)
     return {"ok": True, "ledger": ledger, "count": len(ledger)}
@@ -62,7 +64,7 @@ async def treasury_ledger(
 @router.post("/treasury/disburse")
 async def treasury_disburse(
     payload: dict[str, Any],
-    svc: EconomyServices = Depends(get_economy),
+    svc: EconomyDep,
 ) -> dict[str, Any]:
     bucket = payload.get("bucket", "")
     amount = float(payload.get("amount", 0))
@@ -85,7 +87,7 @@ async def treasury_disburse(
 @router.get("/ubi/status")
 async def ubi_status(
     address: str,
-    svc: EconomyServices = Depends(get_economy),
+    svc: EconomyDep,
 ) -> dict[str, Any]:
     return await svc.ubi_status(address)
 
@@ -93,7 +95,7 @@ async def ubi_status(
 @router.post("/ubi/claim")
 async def ubi_claim(
     payload: UbiClaimRequest,
-    svc: EconomyServices = Depends(get_economy),
+    svc: EconomyDep,
 ) -> dict[str, Any]:
     return await svc.ubi_distribute(payload.address)
 
@@ -104,8 +106,8 @@ async def ubi_claim(
 
 @router.get("/marketplace/open")
 async def marketplace_open(
+    svc: EconomyDep,
     twin_id: str = "system",
-    svc: EconomyServices = Depends(get_economy),
 ) -> dict[str, Any]:
     tasks = svc.get_tasks(twin_id=twin_id, status="open")
     return {"ok": True, "tasks": tasks, "count": len(tasks)}
@@ -113,9 +115,9 @@ async def marketplace_open(
 
 @router.get("/marketplace/tasks")
 async def marketplace_all(
+    svc: EconomyDep,
     status: str = "open",
     twin_id: str = "system",
-    svc: EconomyServices = Depends(get_economy),
 ) -> dict[str, Any]:
     tasks = svc.get_tasks(twin_id=twin_id, status=status)
     return {"ok": True, "tasks": tasks, "count": len(tasks)}
@@ -124,7 +126,7 @@ async def marketplace_all(
 @router.post("/marketplace/post")
 async def marketplace_post(
     payload: PostTaskRequest,
-    svc: EconomyServices = Depends(get_economy),
+    svc: EconomyDep,
 ) -> dict[str, Any]:
     return svc.post_task(
         title=payload.title,
@@ -138,7 +140,7 @@ async def marketplace_post(
 @router.post("/marketplace/accept")
 async def marketplace_accept(
     payload: AcceptTaskRequest,
-    svc: EconomyServices = Depends(get_economy),
+    svc: EconomyDep,
 ) -> dict[str, Any]:
     return svc.accept_task(task_id=payload.task_id, twin_id=payload.twin_id)
 
@@ -146,7 +148,7 @@ async def marketplace_accept(
 @router.post("/marketplace/complete")
 async def marketplace_complete(
     payload: CompleteTaskRequest,
-    svc: EconomyServices = Depends(get_economy),
+    svc: EconomyDep,
 ) -> dict[str, Any]:
     return svc.complete_task(
         task_id=payload.task_id,
@@ -158,7 +160,7 @@ async def marketplace_complete(
 @router.get("/marketplace/task/{task_id}")
 async def marketplace_task(
     task_id: int,
-    svc: EconomyServices = Depends(get_economy),
+    svc: EconomyDep,
 ) -> dict[str, Any]:
     task = svc.get_task(task_id)
     return {"ok": True, "task": task}
@@ -169,5 +171,5 @@ async def marketplace_task(
 # ------------------------------------------------------------------
 
 @router.get("/revenue/summary")
-async def revenue_summary(svc: EconomyServices = Depends(get_economy)) -> dict[str, Any]:
+async def revenue_summary(svc: EconomyDep) -> dict[str, Any]:
     return await svc.revenue_summary()

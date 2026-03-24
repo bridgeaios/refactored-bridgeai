@@ -4,7 +4,6 @@ Neo4j Connection Manager for Knowledge Graph.
 Provides connection pooling and query execution for Neo4j database.
 """
 import os
-from typing import Optional
 
 from pydantic import BaseModel
 
@@ -20,7 +19,7 @@ class Neo4jConfig(BaseModel):
 class Neo4jConnection:
     """Neo4j connection manager."""
 
-    def __init__(self, config: Optional[Neo4jConfig] = None):
+    def __init__(self, config: Neo4jConfig | None = None):
         self.config = config or Neo4jConfig(
             uri=os.getenv("NEO4J_URI", "bolt://neo4j:7687"),
             user=os.getenv("NEO4J_USER", "neo4j"),
@@ -50,7 +49,7 @@ class Neo4jConnection:
     def execute_query(
         self,
         query: str,
-        parameters: Optional[dict] = None,
+        parameters: dict | None = None,
     ) -> list[dict]:
         """Execute Cypher query."""
         if not self._driver:
@@ -66,7 +65,7 @@ class Neo4jConnection:
     def execute_write(
         self,
         query: str,
-        parameters: Optional[dict] = None,
+        parameters: dict | None = None,
     ) -> bool:
         """Execute write query."""
         if not self._driver:
@@ -173,7 +172,7 @@ class Neo4jConnection:
         }
 
 
-_neo4j_connection: Optional[Neo4jConnection] = None
+_neo4j_connection: Neo4jConnection | None = None
 
 
 def get_neo4j_connection() -> Neo4jConnection:

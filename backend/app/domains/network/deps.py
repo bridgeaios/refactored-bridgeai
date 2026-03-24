@@ -1,5 +1,6 @@
 """FastAPI Depends() factories for the network domain."""
 from __future__ import annotations
+
 from app.domains.network.services import NetworkServices
 
 _singleton: NetworkServices | None = None

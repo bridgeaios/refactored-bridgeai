@@ -14,7 +14,6 @@ Daily free quota: 10,000 units → ~100 searches/day.
 """
 from __future__ import annotations
 
-import json
 import logging
 import os
 import re
@@ -266,7 +265,7 @@ def _extract_steps(lines: list[str]) -> list[dict[str, str]]:
         # Match: "1. Title" or "1) Title" or "Step 1: Title"
         m = re.match(r'^(?:step\s*)?(\d+)[.):\s]+(.+)$', line, re.IGNORECASE)
         if m:
-            num, text = m.group(1), m.group(2).strip()
+            _num, text = m.group(1), m.group(2).strip()
             # Split on " - " or " – " for title/detail
             if " - " in text:
                 title, _, detail = text.partition(" - ")

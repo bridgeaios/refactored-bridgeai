@@ -7,7 +7,6 @@ Metrics:
 - Health: heartbeat, failure detection, recovery time
 """
 import logging
-from typing import Optional
 
 from prometheus_client import Counter, Gauge, Histogram, start_http_server
 
@@ -212,7 +211,7 @@ class TelemetryService:
 
 
 # Global instance
-_telemetry: Optional[TelemetryService] = None
+_telemetry: TelemetryService | None = None
 
 
 def get_telemetry() -> TelemetryService:
