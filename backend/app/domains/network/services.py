@@ -46,3 +46,12 @@ class NetworkServices:
         health = await self.swarm_health()
         projects = await self.list_projects()
         return {"ok": True, "swarm": health, "projects": len(projects)}
+
+    async def get_project(self, project_id: str) -> dict[str, Any] | None:
+        return await self._projects.get(project_id)
+
+    async def project_heartbeat(self, project_id: str, status: str = "online") -> dict[str, Any] | None:
+        return await self._projects.heartbeat(project_id, status)
+
+    async def deregister_project(self, project_id: str) -> bool:
+        return await self._projects.deregister(project_id)

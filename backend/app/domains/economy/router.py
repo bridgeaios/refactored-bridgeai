@@ -9,9 +9,10 @@ All endpoints preserved at identical paths. No breaking changes.
 """
 from __future__ import annotations
 
+import os
 from typing import Annotated, Any
 
-from fastapi import APIRouter, Depends, HTTPException
+from fastapi import APIRouter, Depends, HTTPException, Request
 
 from app.domains.economy.deps import get_economy
 from app.domains.economy.models import (
@@ -26,6 +27,24 @@ from app.domains.economy.services import EconomyServices
 router = APIRouter(tags=["economy"])
 
 EconomyDep = Annotated[EconomyServices, Depends(get_economy)]
+
+
+def _treasury_writes_allowed(request: Request | None = None) -> tuple[bool, str]:
+    env = (os.getenv("ENV") or os.getenv("NODE_ENV") or "").strip().lower()
+    if env == "local":
+        return True, "env_local"
+    allow_flag = (os.getenv("BRIDGE_ALLOW_TREASURY_WRITES") or "").strip().lower()
+    if allow_flag in ("1", "true", "yes", "on"):
+        return True, "allow_flag"
+    token = (os.getenv("CFO_TOKEN") or "").strip()
+    if token:
+        hdr = ""
+        if request is not None:
+            hdr = (request.headers.get("X-CFO-Token") or request.headers.get("x-cfo-token") or "").strip()
+        if hdr and hdr == token:
+            return True, "token"
+        return False, "token_required"
+    return False, "disabled"
 
 
 # ------------------------------------------------------------------
@@ -173,3 +192,66 @@ async def marketplace_task(
 @router.get("/revenue/summary")
 async def revenue_summary(svc: EconomyDep) -> dict[str, Any]:
     return await svc.revenue_summary()
+
+
+# ------------------------------------------------------------------
+# Treasury controls + rails
+# ------------------------------------------------------------------
+
+@router.get("/treasury/controls")
+async def treasury_controls(request: Request) -> dict[str, Any]:
+    allowed, reason = _treasury_writes_allowed(request)
+    token_configured = bool((os.getenv("CFO_TOKEN") or "").strip())
+    return {
+        "ok": True,
+        "writes_allowed": bool(allowed),
+        "mode": reason,
+        "token_configured": token_configured,
+        "observed_env": {
+            "ENV": os.getenv("ENV"),
+            "NODE_ENV": os.getenv("NODE_ENV"),
+            "BRIDGE_ALLOW_TREASURY_WRITES": os.getenv("BRIDGE_ALLOW_TREASURY_WRITES"),
+            "CFO_TOKEN_set": bool((os.getenv("CFO_TOKEN") or "").strip()),
+        },
+        "enablement": {
+            "env_local": "Set ENV=local",
+            "allow_flag": "Set BRIDGE_ALLOW_TREASURY_WRITES=1",
+            "token": "Set CFO_TOKEN and send X-CFO-Token header",
+        },
+    }
+
+
+@router.get("/treasury/rails")
+async def list_rails(svc: EconomyDep) -> dict[str, Any]:
+    return svc.list_rails()
+
+
+# ------------------------------------------------------------------
+# Payment webhooks
+# ------------------------------------------------------------------
+
+@router.post("/payments/webhook/paystack")
+async def webhook_paystack(request: Request, svc: EconomyDep) -> dict[str, Any]:
+    body = await request.body()
+    signature = request.headers.get("x-paystack-signature", "")
+    return await svc.webhook_paystack(body, signature)
+
+
+@router.post("/payments/webhook/paypal")
+async def webhook_paypal(request: Request, svc: EconomyDep) -> dict[str, Any]:
+    body = await request.body()
+    headers = dict(request.headers)
+    return await svc.webhook_paypal(body, headers)
+
+
+@router.post("/payments/webhook/crypto")
+async def webhook_crypto(request: Request, svc: EconomyDep) -> dict[str, Any]:
+    body = await request.body()
+    return await svc.webhook_crypto(body)
+
+
+@router.post("/payments/webhook/{rail}")
+async def webhook_generic(rail: str, request: Request, svc: EconomyDep) -> dict[str, Any]:
+    body = await request.body()
+    source_project = request.headers.get("X-Source-Project") or None
+    return await svc.webhook_generic(rail, body, source_project=source_project)

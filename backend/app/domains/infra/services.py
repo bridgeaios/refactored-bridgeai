@@ -137,3 +137,125 @@ class InfraServices:
         if not self.youtube_available():
             raise NetworkError("YouTube Skills service unavailable — set YOUTUBE_API_KEY")
         return await self._youtube.learn_from_video(video_id)
+
+    # ------------------------------------------------------------------
+    # CLI Orchestration Queue
+    # ------------------------------------------------------------------
+
+    _QUEUE_KEY = "cli:queue"
+    _HISTORY_KEY = "cli:history"
+
+    @staticmethod
+    def _cli_enabled() -> tuple[bool, str]:
+        import os
+        env = (os.getenv("ENV") or os.getenv("NODE_ENV") or "").strip().lower()
+        if env == "local":
+            return True, "env_local"
+        if (os.getenv("BRIDGE_ALLOW_CLI_RUNNER") or "").strip().lower() in ("1", "true", "yes", "on"):
+            return True, "allow_flag"
+        return False, "disabled"
+
+    async def _load_queue(self) -> list[dict[str, Any]]:
+        import json
+        raw = await self._memory.get(self._QUEUE_KEY)
+        if not raw:
+            return []
+        try:
+            data = json.loads(raw) if isinstance(raw, str) else raw
+            return data if isinstance(data, list) else []
+        except Exception:
+            return []
+
+    async def _save_queue(self, q: list[dict[str, Any]]) -> None:
+        import json
+        await self._memory.set(self._QUEUE_KEY, json.dumps(q))
+
+    def cli_status(self) -> dict[str, Any]:
+        import os
+        enabled, reason = self._cli_enabled()
+        return {
+            "ok": True,
+            "enabled": enabled,
+            "mode": reason,
+            "observed_env": {
+                "ENV": os.getenv("ENV"),
+                "NODE_ENV": os.getenv("NODE_ENV"),
+                "BRIDGE_ALLOW_CLI_RUNNER": os.getenv("BRIDGE_ALLOW_CLI_RUNNER"),
+            },
+        }
+
+    async def cli_enqueue(self, cmd_id: str, args: list[str], created_by: str = "unknown") -> dict[str, Any]:
+        import hashlib, json, time
+        enabled, reason = self._cli_enabled()
+        if not enabled:
+            raise AuthError(f"cli runner disabled ({reason})")
+        if not cmd_id:
+            from app.core.errors import ValidationError
+            raise ValidationError("cmd_id required")
+        base = f"{cmd_id}::{json.dumps(args, ensure_ascii=False)}::{int(time.time())}"
+        job_id = "job_" + hashlib.sha256(base.encode("utf-8", errors="ignore")).hexdigest()[:16]
+        now = time.strftime("%Y-%m-%dT%H:%M:%SZ", time.gmtime())
+        job: dict[str, Any] = {
+            "id": job_id,
+            "created_at": now,
+            "created_by": created_by,
+            "cmd_id": cmd_id,
+            "args": args,
+            "status": "queued",
+            "runner_id": None,
+            "started_at": None,
+            "finished_at": None,
+            "exit_code": None,
+            "stdout": None,
+            "stderr": None,
+        }
+        q = await self._load_queue()
+        q.append(job)
+        if len(q) > 200:
+            q = q[-200:]
+        await self._save_queue(q)
+        return {"ok": True, "job": job}
+
+    async def cli_queue_next(self, runner_id: str = "runner") -> dict[str, Any]:
+        import time
+        enabled, reason = self._cli_enabled()
+        if not enabled:
+            raise AuthError(f"cli runner disabled ({reason})")
+        q = await self._load_queue()
+        for job in q:
+            if job.get("status") == "queued":
+                job["status"] = "running"
+                job["runner_id"] = runner_id
+                job["started_at"] = time.strftime("%Y-%m-%dT%H:%M:%SZ", time.gmtime())
+                await self._save_queue(q)
+                return {"ok": True, "job": job}
+        return {"ok": True, "job": None}
+
+    async def cli_report(self, payload: dict[str, Any]) -> dict[str, Any]:
+        import time
+        from app.core.errors import NotFoundError
+        job_id = (payload.get("id") or "").strip()
+        if not job_id:
+            from app.core.errors import ValidationError
+            raise ValidationError("id required")
+        q = await self._load_queue()
+        updated = None
+        for job in q:
+            if job.get("id") == job_id:
+                job["status"] = payload.get("status") or job.get("status")
+                job["finished_at"] = payload.get("finished_at") or time.strftime("%Y-%m-%dT%H:%M:%SZ", time.gmtime())
+                job["exit_code"] = payload.get("exit_code")
+                job["stdout"] = payload.get("stdout")
+                job["stderr"] = payload.get("stderr")
+                updated = job
+                break
+        if updated is None:
+            raise NotFoundError("job not found")
+        await self._save_queue(q)
+        await self._memory.append(self._HISTORY_KEY, updated)
+        return {"ok": True, "job": updated}
+
+    async def cli_history(self, limit: int = 30) -> dict[str, Any]:
+        limit = max(1, min(int(limit), 200))
+        items = await self._memory.get_recent(self._HISTORY_KEY, limit)
+        return {"ok": True, "count": len(items), "items": list(reversed(items))}

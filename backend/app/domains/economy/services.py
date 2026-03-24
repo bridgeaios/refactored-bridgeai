@@ -10,7 +10,7 @@ from __future__ import annotations
 
 from typing import TYPE_CHECKING, Any
 
-from app.core.errors import NotFoundError, ValidationError
+from app.core.errors import AuthError, NotFoundError, ValidationError
 from app.services.marketplace import MarketplaceService
 from app.services.revenue import RevenueService
 from app.services.treasury import TreasuryService
@@ -146,3 +146,109 @@ class EconomyServices:
 
     async def revenue_summary(self) -> dict[str, Any]:
         return self._revenue.get_status()
+
+    # ------------------------------------------------------------------
+    # Treasury controls + rails
+    # ------------------------------------------------------------------
+
+    def list_rails(self) -> dict[str, Any]:
+        import os
+        rails = [
+            {"id": "internal", "label": "Internal (BRDG)", "status": "active", "currencies": ["BRDG"]},
+            {"id": "paystack", "label": "Paystack", "status": "active" if os.environ.get("PAYSTACK_SECRET_KEY") else "no-key", "currencies": ["ZAR", "NGN", "USD", "GHS"]},
+            {"id": "paypal", "label": "PayPal", "status": "active" if os.environ.get("PAYPAL_CLIENT_ID") else "no-key", "currencies": ["USD", "EUR", "GBP"]},
+            {"id": "crypto", "label": "Crypto (BRDG/ETH/SOL)", "status": "active", "currencies": ["BRDG", "ETH", "BTC", "SOL"]},
+            {"id": "subscription", "label": "Subscription revenue", "status": "active", "currencies": ["USD", "ZAR", "BRDG"]},
+            {"id": "sensor", "label": "Sensor / passive income", "status": "active", "currencies": ["BRDG"]},
+            {"id": "trade", "label": "Boss-bot trade fees", "status": "active", "currencies": ["BRDG"]},
+            {"id": "marketplace", "label": "Marketplace fees", "status": "active", "currencies": ["BRDG"]},
+        ]
+        return {"ok": True, "rails": rails, "split": {"ubi": "40%", "treasury": "30%", "ops": "20%", "founder": "10%"}}
+
+    # ------------------------------------------------------------------
+    # Payment webhooks
+    # ------------------------------------------------------------------
+
+    async def webhook_paystack(self, body: bytes, signature: str) -> dict[str, Any]:
+        import json as _json
+        from app.services.payment_rails import PaymentRails
+        if not PaymentRails.verify_paystack(body, signature):
+            raise AuthError("invalid Paystack signature")
+        try:
+            payload = _json.loads(body)
+        except Exception as exc:
+            raise ValidationError("invalid JSON") from exc
+        event = PaymentRails.parse_paystack(payload)
+        if not event:
+            return {"ok": True, "skipped": True, "reason": "non-payment event"}
+        result = await self._treasury.collect(
+            amount=event["amount"],
+            currency=event["currency"],
+            source_project=event.get("plan") or "paystack-direct",
+            method="paystack",
+            type_=event["type"],
+            meta={"customer": event["customer"], "reference": event["reference"], **event.get("meta", {})},
+        )
+        return {"ok": True, "collected": result.get("entry", {}).get("amount_brdg", 0)}
+
+    async def webhook_paypal(self, body: bytes, headers: dict) -> dict[str, Any]:
+        import json as _json
+        from app.services.payment_rails import PaymentRails
+        if not PaymentRails.verify_paypal(body, headers):
+            raise AuthError("invalid PayPal signature")
+        try:
+            payload = _json.loads(body)
+        except Exception as exc:
+            raise ValidationError("invalid JSON") from exc
+        event = PaymentRails.parse_paypal(payload)
+        if not event or event["amount"] <= 0:
+            return {"ok": True, "skipped": True, "reason": "non-payment or zero-amount event"}
+        result = await self._treasury.collect(
+            amount=event["amount"],
+            currency=event["currency"],
+            source_project=event.get("plan") or "paypal-direct",
+            method="paypal",
+            type_=event["type"],
+            meta={"customer": event["customer"], "reference": event["reference"], **event.get("meta", {})},
+        )
+        return {"ok": True, "collected": result.get("entry", {}).get("amount_brdg", 0)}
+
+    async def webhook_crypto(self, body: bytes) -> dict[str, Any]:
+        import json as _json
+        from app.services.payment_rails import PaymentRails
+        try:
+            payload = _json.loads(body)
+        except Exception as exc:
+            raise ValidationError("invalid JSON") from exc
+        event = PaymentRails.parse_crypto(payload)
+        if not event:
+            return {"ok": True, "skipped": True, "reason": "unrecognized crypto event"}
+        result = await self._treasury.collect(
+            amount=event["amount"],
+            currency=event["currency"],
+            source_project="crypto",
+            method="crypto",
+            type_=event["type"],
+            meta={"wallet": event["customer"], "tx_hash": event["reference"], **event.get("meta", {})},
+        )
+        return {"ok": True, "collected": result.get("entry", {}).get("amount_brdg", 0)}
+
+    async def webhook_generic(self, rail: str, body: bytes, source_project: str | None = None) -> dict[str, Any]:
+        import json as _json
+        from app.services.payment_rails import PaymentRails
+        try:
+            payload = _json.loads(body)
+        except Exception as exc:
+            raise ValidationError("invalid JSON") from exc
+        event = PaymentRails.normalize(payload, rail)
+        if not event:
+            raise ValidationError("amount required")
+        result = await self._treasury.collect(
+            amount=event["amount"],
+            currency=event["currency"],
+            source_project=source_project or rail,
+            method=rail,
+            type_=event["type"],
+            meta={"customer": event["customer"], "reference": event["reference"], **event.get("meta", {})},
+        )
+        return {"ok": True, "collected": result.get("entry", {}).get("amount_brdg", 0)}
