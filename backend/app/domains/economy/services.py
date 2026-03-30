@@ -215,7 +215,7 @@ class EconomyServices:
             type_=event["type"],
             meta={"customer": event["customer"], "reference": event["reference"], **event.get("meta", {})},
         )
-        return {"ok": True, "collected": result.get("entry", {}).get("amount_brdg", 0)}
+        return {"ok": True, "collected": result.get("entry", {}).get("amount_brdg", 0), "type": event["type"], "amount": event["amount"], "currency": event["currency"], "reference": event.get("reference", "")}
 
     async def webhook_paypal(self, body: bytes, headers: dict) -> dict[str, Any]:
         import json as _json

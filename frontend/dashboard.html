@@ -1,0 +1,321 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>BridgeAI · Dashboard</title>
+  <link rel="stylesheet" href="/public/bridge-tokens.css" />
+  <style>
+    *{box-sizing:border-box;margin:0;padding:0}
+    body{background:#0a0a0f;color:#e2e8f0;font-family:Inter,system-ui,sans-serif;min-height:100vh}
+    header{display:flex;align-items:center;justify-content:space-between;padding:1rem 2rem;border-bottom:1px solid #1e293b;background:#0f172a}
+    header h1{font-size:1.25rem;font-weight:600;color:#f8fafc}
+    .nav-links{display:flex;gap:.75rem;align-items:center}
+    .nav-links a{color:#94a3b8;text-decoration:none;font-size:.83rem;padding:.35rem .7rem;border-radius:5px;border:1px solid #1e293b;transition:color .15s,border-color .15s}
+    .nav-links a:hover{color:#38bdf8;border-color:#38bdf8}
+    .page{padding:1.5rem 2rem;max-width:1400px;margin:0 auto}
+    .kpi-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(180px,1fr));gap:1rem;margin-bottom:1.5rem}
+    .kpi{background:#0f172a;border:1px solid #1e293b;border-radius:10px;padding:1.2rem 1.4rem}
+    .kpi-value{font-size:1.9rem;font-weight:700;line-height:1}
+    .kpi-label{font-size:.72rem;color:#64748b;text-transform:uppercase;letter-spacing:.06em;margin-top:.4rem}
+    .kpi-sub{font-size:.75rem;margin-top:.3rem}
+    .two-col{display:grid;grid-template-columns:1fr 1fr;gap:1.5rem;margin-bottom:1.5rem}
+    @media(max-width:900px){.two-col{grid-template-columns:1fr}}
+    .panel{background:#0f172a;border:1px solid #1e293b;border-radius:10px;padding:1.2rem}
+    .panel-title{font-size:.78rem;font-weight:600;text-transform:uppercase;letter-spacing:.06em;color:#94a3b8;margin-bottom:.9rem;display:flex;justify-content:space-between;align-items:center}
+    .panel-title a{font-size:.72rem;color:#38bdf8;text-decoration:none;text-transform:none;letter-spacing:0}
+    table{width:100%;border-collapse:collapse;font-size:.8rem}
+    th{color:#475569;font-weight:500;padding:.45rem .6rem;border-bottom:1px solid #1e293b;text-align:left}
+    td{padding:.45rem .6rem;border-bottom:1px solid #0a0a0f;color:#cbd5e1}
+    tr:last-child td{border-bottom:none}
+    .badge{padding:2px 7px;border-radius:4px;font-size:.68rem;font-weight:600}
+    .b-new{background:#1e293b;color:#94a3b8}.b-qualified{background:#0c4a6e;color:#38bdf8}
+    .b-proposal{background:#2e1065;color:#a78bfa}.b-negotiation{background:#431407;color:#fb923c}
+    .b-won{background:#064e3b;color:#34d399}.b-lost{background:#450a0a;color:#f87171}
+    .b-draft{background:#1e293b;color:#94a3b8}.b-sent{background:#0c4a6e;color:#7dd3fc}
+    .b-paid{background:#064e3b;color:#34d399}.b-overdue{background:#450a0a;color:#f87171}
+    .funnel-row{display:flex;align-items:center;gap:.6rem;margin-bottom:.45rem}
+    .funnel-label{font-size:.72rem;color:#94a3b8;width:90px;flex-shrink:0}
+    .funnel-bar-wrap{flex:1;background:#1e293b;border-radius:3px;height:8px;overflow:hidden}
+    .funnel-bar{height:8px;border-radius:3px;transition:width .4s}
+    .funnel-count{font-size:.72rem;color:#94a3b8;width:28px;text-align:right;flex-shrink:0}
+    .activity-item{display:flex;justify-content:space-between;padding:.4rem 0;border-bottom:1px solid #1e293b;font-size:.78rem}
+    .activity-item:last-child{border-bottom:none}
+    .activity-date{color:#475569;white-space:nowrap;margin-left:.5rem;flex-shrink:0}
+    .pulse{width:7px;height:7px;border-radius:50%;background:#34d399;display:inline-block;margin-right:5px;animation:pulse 1.5s infinite}
+    @keyframes pulse{0%,100%{opacity:1}50%{opacity:.3}}
+    .empty{color:#475569;font-size:.78rem;padding:.5rem 0}
+  </style>
+</head>
+<body>
+
+<header>
+  <h1>Dashboard</h1>
+  <div class="nav-links">
+    <span style="font-size:.75rem;color:#475569"><span class="pulse"></span><span id="last-refresh">—</span></span>
+    <a href="/leads.html">Lead Gen</a>
+    <a href="/crm.html">CRM</a>
+    <a href="/invoicing.html">Invoicing</a>
+  </div>
+</header>
+
+<div class="page">
+  <div class="kpi-grid">
+    <div class="kpi">
+      <div class="kpi-value" id="k-revenue" style="color:#38bdf8">—</div>
+      <div class="kpi-label">Revenue (paid)</div>
+      <div class="kpi-sub" id="k-outstanding" style="color:#fb923c"></div>
+    </div>
+    <div class="kpi">
+      <div class="kpi-value" id="k-leads" style="color:#34d399">—</div>
+      <div class="kpi-label">Total Leads</div>
+      <div class="kpi-sub" id="k-leads-week" style="color:#64748b"></div>
+    </div>
+    <div class="kpi">
+      <div class="kpi-value" id="k-pipeline" style="color:#a78bfa">—</div>
+      <div class="kpi-label">Pipeline Value</div>
+      <div class="kpi-sub" id="k-conv" style="color:#64748b"></div>
+    </div>
+    <div class="kpi">
+      <div class="kpi-value" id="k-invoices" style="color:#fb923c">—</div>
+      <div class="kpi-label">Open Invoices</div>
+      <div class="kpi-sub" id="k-overdue" style="color:#f87171"></div>
+    </div>
+    <div class="kpi">
+      <div class="kpi-value" id="k-score" style="color:#38bdf8">—</div>
+      <div class="kpi-label">Avg Lead Score</div>
+      <div class="kpi-sub" id="k-qual" style="color:#64748b"></div>
+    </div>
+  </div>
+
+  <div class="two-col">
+    <div class="panel">
+      <div class="panel-title">Pipeline <a href="/crm.html">View all →</a></div>
+      <div id="funnel-chart"></div>
+    </div>
+    <div class="panel">
+      <div class="panel-title">Recent Invoices <a href="/invoicing.html">View all →</a></div>
+      <table>
+        <thead><tr><th>Invoice</th><th>Client</th><th>Amount</th><th>Status</th></tr></thead>
+        <tbody id="inv-tbody"></tbody>
+      </table>
+      <div class="empty" id="inv-empty" style="display:none">No invoices yet</div>
+    </div>
+  </div>
+
+  <div class="two-col">
+    <div class="panel">
+      <div class="panel-title">Top Leads by Score <a href="/leads.html">View all →</a></div>
+      <table>
+        <thead><tr><th>Email</th><th>Company</th><th>Score</th><th>Stage</th></tr></thead>
+        <tbody id="leads-tbody"></tbody>
+      </table>
+      <div class="empty" id="leads-empty" style="display:none">No leads yet</div>
+    </div>
+    <div class="panel">
+      <div class="panel-title">Recent Activity</div>
+      <div id="activity-feed"></div>
+      <div class="empty" id="activity-empty" style="display:none">No activity yet</div>
+    </div>
+  </div>
+</div>
+
+<script>
+(function(){
+  var tok = localStorage.getItem('bridge_token');
+  if (!tok) { window.location.href = '/login.html?next=/dashboard.html'; return; }
+  fetch('/api/auth/me', { headers: { Authorization: 'Bearer ' + tok } })
+    .then(function(r){ if (!r.ok) { localStorage.removeItem('bridge_token'); window.location.href = '/login.html?next=/dashboard.html'; } })
+    .catch(function(){});
+})();
+
+function getToken() { return localStorage.getItem('bridge_token') || ''; }
+
+async function apiFetch(path) {
+  const res = await fetch('/api' + path, {
+    headers: { Authorization: 'Bearer ' + getToken() },
+  });
+  if (!res.ok) throw new Error(res.status);
+  return res.json();
+}
+
+const STAGE_COLORS = {
+  new:'#475569', qualified:'#0369a1', proposal:'#6d28d9',
+  negotiation:'#92400e', won:'#34d399', lost:'#7f1d1d',
+};
+const CURR_SYMBOL = { ZAR:'R', USD:'$', EUR:'€', GBP:'£' };
+
+function fmt(n, currency) {
+  if (n == null) return '—';
+  const sym = currency ? (CURR_SYMBOL[currency] || currency + ' ') : 'R ';
+  return sym + Number(n).toLocaleString('en-ZA', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
+}
+
+function setText(id, val) {
+  const el = document.getElementById(id);
+  if (el) el.textContent = String(val ?? '—');
+}
+
+function makeBadge(stage) {
+  const b = document.createElement('span');
+  b.className = 'badge b-' + (stage || 'new');
+  b.textContent = stage || 'new';
+  return b;
+}
+
+function makeTd(text) {
+  const td = document.createElement('td');
+  td.textContent = text;
+  return td;
+}
+
+async function loadDashboard() {
+  const [crmStats, invStats, leadsRes] = await Promise.allSettled([
+    apiFetch('/crm/stats'),
+    apiFetch('/invoices/stats'),
+    apiFetch('/crm/leads?limit=200'),
+  ]);
+
+  if (invStats.status === 'fulfilled') {
+    const s = invStats.value;
+    setText('k-revenue', fmt(s.total_paid));
+    setText('k-outstanding', fmt(s.outstanding) + ' outstanding');
+    const open = (s.by_status?.sent || 0) + (s.by_status?.draft || 0);
+    setText('k-invoices', open);
+    const overdue = s.by_status?.overdue || 0;
+    setText('k-overdue', overdue ? overdue + ' overdue' : 'None overdue');
+  }
+
+  if (crmStats.status === 'fulfilled') {
+    const s = crmStats.value;
+    setText('k-leads', s.total_leads ?? '—');
+    setText('k-conv', ((s.conversion_rate ?? 0) * 100).toFixed(1) + '% conversion');
+    setText('k-score', (s.avg_score ?? 0).toFixed(2));
+    setText('k-qual', (s.by_stage?.qualified || 0) + ' qualified');
+    renderFunnel(s.by_stage || {});
+  }
+
+  if (leadsRes.status === 'fulfilled') {
+    const allLeads = leadsRes.value.leads || [];
+    const pipelineLeads = allLeads.filter(l => ['proposal','negotiation','won'].includes(l.stage));
+    const pipelineValue = pipelineLeads.reduce((acc, l) => acc + (l.score ?? 0.5) * 10000, 0);
+    setText('k-pipeline', fmt(pipelineValue));
+    const weekAgo = new Date(Date.now() - 7 * 86400000).toISOString().slice(0, 10);
+    const thisWeek = allLeads.filter(l => (l.created_at || '') >= weekAgo).length;
+    setText('k-leads-week', thisWeek + ' this week');
+    renderTopLeads(allLeads);
+    renderActivity(allLeads);
+  }
+
+  await loadRecentInvoices();
+  setText('last-refresh', 'Updated ' + new Date().toLocaleTimeString('en-ZA', { hour: '2-digit', minute: '2-digit' }));
+}
+
+function renderFunnel(byStage) {
+  const stages = ['new', 'qualified', 'proposal', 'negotiation', 'won', 'lost'];
+  const max = Math.max(1, ...Object.values(byStage));
+  const el = document.getElementById('funnel-chart');
+  el.textContent = '';
+  stages.forEach(stage => {
+    const count = byStage[stage] || 0;
+    const row = document.createElement('div');
+    row.className = 'funnel-row';
+
+    const label = document.createElement('div');
+    label.className = 'funnel-label';
+    label.textContent = stage.charAt(0).toUpperCase() + stage.slice(1);
+
+    const wrap = document.createElement('div');
+    wrap.className = 'funnel-bar-wrap';
+    const bar = document.createElement('div');
+    bar.className = 'funnel-bar';
+    bar.style.cssText = 'width:' + Math.round((count / max) * 100) + '%;background:' + (STAGE_COLORS[stage] || '#475569');
+    wrap.appendChild(bar);
+
+    const cnt = document.createElement('div');
+    cnt.className = 'funnel-count';
+    cnt.textContent = count;
+
+    row.appendChild(label);
+    row.appendChild(wrap);
+    row.appendChild(cnt);
+    el.appendChild(row);
+  });
+}
+
+async function loadRecentInvoices() {
+  try {
+    const r = await apiFetch('/invoices?limit=6');
+    const invoices = r.invoices || [];
+    const tbody = document.getElementById('inv-tbody');
+    tbody.textContent = '';
+    document.getElementById('inv-empty').style.display = invoices.length ? 'none' : 'block';
+    invoices.slice(0, 6).forEach(inv => {
+      const tr = document.createElement('tr');
+      const sym = CURR_SYMBOL[inv.currency] || inv.currency;
+      tr.appendChild(makeTd(inv.invoice_number || '—'));
+      tr.appendChild(makeTd((inv.client_company || inv.client_name || '—').slice(0, 18)));
+      tr.appendChild(makeTd(sym + ' ' + (inv.total ?? 0).toFixed(2)));
+      const td = document.createElement('td');
+      td.appendChild(makeBadge(inv.status));
+      tr.appendChild(td);
+      tbody.appendChild(tr);
+    });
+  } catch (e) { console.warn('invoices', e); }
+}
+
+function renderTopLeads(allLeads) {
+  const sorted = [...allLeads].sort((a, b) => (b.score ?? 0) - (a.score ?? 0)).slice(0, 6);
+  const tbody = document.getElementById('leads-tbody');
+  tbody.textContent = '';
+  document.getElementById('leads-empty').style.display = sorted.length ? 'none' : 'block';
+  sorted.forEach(l => {
+    const tr = document.createElement('tr');
+    tr.appendChild(makeTd(l.email));
+    tr.appendChild(makeTd((l.company || '—').slice(0, 16)));
+    tr.appendChild(makeTd(((l.score ?? 0) * 100).toFixed(0) + '%'));
+    const td = document.createElement('td');
+    td.appendChild(makeBadge(l.stage));
+    tr.appendChild(td);
+    tbody.appendChild(tr);
+  });
+}
+
+function renderActivity(allLeads) {
+  const events = [];
+  allLeads.forEach(l => {
+    (l.activities || []).forEach(a => {
+      events.push({
+        text: (l.email || '?') + ' — ' + a.type + ': ' + (a.text || '').slice(0, 50),
+        date: a.created_at || '',
+      });
+    });
+    if (l.created_at) {
+      events.push({ text: 'Lead added: ' + (l.email || '?'), date: l.created_at });
+    }
+  });
+  events.sort((a, b) => b.date.localeCompare(a.date));
+
+  const feed = document.getElementById('activity-feed');
+  feed.textContent = '';
+  const recent = events.slice(0, 10);
+  document.getElementById('activity-empty').style.display = recent.length ? 'none' : 'block';
+  recent.forEach(ev => {
+    const row = document.createElement('div');
+    row.className = 'activity-item';
+    const text = document.createElement('span');
+    text.textContent = ev.text;
+    const date = document.createElement('span');
+    date.className = 'activity-date';
+    date.textContent = (ev.date || '').slice(0, 10);
+    row.appendChild(text);
+    row.appendChild(date);
+    feed.appendChild(row);
+  });
+}
+
+loadDashboard();
+setInterval(loadDashboard, 30000);
+</script>
+</body>
+</html>
