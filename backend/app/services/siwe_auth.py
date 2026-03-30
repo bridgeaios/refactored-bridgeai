@@ -9,13 +9,31 @@ from __future__ import annotations
 import os
 import re
 import time
+from typing import Any
 
 import jwt
 from eth_account import Account
 from eth_account.messages import encode_defunct
 
-# Config
-JWT_SECRET = os.environ.get("BRIDGE_SIWE_JWT_SECRET", "change-me-in-production")
+# Config — JWT secret MUST be set to a strong value. No insecure fallbacks.
+_INSECURE_PLACEHOLDERS = {"change-me-in-production", "change-me", "secret", "placeholder", ""}
+JWT_SECRET = os.environ.get("BRIDGE_SIWE_JWT_SECRET", "")
+if JWT_SECRET.lower().strip() in _INSECURE_PLACEHOLDERS or len(JWT_SECRET) < 32:
+    import warnings
+    warnings.warn(
+        "BRIDGE_SIWE_JWT_SECRET is missing, too short (<32 chars), or set to an insecure placeholder. "
+        "JWT signing/verification will FAIL. Generate one with: python -c \"import secrets; print(secrets.token_hex(64))\"",
+        stacklevel=1,
+    )
+    # In production, crash hard. In dev, warn but allow startup with a random ephemeral secret.
+    if os.environ.get("NODE_ENV") == "production" or os.environ.get("BRIDGE_ENV") == "production":
+        raise RuntimeError(
+            "CRITICAL: BRIDGE_SIWE_JWT_SECRET must be set to a strong secret (>=32 chars) in production. "
+            "Refusing to start with an insecure or missing secret."
+        )
+    import secrets as _secrets
+    JWT_SECRET = _secrets.token_hex(64)  # Ephemeral — all tokens invalidated on restart
+
 JWT_EXPIRY_SEC = int(os.environ.get("BRIDGE_SIWE_JWT_EXPIRY", "86400"))  # 24h
 ALLOWED_DOMAINS = [
     d.strip().lower()
@@ -83,14 +101,14 @@ def nonce_key(address: str, nonce: str) -> str:
     return f"siwe:nonce:{address}:{nonce}"
 
 
-async def is_nonce_used(memory, address: str, nonce: str) -> bool:
+async def is_nonce_used(memory: Any, address: str, nonce: str) -> bool:
     """Check if nonce was already used (replay protection)."""
     key = nonce_key(address, nonce)
     val = await memory.get(key)
     return val is not None
 
 
-async def store_nonce_used(memory, address: str, nonce: str, ttl_sec: int = 86400 * 7) -> None:
+async def store_nonce_used(memory: Any, address: str, nonce: str, ttl_sec: int = 86400 * 7) -> None:
     """Mark nonce as used. TTL 7 days."""
     key = nonce_key(address, nonce)
     if memory._r:

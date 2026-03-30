@@ -114,14 +114,19 @@ class PaymentRails:
     @staticmethod
     def verify_paypal(body_bytes: bytes, headers: dict[str, str]) -> bool:
         """
-        PayPal webhook verification. In production: call PayPal verify API.
-        For now: accept if PAYPAL_WEBHOOK_ID env var matches header.
+        PayPal webhook verification.
+        DISABLED: Always returns False until real PayPal verify-webhook-signature
+        API call is implemented. Accepting unverified webhooks allows forged payments.
+        TODO: Implement POST to https://api.paypal.com/v1/notifications/verify-webhook-signature
         """
+        # SECURITY: PayPal webhook verification is NOT implemented.
+        # Rejecting all PayPal webhooks until proper signature verification is added.
         webhook_id = os.environ.get("PAYPAL_WEBHOOK_ID", "")
         if not webhook_id:
-            return True  # Dev: accept without key
-        # Real implementation: POST to https://api.paypal.com/v1/notifications/verify-webhook-signature
-        return True  # Placeholder — replace with real call in production
+            return False  # No webhook ID configured — reject
+        # TODO: Implement real PayPal webhook signature verification here.
+        # See: https://developer.paypal.com/docs/api/webhooks/v1/#verify-webhook-signature_post
+        return False  # Reject until verification is implemented
 
     @staticmethod
     def parse_paypal(body: dict[str, Any]) -> dict[str, Any] | None:

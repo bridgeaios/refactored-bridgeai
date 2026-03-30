@@ -12,6 +12,7 @@ import json
 import logging
 from datetime import datetime
 from enum import Enum
+from typing import Any
 
 import redis.asyncio as redis
 from pydantic import BaseModel
@@ -56,13 +57,13 @@ class SwarmMessageBus:
     def __init__(self, redis_url: str = "redis://localhost:6379"):
         self.redis_url = redis_url
         self._client: redis.Redis | None = None
-        self._pubsub = None
+        self._pubsub: Any = None
 
     async def connect(self) -> None:
         """Connect to Redis."""
         try:
             self._client = redis.from_url(self.redis_url, decode_responses=True)
-            await self._client.ping()
+            await self._client.ping()  # type: ignore[misc]
             logger.info(f"Swarm message bus connected to {self.redis_url}")
         except Exception as e:
             logger.warning(f"Could not connect to Redis: {e}")
@@ -85,7 +86,7 @@ class SwarmMessageBus:
         if not self._client:
             return 0
         msg_json = json.dumps(message.model_dump(), default=str)
-        return await self._client.publish(channel, msg_json)
+        return await self._client.publish(channel, msg_json)  # type: ignore[no-any-return]
 
     async def publish_broadcast(self, message: AgentMessage) -> int:
         """Publish to broadcast channel."""
@@ -125,10 +126,10 @@ class SwarmMessageBus:
         """Publish skill share event."""
         return await self.publish(self.CHANNELS["skill_share"], message)
 
-    async def subscribe(self, channel: str):
+    async def subscribe(self, channel: str) -> Any:
         """Subscribe to a channel."""
         if not self._client:
-            return
+            return None
         if not self._pubsub:
             self._pubsub = self._client.pubsub()
         await self._pubsub.subscribe(channel)
@@ -139,7 +140,7 @@ class SwarmMessageBus:
         if not self._client:
             return 0
         try:
-            return await self._client.llen(channel)
+            return await self._client.llen(channel)  # type: ignore[no-any-return,misc]
         except Exception:
             return 0
 
@@ -158,7 +159,7 @@ class SwarmMessageBus:
             return False
         channel = self.CHANNELS["tasks"].format(id=agent_id)
         try:
-            await self._client.rpush(channel, json.dumps(task))
+            await self._client.rpush(channel, json.dumps(task))  # type: ignore[misc]
             return True
         except Exception as e:
             logger.error(f"Failed to push task: {e}")
@@ -171,13 +172,13 @@ class SwarmMessageBus:
         channel = self.CHANNELS["tasks"].format(id=agent_id)
         try:
             if timeout > 0:
-                result = await self._client.blpop(channel, timeout=timeout)
+                result = await self._client.blpop([channel], timeout=timeout)  # type: ignore[misc]
                 if result:
-                    return json.loads(result[1])
+                    return json.loads(result[1])  # type: ignore[no-any-return]
             else:
-                result = await self._client.lpop(channel)
+                result = await self._client.lpop(channel)  # type: ignore[misc]
                 if result:
-                    return json.loads(result)
+                    return json.loads(result)  # type: ignore[no-any-return]
         except Exception as e:
             logger.error(f"Failed to pop task: {e}")
         return None

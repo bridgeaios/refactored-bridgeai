@@ -100,7 +100,7 @@ class ProjectsService:
         registry[project_id]["lastSeenAt"] = _now()
         registry[project_id]["status"] = status
         await self._save(registry)
-        return registry[project_id]
+        return registry[project_id]  # type: ignore[no-any-return]
 
     async def seed_from_config(self, config: dict[str, Any]) -> list[str]:
         """

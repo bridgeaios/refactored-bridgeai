@@ -16,7 +16,7 @@ class MissionService(BaseService):
             "done": latest.get("done",0)
         }
 
-    async def save_skill(self, skill: dict):
+    async def save_skill(self, skill: dict) -> bool:
         await self.memory.append("skills", skill)
         # increment backlog
         board = await self.get_counts()
@@ -24,6 +24,6 @@ class MissionService(BaseService):
         await self.memory.append("mission_board", board)
         return True
 
-    async def update_board(self, counts: dict):
+    async def update_board(self, counts: dict) -> bool:
         await self.memory.append("mission_board", counts)
         return True

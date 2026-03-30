@@ -49,4 +49,4 @@ async def exchange_code(code: str, redirect_uri: str) -> dict[str, Any]:
         )
         if user_resp.status_code != 200:
             raise GoogleOAuthError(f"userinfo failed: {user_resp.text}")
-        return user_resp.json()
+        return user_resp.json()  # type: ignore[no-any-return]

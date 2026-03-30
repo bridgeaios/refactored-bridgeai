@@ -9,7 +9,7 @@ class ConnectionManager:
         self.active: dict[str, list[WebSocket]] = {}
         self.lock = asyncio.Lock()
 
-    async def connect(self, channel: str, ws: WebSocket):
+    async def connect(self, channel: str, ws: WebSocket) -> None:
         await ws.accept()
         async with self.lock:
             self.active.setdefault(channel, []).append(ws)
@@ -19,12 +19,12 @@ class ConnectionManager:
         except Exception:
             pass
 
-    async def disconnect(self, channel: str, ws: WebSocket):
+    async def disconnect(self, channel: str, ws: WebSocket) -> None:
         async with self.lock:
             if channel in self.active and ws in self.active[channel]:
                 self.active[channel].remove(ws)
 
-    async def broadcast(self, channel: str, message: dict):
+    async def broadcast(self, channel: str, message: dict) -> None:
         async with self.lock:
             sockets = list(self.active.get(channel, []))
         dead = []
@@ -39,7 +39,7 @@ class ConnectionManager:
                     if d in self.active.get(channel, []):
                         self.active[channel].remove(d)
 
-    async def broadcast_all(self, message: dict):
+    async def broadcast_all(self, message: dict) -> None:
         async with self.lock:
             channels = list(self.active.keys())
         for ch in channels:

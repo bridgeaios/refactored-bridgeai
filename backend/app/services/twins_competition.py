@@ -21,7 +21,7 @@ class Twin:
 
 
 # Pool of auto-generated tasks for the Bridge (ordered by reward for priority routing)
-AUTO_TASK_POOL = [
+AUTO_TASK_POOL: list[dict[str, Any]] = [
     {"desc": "Bridge system comprehension", "reward": 20, "urgency": 1.0, "tags": ["meta", "architecture"]},
     {"desc": "Add wallet connect flow", "reward": 18, "urgency": 0.95, "tags": ["wallet", "blockchain"]},
     {"desc": "Cognitive twin evolve loop", "reward": 17, "urgency": 0.9, "tags": ["twin", "learning"]},
@@ -127,7 +127,7 @@ class TwinsCompetitionService:
         score, _ = compute_priority_score(payload, trust=0.5)
         if not passes_threshold(score):
             return None
-        return marketplace.add_task(payload)
+        return marketplace.add_task(payload)  # type: ignore[no-any-return]
 
     def allocate_top_task(self, twin_id: str, marketplace: Any) -> dict[str, Any] | None:
         """
@@ -152,7 +152,7 @@ class TwinsCompetitionService:
             }
             if not any(s.get("task_id") == skill["task_id"] for s in twin.skills_learned):
                 twin.skills_learned.append(skill)
-        return task
+        return task  # type: ignore[no-any-return]
 
     def allocate_task(self, task_id: int, twin_id: str, marketplace: Any) -> dict[str, Any] | None:
         """Legacy: allocate specific task. Prefer allocate_top_task for canonical flow."""
@@ -170,9 +170,9 @@ class TwinsCompetitionService:
             }
             if not any(s.get("task_id") == skill["task_id"] for s in twin.skills_learned):
                 twin.skills_learned.append(skill)
-        return task
+        return task  # type: ignore[no-any-return]
 
-    def complete_task(self, task_id: int, marketplace) -> dict | None:
+    def complete_task(self, task_id: int, marketplace: Any) -> dict[str, Any] | None:
         """Mark task complete. Verify skill was learned before crediting twin."""
         task = marketplace.complete_task(int(task_id))
         if not task:
@@ -200,7 +200,7 @@ class TwinsCompetitionService:
                 twin.completed += 1
                 reward = float(task.get("reward", 0))
                 twin.total_score += reward
-        return task
+        return task  # type: ignore[no-any-return]
 
     def register_twin(self, twin_id: str, name: str) -> Twin:
         """Register a new twin."""

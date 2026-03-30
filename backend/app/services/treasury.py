@@ -103,7 +103,7 @@ class TreasuryService:
         raw = await self._memory.get(STATUS_KEY)
         if isinstance(raw, str) and raw:
             try:
-                return json.loads(raw)
+                return json.loads(raw)  # type: ignore[no-any-return]
             except Exception:
                 pass
         return _empty_status()

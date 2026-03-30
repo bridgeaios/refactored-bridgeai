@@ -131,7 +131,7 @@ class ReplicationEngine:
             import json
             raw = await self.memory.get(self.STATUS_KEY)
             if raw:
-                return json.loads(raw)
+                return json.loads(raw)  # type: ignore[no-any-return]
         except Exception:
             pass
         return {
@@ -166,7 +166,7 @@ class ReplicationEngine:
             raw = await self.memory.get(self.NODES_KEY)
             if raw:
                 import json
-                return json.loads(raw)
+                return json.loads(raw)  # type: ignore[no-any-return]
         except Exception:
             pass
         return []

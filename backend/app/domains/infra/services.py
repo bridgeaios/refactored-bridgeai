@@ -114,12 +114,12 @@ class InfraServices:
     async def sheets_read(self, spreadsheet_id: str, range_: str) -> dict[str, Any]:
         if not self._google_sheets:
             raise NetworkError("Google Sheets service unavailable — check credentials")
-        return await self._google_sheets.read_spreadsheet(spreadsheet_id, range_)
+        return await self._google_sheets.read_spreadsheet(spreadsheet_id, range_)  # type: ignore[no-any-return]
 
     async def sheets_append(self, spreadsheet_id: str, range_: str, values: list) -> dict[str, Any]:
         if not self._google_sheets:
             raise NetworkError("Google Sheets service unavailable — check credentials")
-        return await self._google_sheets.append_spreadsheet(spreadsheet_id, range_, values)
+        return await self._google_sheets.append_spreadsheet(spreadsheet_id, range_, values)  # type: ignore[no-any-return]
 
     # ------------------------------------------------------------------
     # YouTube Skills
@@ -131,12 +131,12 @@ class InfraServices:
     async def youtube_search(self, q: str, limit: int = 8) -> dict[str, Any]:
         if not self.youtube_available():
             raise NetworkError("YouTube Skills service unavailable — set YOUTUBE_API_KEY")
-        return await self._youtube.search(q, max_results=min(limit, 25))
+        return await self._youtube.search(q, max_results=min(limit, 25))  # type: ignore[no-any-return]
 
     async def youtube_learn(self, video_id: str) -> dict[str, Any]:
         if not self.youtube_available():
             raise NetworkError("YouTube Skills service unavailable — set YOUTUBE_API_KEY")
-        return await self._youtube.learn_from_video(video_id)
+        return await self._youtube.learn_from_video(video_id)  # type: ignore[no-any-return]
 
     # ------------------------------------------------------------------
     # CLI Orchestration Queue

@@ -1,3 +1,18 @@
+// ── Auth gate: redirect to login if not authenticated ──
+// Client-side pre-check — real auth is enforced by the backend on every API call.
+// This gate is a UX convenience, not a security boundary.
+(function authGate() {
+  const hasClerkSession = document.cookie.split(';').some(c => {
+    const name = c.trim().split('=')[0];
+    return name === '__session' || name === '__client_uat';
+  });
+  const hasLocalToken = !!localStorage.getItem('bridge_token');
+  if (!hasClerkSession && !hasLocalToken) {
+    window.location.href = '/login.html';
+    return;
+  }
+})();
+
 import { initRenderer } from './babylonRenderer.js';
 import { runSystemCheck } from './systemVerifier.js';
 import { initLipSync } from './lipsync.js';

@@ -104,7 +104,7 @@ def compound_interest(
     """Return accrued interest (not including principal)."""
     t = elapsed_seconds / 86400 / 365  # fractional years
     n = frequency
-    return principal * ((1 + rate_annual / n) ** (n * t) - 1)
+    return float(principal * ((1 + rate_annual / n) ** (n * t) - 1))
 
 
 def health_factor(collateral_usd: float, outstanding_usd: float, threshold: float = 1.10) -> float:

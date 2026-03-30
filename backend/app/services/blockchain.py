@@ -6,6 +6,6 @@ class BlockchainService:
     def get_price(self, coin: str) -> float:
         return float(self._prices.get(coin.lower(), 0.0))
 
-    def simulate_update(self, coin: str, price: float):
+    def simulate_update(self, coin: str, price: float) -> bool:
         self._prices[coin.lower()] = float(price)
         return True

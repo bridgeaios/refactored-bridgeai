@@ -25,7 +25,7 @@ class EmotionModel(nn.Module):
     def forward(self, x: torch.Tensor) -> torch.Tensor:
         x = torch.relu(self.fc1(x))
         x = torch.relu(self.fc2(x))
-        return self.fc3(x)  # type: ignore[return-value]
+        return self.fc3(x)  # type: ignore[no-any-return]
 
 
 class LearningService:

@@ -86,7 +86,7 @@ async def scrape_site(url):
                     print(f"[SCRAPE]   Found contact link: {contact_link[:60]}...")
                     break
 
-            if contact_link:
+            if contact_link and _is_safe_url(contact_link):
                 try:
                     r2 = await client.get(contact_link, headers=HEADERS, timeout=10)
                     contact_emails = extract_emails(r2.text)

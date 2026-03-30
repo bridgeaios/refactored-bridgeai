@@ -198,7 +198,13 @@ export async function initWallet() {
         hintEl.textContent = 'MetaMask popup is open — approve or close it, then try again.';
       } else if (isExtensionInvalidated(err)) {
         evmBtn.textContent = 'Refresh page';
-        hintEl.innerHTML = 'MetaMask was updated. <a href="javascript:location.reload()">Refresh page</a> to reconnect.';
+        hintEl.textContent = 'MetaMask was updated. ';
+        const reloadLink = document.createElement('a');
+        reloadLink.textContent = 'Refresh page';
+        reloadLink.href = '#';
+        reloadLink.addEventListener('click', (e) => { e.preventDefault(); location.reload(); });
+        hintEl.appendChild(reloadLink);
+        hintEl.appendChild(document.createTextNode(' to reconnect.'));
       } else {
         evmBtn.textContent = 'Retry';
         hintEl.textContent = err?.message || 'Connection failed. Click Retry.';
@@ -246,7 +252,13 @@ export async function initWallet() {
         hintEl.innerHTML = 'Phantom not found. <a href="https://phantom.app/" target="_blank" rel="noopener">Install Phantom</a> (Solana) · <a href="https://metamask.io/download/" target="_blank" rel="noopener">MetaMask</a> (EVM)';
       } else if (isExtensionInvalidated(err)) {
         solBtn.textContent = 'Refresh page';
-        hintEl.innerHTML = 'Phantom was updated. <a href="javascript:location.reload()">Refresh page</a> to reconnect.';
+        hintEl.textContent = 'Phantom was updated. ';
+        const reloadLink2 = document.createElement('a');
+        reloadLink2.textContent = 'Refresh page';
+        reloadLink2.href = '#';
+        reloadLink2.addEventListener('click', (e) => { e.preventDefault(); location.reload(); });
+        hintEl.appendChild(reloadLink2);
+        hintEl.appendChild(document.createTextNode(' to reconnect.'));
       } else {
         solBtn.textContent = 'Retry';
         hintEl.textContent = msg || 'Connection failed. Click Retry.';

@@ -102,21 +102,59 @@ AUTHORITY_ORDER = {AuthorityClass.PUBLIC: 0, AuthorityClass.ECONOMIC: 1, Authori
 
 
 def auth_class_from_token(token: str | None) -> AuthorityClass:
-    if token == "internal":
+    """
+    Resolve authority from a signed JWT token.
+    String-literal shortcuts ("internal", "orchestrator") are REMOVED — they were
+    a complete auth bypass. All authority must come from a verified JWT with an
+    'auth' claim, or from a server-side shared secret.
+    """
+    if not token:
+        return AuthorityClass.PUBLIC
+
+    # Server-side shared secret for internal services (e.g., cron jobs, workers)
+    _internal_secret = os.environ.get("BRIDGE_INTERNAL_SECRET", "")
+    if _internal_secret and len(_internal_secret) >= 32 and token == _internal_secret:
         return AuthorityClass.INTERNAL
-    if token == "orchestrator":
+
+    _orchestrator_secret = os.environ.get("BRIDGE_ORCHESTRATOR_SECRET", "")
+    if _orchestrator_secret and len(_orchestrator_secret) >= 32 and token == _orchestrator_secret:
         return AuthorityClass.ORCHESTRATOR
-    if token and token.startswith("economic"):
-        return AuthorityClass.ECONOMIC
-    # SIWE JWT: verify and map to ECONOMIC
-    if token and len(token) > 50:
+
+    # KeyForge token (prefix kf2.) — deterministic rotating key
+    if token.startswith("kf2."):
+        try:
+            from app.services.keyforge import get_keyforge
+            forge = get_keyforge()
+            result = forge.validate(token)
+            if result.valid:
+                scope_to_auth = {
+                    "orchestrator": AuthorityClass.ORCHESTRATOR,
+                    "internal": AuthorityClass.INTERNAL,
+                    "economic": AuthorityClass.ECONOMIC,
+                    "api-gateway": AuthorityClass.ECONOMIC,
+                    "agent": AuthorityClass.INTERNAL,
+                    "webhook": AuthorityClass.ECONOMIC,
+                }
+                return scope_to_auth.get(result.scope, AuthorityClass.PUBLIC)
+        except Exception:
+            pass
+
+    # SIWE JWT: verify signature and map claims to authority
+    if len(token) > 50:
         try:
             from app.services.siwe_auth import verify_jwt
             payload = verify_jwt(token)
-            if payload and payload.get("auth") == "economic":
-                return AuthorityClass.ECONOMIC
+            if payload:
+                auth_claim = payload.get("auth", "")
+                if auth_claim == "orchestrator":
+                    return AuthorityClass.ORCHESTRATOR
+                if auth_claim == "internal":
+                    return AuthorityClass.INTERNAL
+                if auth_claim == "economic":
+                    return AuthorityClass.ECONOMIC
         except Exception:
             pass
+
     return AuthorityClass.PUBLIC
 
 
@@ -253,7 +291,7 @@ TWIN_VERSION_KEY = "bridge:twin_version"
 SCHEMA_VERSION = 1
 
 
-async def get_state_version(memory) -> int:
+async def get_state_version(memory: Any) -> int:
     if memory is None or not hasattr(memory, "get"):
         return 0
     val = await memory.get(STATE_VERSION_KEY)
@@ -263,7 +301,7 @@ async def get_state_version(memory) -> int:
 STATE_HASH_KEY = "bridge:state_hash"
 
 
-async def get_state_hash(memory) -> str:
+async def get_state_hash(memory: Any) -> str:
     """Hash of canonical state. Version tells when; hash tells what. Detect corruption, verify replication."""
     if memory is None or not hasattr(memory, "get"):
         return ""
@@ -273,7 +311,7 @@ async def get_state_hash(memory) -> str:
     return hashlib.sha256(canonical.encode()).hexdigest()[:32]
 
 
-async def increment_state_version(memory) -> int:
+async def increment_state_version(memory: Any) -> int:
     """
     Monotonic version increment. Uses Redis INCR when available for cluster-safe ordering.
     Otherwise fallback to get+set. Organisms need synchronized time.
@@ -288,7 +326,7 @@ async def increment_state_version(memory) -> int:
             h = await get_state_hash(memory)
             if hasattr(memory, "set"):
                 await memory.set(STATE_HASH_KEY, h)
-            return v
+            return int(v)
         except Exception:
             pass
     v = await get_state_version(memory)
@@ -343,7 +381,7 @@ def assert_invariant_evolution_requires_orchestrator(cap: bool, auth: AuthorityC
         return
     if auth == AuthorityClass.ORCHESTRATOR:
         return
-    if capability_enabled("evolution") and auth != AuthorityClass.ORCHESTRATOR:
+    if capability_enabled("evolution"):
         pass  # Check is at call site: evolution endpoints require orchestrator
 
 
@@ -386,7 +424,7 @@ def compute_boot_identity() -> str:
     return hashlib.sha256("|".join(parts).encode()).hexdigest()[:32]
 
 
-async def verify_boot_identity(memory) -> bool:
+async def verify_boot_identity(memory: Any) -> bool:
     """
     On boot: compute identity, compare to stored. If different without version bump, refuse start.
     Returns True if OK to start, raises SystemExit if identity drift detected.
@@ -421,7 +459,7 @@ SENSOR_WIFI_KEY = "bridge:sensor:wifi:latest"
 SENSOR_MOUSE_KEY = "bridge:sensor:mouse:latest"
 
 
-async def record_boot(memory) -> dict:
+async def record_boot(memory: Any) -> dict:
     """Record a process boot. Returns { boot_id, at }."""
     if not memory or not hasattr(memory, "get"):
         return {"boot_id": "", "at": ""}
@@ -443,7 +481,7 @@ async def record_boot(memory) -> dict:
     return entry
 
 
-async def record_run_start(memory) -> dict:
+async def record_run_start(memory: Any) -> dict:
     """Start a run session. Returns { run_id, started_at }."""
     if not memory or not hasattr(memory, "get"):
         return {"run_id": "", "started_at": ""}
@@ -466,7 +504,7 @@ async def record_run_start(memory) -> dict:
     return entry
 
 
-async def get_boots_log(memory) -> list:
+async def get_boots_log(memory: Any) -> list:
     """Return recent boots (pboots)."""
     if not memory or not hasattr(memory, "get"):
         return []
@@ -478,7 +516,7 @@ async def get_boots_log(memory) -> list:
         return []
 
 
-async def get_runs_log(memory) -> list:
+async def get_runs_log(memory: Any) -> list:
     """Return recent runs (runbs)."""
     if not memory or not hasattr(memory, "get"):
         return []
@@ -490,7 +528,7 @@ async def get_runs_log(memory) -> list:
         return []
 
 
-async def get_current_run(memory) -> dict | None:
+async def get_current_run(memory: Any) -> dict | None:
     """Return current run session if any."""
     if not memory or not hasattr(memory, "get"):
         return None
@@ -498,12 +536,12 @@ async def get_current_run(memory) -> dict | None:
         raw = await memory.get(CURRENT_RUN_KEY)
         if not raw:
             return None
-        return json.loads(raw) if isinstance(raw, str) else raw
+        return json.loads(raw) if isinstance(raw, str) else raw  # type: ignore[no-any-return]
     except Exception:
         return None
 
 
-async def set_sensor_wifi(memory, payload: dict) -> None:
+async def set_sensor_wifi(memory: Any, payload: dict) -> None:
     """Store latest WiFi RF sample (from boot script)."""
     if not memory or not hasattr(memory, "set"):
         return
@@ -514,7 +552,7 @@ async def set_sensor_wifi(memory, payload: dict) -> None:
         pass
 
 
-async def get_sensor_wifi(memory) -> dict | None:
+async def get_sensor_wifi(memory: Any) -> dict | None:
     """Return latest WiFi sensor payload."""
     if not memory or not hasattr(memory, "get"):
         return None
@@ -525,7 +563,7 @@ async def get_sensor_wifi(memory) -> dict | None:
         return None
 
 
-async def set_sensor_mouse(memory, payload: dict) -> None:
+async def set_sensor_mouse(memory: Any, payload: dict) -> None:
     """Store latest mouse tracker sample (from boot script)."""
     if not memory or not hasattr(memory, "set"):
         return
@@ -536,7 +574,7 @@ async def set_sensor_mouse(memory, payload: dict) -> None:
         pass
 
 
-async def get_sensor_mouse(memory) -> dict | None:
+async def get_sensor_mouse(memory: Any) -> dict | None:
     """Return latest mouse sensor payload."""
     if not memory or not hasattr(memory, "get"):
         return None

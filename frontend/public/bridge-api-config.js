@@ -5,7 +5,10 @@
  */
 (function () {
   const LOCAL = 'http://localhost:8000';
-  const CLOUD = 'https://api.bridge-ai-os.tech';
+  const CLOUD = 'https://brain.bridge-ai-os.com';
+
+  // Auto-detect: if accessed via tunnel, use cloud; if localhost, use local
+  const isRemote = typeof location !== 'undefined' && location.hostname !== 'localhost' && location.hostname !== '127.0.0.1';
 
   function getParam(name) {
     try {
@@ -16,14 +19,14 @@
 
   const urlMode = getParam('api') || getParam('bridge_api');
   const stored = typeof localStorage !== 'undefined' ? localStorage.getItem('bridge_api_mode') : null;
-  const mode = urlMode || stored || 'local';
+  const mode = urlMode || stored || (isRemote ? 'cloud' : 'local');
 
   if (typeof localStorage !== 'undefined' && urlMode && urlMode !== stored) {
     localStorage.setItem('bridge_api_mode', urlMode);
   }
 
   const base = mode === 'cloud' ? CLOUD : LOCAL;
-  const wsBase = mode === 'cloud' ? 'wss://api.bridge-ai-os.tech' : 'ws://localhost:8000';
+  const wsBase = mode === 'cloud' ? 'wss://brain.bridge-ai-os.com' : 'ws://localhost:8000';
   window.__API_BASE = base;
   window.__WS_BASE = wsBase;
   window.__BRIDGE_SPINE = true;

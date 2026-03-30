@@ -72,7 +72,7 @@ class IngestionService:
         self._memory = memory
         self._mission: MissionService | None = None
         self._twin: CognitiveTwinService | None = None
-        self._stats = {
+        self._stats: dict[str, Any] = {
             "goassl_ingested": 0,
             "tasks_ingested": 0,
             "skills_ingested": 0,
@@ -264,8 +264,9 @@ class IngestionService:
                 skill_stack[category_key] = current_skills
                 imported_count += 1
 
-        await self.memory.set("skill_stack", skill_stack)
-        await self.memory.set("all_scanned_skills", all_skills)
+        import json as _json
+        await self.memory.set("skill_stack", _json.dumps(skill_stack))
+        await self.memory.set("all_scanned_skills", _json.dumps(all_skills))
 
         self._stats["skills_ingested"] += imported_count
         self._stats["last_ingestion"] = time.time()

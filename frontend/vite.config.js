@@ -115,12 +115,13 @@ _isBackendAlive();
 
 const CSP =
   "default-src 'self'; " +
-  "script-src 'self' 'unsafe-inline' 'unsafe-eval' https://cdn.babylonjs.com https://cdn.tailwindcss.com https://cdn.jsdelivr.net; " +
-  "style-src 'self' 'unsafe-inline' https://fonts.googleapis.com https://cdn.jsdelivr.net; " +
-  "font-src 'self' data: https://fonts.gstatic.com https://fonts.googleapis.com; " +
+  "script-src 'self' 'unsafe-inline' 'unsafe-eval' https://cdn.babylonjs.com https://cdn.tailwindcss.com https://cdn.jsdelivr.net https://*.clerk.accounts.dev https://*.clerk.com https://challenges.cloudflare.com; " +
+  "style-src 'self' 'unsafe-inline' https://fonts.googleapis.com https://cdn.jsdelivr.net https://*.clerk.accounts.dev https://*.clerk.com; " +
+  "font-src 'self' data: https://fonts.gstatic.com https://fonts.googleapis.com https://*.clerk.com https://*.clerk.accounts.dev; " +
   "img-src 'self' data: https: blob:; " +
-  "connect-src 'self' ws: wss: https: http:; " +
-  "frame-src https:;";
+  "connect-src 'self' ws://localhost:* wss://localhost:* https://*.clerk.accounts.dev https://*.clerk.com https://challenges.cloudflare.com http://localhost:*; " +
+  "frame-src https: https://challenges.cloudflare.com; " +
+  "worker-src 'self' blob:;";
 
 // Multi-page: use named object entries (array input is not valid for Vite rollupOptions.input).
 const projectRoot = process.cwd();
@@ -129,6 +130,8 @@ export default {
     rollupOptions: {
       input: {
         main: join(projectRoot, 'index.html'),
+        login: join(projectRoot, 'login.html'),
+        admin: join(projectRoot, 'admin.html'),
         apps: join(projectRoot, '50-applications.html'),
       },
     },

@@ -114,7 +114,7 @@ class TwinsServices:
     def list_bossbots(self) -> list[dict]:
         return self._bossbots.get_signals()
 
-    def bossbots_signals(self) -> dict[str, Any]:
+    def bossbots_signals(self) -> list[dict[str, Any]]:
         return self._bossbots.get_signals()
 
     def bossbots_trade(self, asset: str, twin_id: str = "system") -> dict[str, Any]:
@@ -182,7 +182,7 @@ class TwinsServices:
     @staticmethod
     def env_keys() -> dict[str, Any]:
         import os
-        checks = [
+        checks: list[dict[str, Any]] = [
             {"key": "OPENAI_API_KEY", "label": "OpenAI", "critical": True},
             {"key": "HF_TOKEN", "label": "Hugging Face", "critical": True},
             {"key": "HUGGING_FACE_API_KEY", "label": "Hugging Face (alt)", "critical": True},
@@ -289,7 +289,7 @@ class TwinsServices:
 
     def esim_status(self) -> dict[str, Any]:
         from app.runtime import esim_service as _esim
-        return _esim.get_status()
+        return _esim.get_status()  # type: ignore[no-any-return]
 
     # ------------------------------------------------------------------
     # Speech embodiment

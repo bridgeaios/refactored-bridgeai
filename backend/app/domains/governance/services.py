@@ -2,7 +2,7 @@
 from __future__ import annotations
 
 import logging
-from typing import Any
+from typing import Any, cast
 
 from app.services.governance import GovernanceService
 from app.services.reputation import get_reputation_service
@@ -57,10 +57,10 @@ class GovernanceServices:
 
     async def knowledge_graph_query(self, label: str, properties: dict | None = None) -> dict[str, Any]:
         if self._kg and hasattr(self._kg, "query"):
-            return await self._kg.query(label=label, properties=properties or {})
+            return cast(dict[str, Any], await self._kg.query(label=label, properties=properties or {}))
         return {"ok": True, "nodes": []}
 
     async def mission_board(self) -> dict[str, Any]:
         if self._mission and hasattr(self._mission, "get_counts"):
-            return await self._mission.get_counts()
+            return cast(dict[str, Any], await self._mission.get_counts())
         return {"ok": True, "missions": {}}

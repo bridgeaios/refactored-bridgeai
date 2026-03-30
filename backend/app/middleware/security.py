@@ -1,17 +1,19 @@
 import time
 from collections.abc import Callable
+from typing import Any
 
 from fastapi import HTTPException, Request
 from starlette.middleware.base import BaseHTTPMiddleware
+from starlette.responses import Response
 
 
 class RateLimitMiddleware(BaseHTTPMiddleware):
-    def __init__(self, app, requests_per_minute: int = 60):
+    def __init__(self, app: Any, requests_per_minute: int = 60):
         super().__init__(app)
         self.requests_per_minute = requests_per_minute
         self.requests: dict[str, list[float]] = {}
 
-    async def dispatch(self, request: Request, call_next: Callable):
+    async def dispatch(self, request: Request, call_next: Callable) -> Response:
         client_ip = request.client.host if request.client else "unknown"
         current_time = time.time()
 
@@ -24,7 +26,8 @@ class RateLimitMiddleware(BaseHTTPMiddleware):
         ]
 
         if len(self.requests[client_ip]) >= self.requests_per_minute:
-            raise HTTPException(status_code=429, detail="Rate limit exceeded")
+            from starlette.responses import PlainTextResponse
+            return PlainTextResponse("Rate limit exceeded", status_code=429)
 
         self.requests[client_ip].append(current_time)
 
@@ -34,11 +37,11 @@ class RateLimitMiddleware(BaseHTTPMiddleware):
             self.requests_per_minute - len(self.requests[client_ip])
         )
 
-        return response
+        return response  # type: ignore[no-any-return]
 
 
 class SecurityHeadersMiddleware(BaseHTTPMiddleware):
-    async def dispatch(self, request: Request, call_next: Callable):
+    async def dispatch(self, request: Request, call_next: Callable) -> Response:
         response = await call_next(request)
 
         response.headers["X-Content-Type-Options"] = "nosniff"
@@ -58,4 +61,4 @@ class SecurityHeadersMiddleware(BaseHTTPMiddleware):
             "geolocation=(), microphone=(), camera=()"
         )
 
-        return response
+        return response  # type: ignore[no-any-return]

@@ -4,130 +4,124 @@
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>All Dashboards — Bridge AI OS</title>
-  <script src="/bridge-api-config.js"></script>
-  <script>if(typeof window.__API_BASE==="undefined")window.__API_BASE="";</script>
-  <script src="https://cdn.tailwindcss.com"></script>
+  <meta name="description" content="Bridge AI OS dashboard hub — access all business tools, monitoring, and AI agent controls.">
   <link rel="icon" href="/favicon.svg" type="image/svg+xml">
-  <link rel="stylesheet" href="/mobile-friendly.css">
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link href="https://fonts.googleapis.com/css2?family=Outfit:wght@400;500;600;700;800&family=JetBrains+Mono:wght@400;600&display=swap" rel="stylesheet">
   <style>
-    .hub-card { transition: transform 0.2s, box-shadow 0.2s; }
-    .hub-card:hover { transform: translateY(-4px); box-shadow: 0 12px 40px -8px rgba(0,245,255,0.2); }
+    *,*::before,*::after{box-sizing:border-box;margin:0;padding:0}
+    :root{--bg:#060810;--bg2:#0a0e17;--bg3:#111827;--cyan:#63ffda;--text:#fff;--muted:#94a3b8;--border:#1a2a3a}
+    body{background:var(--bg);color:var(--text);font-family:'Outfit',sans-serif;min-height:100vh}
+    a{color:inherit;text-decoration:none}
+    .top{position:sticky;top:0;z-index:100;background:rgba(6,8,16,0.92);backdrop-filter:blur(12px);border-bottom:1px solid var(--border);padding:14px 24px;display:flex;align-items:center;justify-content:space-between}
+    .top-brand{font-size:15px;font-weight:800;color:var(--cyan);letter-spacing:2px}
+    .top-links{display:flex;gap:16px;align-items:center}
+    .top-links a{font-size:12px;color:var(--muted);font-weight:500}
+    .top-links a:hover{color:var(--text)}
+    .top-cta{background:var(--cyan);color:#000;padding:6px 16px;border-radius:6px;font-weight:600;font-size:12px}
+    .hero{text-align:center;padding:50px 20px 30px}
+    .hero h1{font-size:clamp(24px,4vw,36px);font-weight:800;margin-bottom:8px}
+    .hero h1 span{color:var(--cyan)}
+    .hero p{color:var(--muted);font-size:14px;max-width:500px;margin:0 auto}
+    .section-title{font-size:11px;font-weight:700;color:var(--cyan);letter-spacing:2px;text-transform:uppercase;padding:0 24px;margin:30px 0 14px}
+    .grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(260px,1fr));gap:14px;padding:0 24px;max-width:1100px;margin:0 auto}
+    .card{background:var(--bg2);border:1px solid var(--border);border-radius:10px;padding:20px;transition:all 0.2s;display:flex;flex-direction:column;gap:8px}
+    .card:hover{border-color:var(--cyan);transform:translateY(-3px);box-shadow:0 8px 30px rgba(99,255,218,0.08)}
+    .card-header{display:flex;align-items:center;gap:10px}
+    .card-icon{width:36px;height:36px;border-radius:8px;display:flex;align-items:center;justify-content:center;font-size:18px;flex-shrink:0}
+    .card-icon.blue{background:rgba(56,189,248,0.12);color:#38bdf8}
+    .card-icon.cyan{background:rgba(99,255,218,0.12);color:var(--cyan)}
+    .card-icon.purple{background:rgba(167,139,250,0.12);color:#a78bfa}
+    .card-icon.orange{background:rgba(251,146,60,0.12);color:#fb923c}
+    .card-icon.pink{background:rgba(244,114,182,0.12);color:#f472b6}
+    .card-icon.green{background:rgba(0,255,136,0.12);color:#00FF88}
+    .card-icon.red{background:rgba(255,0,51,0.12);color:#FF0033}
+    .card-title{font-size:15px;font-weight:700}
+    .card-tag{font-size:9px;font-weight:700;padding:2px 8px;border-radius:10px;letter-spacing:1px;background:rgba(0,255,136,0.12);color:#00FF88}
+    .card-desc{font-size:12px;color:var(--muted);line-height:1.5}
+    .info-bar{max-width:1100px;margin:40px auto 20px;padding:0 24px;display:grid;grid-template-columns:repeat(auto-fit,minmax(300px,1fr));gap:14px}
+    .info-card{background:var(--bg2);border:1px solid var(--border);border-radius:10px;padding:20px}
+    .info-card h3{font-size:14px;font-weight:700;margin-bottom:8px;color:var(--cyan)}
+    .info-card p{font-size:12px;color:var(--muted);line-height:1.6}
+    .info-card a{color:var(--cyan);font-weight:600}
+    .footer{text-align:center;padding:40px 20px;border-top:1px solid var(--border);margin-top:40px}
+    .footer-links{display:flex;justify-content:center;gap:20px;flex-wrap:wrap;margin-bottom:10px}
+    .footer-links a{font-size:12px;color:var(--muted)}
+    .footer-copy{font-size:11px;color:#555}
+    @media(max-width:640px){.top-links{display:none}.grid{grid-template-columns:1fr;padding:0 16px}.section-title{padding:0 16px}}
   </style>
-  <link rel="stylesheet" href="/bridge-theme.css">
-  <script src="/bridge-shell.js"></script>
 </head>
-<body class="bg-slate-950 text-slate-100 font-sans antialiased min-h-screen">
-  <nav class="bridge-nav bg-slate-900/80 border-b border-slate-800 px-4 py-3 flex flex-wrap justify-between items-center sticky top-0 z-50">
-    <a href="/" class="bridge-nav-brand font-extrabold tracking-wide hover:text-amber-300">Bridge AI OS</a>
-    <button class="bridge-nav-toggle text-slate-300" aria-label="Toggle menu">☰</button>
-    <div class="bridge-nav-links flex items-center gap-2">
-      <ul class="flex flex-wrap gap-3 text-sm mt-2 md:mt-0">
-        <li><a href="/dashboards.html" class="text-amber-300 font-semibold">Dashboards</a></li>
-        <li><a href="/status.html" class="hover:text-amber-300">Status</a></li>
-        <li><a href="/executive-dashboard.html" class="hover:text-amber-300">Executive</a></li>
-        <li><a href="/network-dashboard.html" class="hover:text-amber-300">Network</a></li>
-        <li><a href="/cfo.html" class="hover:text-amber-300">CFO</a></li>
-        <li><a href="/agents.html" class="hover:text-amber-300">Agents</a></li>
-        <li><a href="/ban-live-wall.html" class="hover:text-amber-300">BAN</a></li>
-      </ul>
-      <span id="api-badge" class="px-2 py-1 rounded text-xs bg-slate-800">…</span>
-    </div>
-  </nav>
-
-  <main class="max-w-6xl mx-auto px-4 py-10">
-    <h1 class="text-3xl font-extrabold mb-2">Bridge AI OS — All Dashboards</h1>
-    <p class="text-slate-400 mb-8">Full system integration · Shared DB · Spine · Revenue · Local + Cloud</p>
-
-    <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-      <a href="/executive-dashboard.html" class="hub-card block rounded-2xl border border-slate-700 bg-slate-900/60 p-6 hover:border-cyan-500/50">
-        <div class="text-cyan-400 font-mono text-sm mb-1">EXECUTIVE</div>
-        <div class="font-bold text-lg">Executive Dashboard</div>
-        <div class="text-slate-400 text-sm mt-1">Revenue, Treasury, Mission, Skills, UBI, Projects</div>
-      </a>
-      <a href="/network-dashboard.html" class="hub-card block rounded-2xl border border-slate-700 bg-slate-900/60 p-6 hover:border-cyan-500/50">
-        <div class="text-cyan-400 font-mono text-sm mb-1">NETWORK</div>
-        <div class="font-bold text-lg">Network Dashboard</div>
-        <div class="text-slate-400 text-sm mt-1">Live topology, Health, Twins, Merkle, Audit</div>
-      </a>
-      <a href="/status.html" class="hub-card block rounded-2xl border border-slate-700 bg-slate-900/60 p-6 hover:border-cyan-500/50">
-        <div class="text-cyan-400 font-mono text-sm mb-1">STATUS</div>
-        <div class="font-bold text-lg">System Status</div>
-        <div class="text-slate-400 text-sm mt-1">Subsystems, Walkthrough, Smart Debug, CLI</div>
-      </a>
-      <a href="/cfo.html" class="hub-card block rounded-2xl border border-slate-700 bg-slate-900/60 p-6 hover:border-cyan-500/50">
-        <div class="text-cyan-400 font-mono text-sm mb-1">CFO</div>
-        <div class="font-bold text-lg">CFO / Treasury</div>
-        <div class="text-slate-400 text-sm mt-1">Ledger, Buckets, Rails, Collect, Disburse</div>
-      </a>
-      <a href="/agents.html" class="hub-card block rounded-2xl border border-slate-700 bg-slate-900/60 p-6 hover:border-cyan-500/50">
-        <div class="text-cyan-400 font-mono text-sm mb-1">CORTEX</div>
-        <div class="font-bold text-lg">Agents & Twins</div>
-        <div class="text-slate-400 text-sm mt-1">Swarm health, Reputation, Demand, Replication</div>
-      </a>
-      <a href="/ban-live-wall.html" class="hub-card block rounded-2xl border border-slate-700 bg-slate-900/60 p-6 hover:border-cyan-500/50">
-        <div class="text-cyan-400 font-mono text-sm mb-1">BAN</div>
-        <div class="font-bold text-lg">BAN Live Wall</div>
-        <div class="text-slate-400 text-sm mt-1">Unified identity, Modules, SVG build, Ops cores</div>
-      </a>
-      <a href="/ban-ops-core.html" class="hub-card block rounded-2xl border border-slate-700 bg-slate-900/60 p-6 hover:border-cyan-500/50">
-        <div class="text-cyan-400 font-mono text-sm mb-1">BAN OPS</div>
-        <div class="font-bold text-lg">BAN Ops Core</div>
-        <div class="text-slate-400 text-sm mt-1">Mechanica & Execution Core SVGs</div>
-      </a>
-      <a href="/control-plane.html" class="hub-card block rounded-2xl border border-slate-700 bg-slate-900/60 p-6 hover:border-cyan-500/50">
-        <div class="text-cyan-400 font-mono text-sm mb-1">CONTROL</div>
-        <div class="font-bold text-lg">Control Plane</div>
-        <div class="text-slate-400 text-sm mt-1">CLI Queue, Economy surfaces, Directives</div>
-      </a>
-      <a href="/landing.html" class="hub-card block rounded-2xl border border-slate-700 bg-slate-900/60 p-6 hover:border-cyan-500/50">
-        <div class="text-cyan-400 font-mono text-sm mb-1">LANDING</div>
-        <div class="font-bold text-lg">Landing</div>
-        <div class="text-slate-400 text-sm mt-1">Overview, Live report, Treasury</div>
-      </a>
-      <a href="http://localhost:7070" target="_blank" rel="noreferrer" class="hub-card block rounded-2xl border border-slate-700 bg-slate-900/60 p-6 hover:border-cyan-500/50">
-        <div class="text-cyan-400 font-mono text-sm mb-1">SVG ENGINE</div>
-        <div class="font-bold text-lg">SVG Skill Engine</div>
-        <div class="text-slate-400 text-sm mt-1">Skill graph, tutorials, render services, registry-linked tooling</div>
-      </a>
-    </div>
-
-    <div class="mt-12 grid grid-cols-1 md:grid-cols-2 gap-6">
-      <div class="rounded-xl border border-emerald-500/30 bg-emerald-900/20 p-6">
-        <h2 class="font-bold text-emerald-300 mb-3">Monetizable System</h2>
-        <p class="text-slate-300 text-sm mb-3">Revenue flows into Treasury buckets; UBI, Ops, Founder splits. Collect from PayPal, Paystack, sensors, marketplace.</p>
-        <a href="/cfo.html" class="inline-block px-4 py-2 rounded-lg bg-emerald-700/50 hover:bg-emerald-600/50 text-emerald-200 font-semibold text-sm">Open CFO →</a>
-      </div>
-      <div class="rounded-xl border border-cyan-500/30 bg-cyan-900/20 p-6">
-        <h2 class="font-bold text-cyan-300 mb-3">Agents Automating</h2>
-        <p class="text-slate-300 text-sm mb-3">Twins execute tasks; demand pump refills backlog; reputation ranks reliability. Swarm health and throughput live.</p>
-        <a href="/agents.html" class="inline-block px-4 py-2 rounded-lg bg-cyan-700/50 hover:bg-cyan-600/50 text-cyan-200 font-semibold text-sm">Open Agents →</a>
-      </div>
-    </div>
-
-    <div class="mt-8 rounded-xl border border-slate-700 bg-slate-900/40 p-6">
-      <h2 class="font-bold text-slate-200 mb-3">System Architecture</h2>
-      <div class="grid grid-cols-1 md:grid-cols-3 gap-4 text-sm">
-        <div><span class="text-cyan-400">DB:</span> MemoryStore (Redis + file fallback) — shared</div>
-        <div><span class="text-cyan-400">Spine:</span> Endpoint → Reducer → State → Scheduler</div>
-        <div><span class="text-cyan-400">Revenue:</span> Treasury — UBI, Ops, Founder buckets</div>
-        <div><span class="text-cyan-400">BridgeAI Root:</span> BridgeLiveWall stack + SVG engine via shared registry</div>
-      </div>
-      <p class="text-slate-500 text-xs mt-3">Backend: <span id="backend-url" class="font-mono">—</span> · Add <code class="text-slate-400">?api=cloud</code> for cloud mode</p>
-    </div>
-  </main>
-
-  <script>
-    (function(){
-      var API = (typeof window.__API_BASE !== 'undefined' && window.__API_BASE) ? window.__API_BASE : '';
-      document.getElementById('backend-url').textContent = API || '(same origin)';
-      fetch((API || '') + '/api/health').then(function(r){return r.json();}).then(function(d){
-        var el = document.getElementById('api-badge');
-        if(el){ el.textContent = (d.status||d.ok) ? 'API ●' : 'API ○'; el.className = 'px-2 py-1 rounded text-xs ' + (d.status||d.ok ? 'bg-green-900/50 text-green-300' : 'bg-red-900/50 text-red-300'); }
-      }).catch(function(){ var el = document.getElementById('api-badge'); if(el){ el.textContent = 'API ○'; el.className = 'px-2 py-1 rounded text-xs bg-red-900/50 text-red-300'; } });
-    })();
-  </script>
-  <script src="/bridge-nav.js"></script>
+<body>
+<nav class="top">
+  <span class="top-brand">BRIDGE AI</span>
+  <div class="top-links">
+    <a href="https://abaas.bridge-ai-os.com/landing">Home</a>
+    <a href="https://abaas.bridge-ai-os.com/apps">Apps</a>
+    <a href="https://abaas.bridge-ai-os.com/pricing">Pricing</a>
+    <a href="https://accounts.bridge-ai-os.com/sign-in" class="top-cta">Sign In</a>
+  </div>
+</nav>
+<section class="hero">
+  <h1>All <span>Dashboards</span></h1>
+  <p>Your complete command center. Access every tool, monitor every service, control every flow.</p>
+</section>
+<div class="section-title">Operations & Monitoring</div>
+<div class="grid">
+  <a href="https://abaas.bridge-ai-os.com/executive" class="card"><div class="card-header"><div class="card-icon blue">📊</div><div class="card-title">Executive Dashboard</div><span class="card-tag">LIVE</span></div><div class="card-desc">Revenue, treasury, missions, skills, UBI, projects.</div></a>
+  <a href="https://god.bridge-ai-os.com" class="card"><div class="card-header"><div class="card-icon purple">🔮</div><div class="card-title">GOD MODE</div><span class="card-tag">LIVE</span></div><div class="card-desc">Live topology, terminal grid, system health, economics.</div></a>
+  <a href="https://abaas.bridge-ai-os.com/status" class="card"><div class="card-header"><div class="card-icon green">✅</div><div class="card-title">System Status</div><span class="card-tag">LIVE</span></div><div class="card-desc">30 services, 130+ APIs. Health, latency, uptime.</div></a>
+  <a href="https://abaas.bridge-ai-os.com/control" class="card"><div class="card-header"><div class="card-icon cyan">⚙️</div><div class="card-title">Control Panel</div><span class="card-tag">LIVE</span></div><div class="card-desc">Treasury, agent command, marketplace, controls.</div></a>
+</div>
+<div class="section-title">Business Suite</div>
+<div class="grid">
+  <a href="https://abaas.bridge-ai-os.com/crm" class="card"><div class="card-header"><div class="card-icon blue">👥</div><div class="card-title">CRM</div><span class="card-tag">LIVE</span></div><div class="card-desc">Contact management, leads, notes, pipeline.</div></a>
+  <a href="https://abaas.bridge-ai-os.com/invoicing" class="card"><div class="card-header"><div class="card-icon green">📄</div><div class="card-title">Invoicing</div><span class="card-tag">LIVE</span></div><div class="card-desc">Create invoices, track payments, billing.</div></a>
+  <a href="https://abaas.bridge-ai-os.com/marketing" class="card"><div class="card-header"><div class="card-icon orange">📈</div><div class="card-title">Marketing</div><span class="card-tag">LIVE</span></div><div class="card-desc">Funnel analytics, SEO, social, email campaigns.</div></a>
+  <a href="https://abaas.bridge-ai-os.com/legal" class="card"><div class="card-header"><div class="card-icon purple">⚖️</div><div class="card-title">Legal</div><span class="card-tag">LIVE</span></div><div class="card-desc">Contracts, compliance (POPIA/GDPR/SOC2).</div></a>
+  <a href="https://abaas.bridge-ai-os.com/tickets" class="card"><div class="card-header"><div class="card-icon pink">🎫</div><div class="card-title">Support</div><span class="card-tag">LIVE</span></div><div class="card-desc">Tickets, AI triage, assignment, SLA.</div></a>
+  <a href="https://abaas.bridge-ai-os.com/quotes" class="card"><div class="card-header"><div class="card-icon cyan">💬</div><div class="card-title">Quotes</div><span class="card-tag">LIVE</span></div><div class="card-desc">Quote → invoice pipeline.</div></a>
+  <a href="https://abaas.bridge-ai-os.com/customers" class="card"><div class="card-header"><div class="card-icon blue">🏢</div><div class="card-title">Customers</div><span class="card-tag">LIVE</span></div><div class="card-desc">Customer database, plans, revenue.</div></a>
+  <a href="https://abaas.bridge-ai-os.com/vendors" class="card"><div class="card-header"><div class="card-icon orange">🏭</div><div class="card-title">Vendors</div><span class="card-tag">LIVE</span></div><div class="card-desc">Suppliers, inventory, debt tracking.</div></a>
+  <a href="https://abaas.bridge-ai-os.com/workforce" class="card"><div class="card-header"><div class="card-icon green">👷</div><div class="card-title">Workforce</div><span class="card-tag">LIVE</span></div><div class="card-desc">HR, agent workforce, departments.</div></a>
+</div>
+<div class="section-title">Finance & Treasury</div>
+<div class="grid">
+  <a href="https://abaas.bridge-ai-os.com/treasury-dash" class="card"><div class="card-header"><div class="card-icon green">💰</div><div class="card-title">Treasury</div><span class="card-tag">LIVE</span></div><div class="card-desc">Bucket balances (UBI 40%, Treasury 30%, Ops 20%, Founder 10%).</div></a>
+  <a href="https://abaas.bridge-ai-os.com/pricing" class="card"><div class="card-header"><div class="card-icon cyan">💎</div><div class="card-title">Pricing</div><span class="card-tag">LIVE</span></div><div class="card-desc">Free / Pro R299 / Enterprise R2,499.</div></a>
+  <a href="https://abaas.bridge-ai-os.com/defi" class="card"><div class="card-header"><div class="card-icon purple">🔗</div><div class="card-title">DeFi</div><span class="card-tag">LIVE</span></div><div class="card-desc">Decentralized finance, wallet, staking.</div></a>
+  <a href="https://abaas.bridge-ai-os.com/trading" class="card"><div class="card-header"><div class="card-icon red">📉</div><div class="card-title">Trading</div><span class="card-tag">LIVE</span></div><div class="card-desc">DEX trading, portfolio overview.</div></a>
+</div>
+<div class="section-title">AI & Agents</div>
+<div class="grid">
+  <a href="https://abaas.bridge-ai-os.com/agents" class="card"><div class="card-header"><div class="card-icon cyan">🤖</div><div class="card-title">AI Agents</div><span class="card-tag">LIVE</span></div><div class="card-desc">8 agents, L1/L2/L3 layers. Deploy and monetize.</div></a>
+  <a href="https://svg.bridge-ai-os.com/dashboard.html" class="card"><div class="card-header"><div class="card-icon purple">🎨</div><div class="card-title">SVG Engine</div><span class="card-tag">LIVE</span></div><div class="card-desc">1,266 skills, visual pipelines, tutorials.</div></a>
+  <a href="https://abaas.bridge-ai-os.com/twins" class="card"><div class="card-header"><div class="card-icon blue">👤</div><div class="card-title">Digital Twins</div><span class="card-tag">LIVE</span></div><div class="card-desc">Cognitive twin console, evolution, competition.</div></a>
+  <a href="https://brain.bridge-ai-os.com" class="card"><div class="card-header"><div class="card-icon orange">🧠</div><div class="card-title">Super Brain</div><span class="card-tag">LIVE</span></div><div class="card-desc">163 endpoints, AI inference, knowledge graph.</div></a>
+  <a href="https://abaas.bridge-ai-os.com/ban" class="card"><div class="card-header"><div class="card-icon orange">⚡</div><div class="card-title">BAN Engine</div><span class="card-tag">LIVE</span></div><div class="card-desc">Task orchestration, priority scoring, consensus.</div></a>
+</div>
+<div class="section-title">Platforms</div>
+<div class="grid">
+  <a href="https://ehsa.bridge-ai-os.com" class="card"><div class="card-header"><div class="card-icon green">🏥</div><div class="card-title">EHSA Health</div><span class="card-tag">LIVE</span></div><div class="card-desc">Health Services Africa. Records, pharmacy, telemedicine.</div></a>
+  <a href="https://supac.bridge-ai-os.com" class="card"><div class="card-header"><div class="card-icon purple">🤖</div><div class="card-title">SUPAC</div><span class="card-tag">LIVE</span></div><div class="card-desc">8 AI agents: Sales, Support, Research, Marketing, Legal, Finance.</div></a>
+  <a href="https://aid.bridge-ai-os.com" class="card"><div class="card-header"><div class="card-icon red">🆘</div><div class="card-title">AID</div><span class="card-tag">LIVE</span></div><div class="card-desc">Aid distribution. KYC, smart disbursement.</div></a>
+  <a href="https://ubi.bridge-ai-os.com" class="card"><div class="card-header"><div class="card-icon green">💚</div><div class="card-title">UBI</div><span class="card-tag">LIVE</span></div><div class="card-desc">Universal Basic Income. 40% of treasury to community.</div></a>
+  <a href="https://aurora.bridge-ai-os.com" class="card"><div class="card-header"><div class="card-icon orange">✨</div><div class="card-title">Aurora</div><span class="card-tag">LIVE</span></div><div class="card-desc">AI assistant with emotion, speech, lip-sync.</div></a>
+  <a href="https://rootedearth.bridge-ai-os.com" class="card"><div class="card-header"><div class="card-icon green">🌱</div><div class="card-title">Rooted Earth</div><span class="card-tag">LIVE</span></div><div class="card-desc">Sustainability, carbon, SDG alignment.</div></a>
+</div>
+<div class="info-bar">
+  <div class="info-card"><h3>💰 Revenue</h3><p>Treasury auto-splits: UBI 40%, Treasury 30%, Ops 20%, Founder 10%. PayFast + Paystack + crypto.</p><a href="https://abaas.bridge-ai-os.com/treasury-dash">Open Treasury →</a></div>
+  <div class="info-card"><h3>🤖 Agents</h3><p>8 AI agents, demand pump, reputation scoring, swarm orchestration. Revenue from rental + fees.</p><a href="https://abaas.bridge-ai-os.com/agents">Open Agents →</a></div>
+  <div class="info-card"><h3>🏗️ Architecture</h3><p>33 domains · 80+ APIs · PostgreSQL + Neo4j + Redis · PM2 + Docker · 3 AI providers</p><a href="https://abaas.bridge-ai-os.com/docs">Open Docs →</a></div>
+</div>
+<footer class="footer">
+  <div class="footer-links">
+    <a href="https://abaas.bridge-ai-os.com/docs">Docs</a>
+    <a href="https://abaas.bridge-ai-os.com/pricing">Pricing</a>
+    <a href="https://abaas.bridge-ai-os.com/affiliate">Affiliates</a>
+    <a href="https://abaas.bridge-ai-os.com/sitemap">Sitemap</a>
+    <a href="https://go.ai-os.co.za">VPS</a>
+  </div>
+  <div class="footer-copy">© 2026 Bridge AI OS · <a href="https://ai-os.co.za" style="color:var(--cyan)">ai-os.co.za</a></div>
+</footer>
 </body>
 </html>
-
-

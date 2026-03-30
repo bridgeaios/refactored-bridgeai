@@ -65,8 +65,8 @@ class MutationProposal:
     proposer_id: str = ""
     created_at: datetime = field(default_factory=datetime.utcnow)
     test_results: dict | None = None
-    approval_votes: int = 0
-    rejection_votes: int = 0
+    approval_votes: float = 0.0
+    rejection_votes: float = 0.0
 
 
 @dataclass
@@ -165,7 +165,7 @@ class EvolutionGovernance:
 
     def _calculate_expected_benefit(self, changes: dict) -> float:
         """Calculate expected benefit from changes."""
-        return changes.get("expected_improvement", 0.5)
+        return float(changes.get("expected_improvement", 0.5))
 
     def _save_snapshot(self, agent_id: str) -> None:
         """Save agent snapshot for rollback."""

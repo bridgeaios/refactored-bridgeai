@@ -1,6 +1,7 @@
 // Founder TODO — linked to digital twin wallpaper. Live updates when objectives met.
 import { fetchJson } from './api.js';
 import { API_BASE } from './config.js';
+import { escapeHtml } from './bridgeUi.js';
 
 const DEFAULT_TODO = {
   version: 1,
@@ -30,8 +31,8 @@ export function initFounderTodo() {
           <span style="color:${o.status === 'complete' ? '#8f8' : '#666'}">
             ${o.status === 'complete' ? '[OK]' : '[ ]'}
           </span>
-          <span style="flex:1;${o.status === 'complete' ? 'text-decoration:line-through;color:#999' : ''}">${o.title}</span>
-          ${o.status === 'pending' ? `<button class="btn-complete" data-id="${o.id}" style="font-size:10px;padding:2px 6px;cursor:pointer;background:#2a4;color:#fff;border:none;border-radius:4px;">Complete</button>` : ''}
+          <span style="flex:1;${o.status === 'complete' ? 'text-decoration:line-through;color:#999' : ''}">${escapeHtml(o.title)}</span>
+          ${o.status === 'pending' ? `<button class="btn-complete" data-id="${escapeHtml(o.id)}" style="font-size:10px;padding:2px 6px;cursor:pointer;background:#2a4;color:#fff;border:none;border-radius:4px;">Complete</button>` : ''}
         </div>
       `).join('')}
     `;

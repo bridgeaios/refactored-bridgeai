@@ -7,6 +7,7 @@ Prod: DATABASE_DEFI_URL=postgresql+asyncpg://user:pass@host/defi
 from __future__ import annotations
 
 import os
+from collections.abc import AsyncGenerator
 from pathlib import Path
 
 from sqlalchemy.ext.asyncio import AsyncSession, async_sessionmaker, create_async_engine
@@ -56,7 +57,7 @@ class Base(DeclarativeBase):
 # ---------------------------------------------------------------------------
 # Dependency
 # ---------------------------------------------------------------------------
-async def get_db() -> AsyncSession:  # type: ignore[return]
+async def get_db() -> AsyncGenerator[AsyncSession, None]:
     async with AsyncSessionLocal() as session:
         yield session
 

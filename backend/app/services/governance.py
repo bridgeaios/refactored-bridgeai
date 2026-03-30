@@ -13,6 +13,6 @@ class GovernanceService(BaseService):
             return 0.0
         return sum(vals)/len(vals)
 
-    async def record_vote(self, vote: dict):
+    async def record_vote(self, vote: dict) -> bool:
         await self.memory.append("governance_votes", vote)
         return True

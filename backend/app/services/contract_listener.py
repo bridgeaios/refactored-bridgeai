@@ -8,6 +8,7 @@ from __future__ import annotations
 
 import asyncio
 import os
+from typing import Any
 
 ENABLED = os.environ.get("BRIDGE_CONTRACT_LISTENER", "0") == "1"
 CONTRACT_ADDRESS = os.environ.get("BRIDGE_CONTRACT_ADDRESS", "")
@@ -19,7 +20,7 @@ TASK_CREATED_TOPIC = "0x" + "0" * 64  # Placeholder; replace with actual event t
 TASK_ACCEPTED_TOPIC = "0x" + "0" * 64
 
 
-async def run_listener(memory) -> None:
+async def run_listener(memory: Any) -> None:
     """Background task: poll contract logs and persist/emit marketplace events."""
     if not ENABLED or not CONTRACT_ADDRESS:
         return
@@ -53,7 +54,7 @@ async def run_listener(memory) -> None:
         await asyncio.sleep(POLL_INTERVAL_SEC)
 
 
-async def _process_log(memory, log) -> None:
+async def _process_log(memory: Any, log: Any) -> None:
     """Process event log: persist to Redis, emit to physics."""
     try:
         from app.physics import emit as physics_emit

@@ -6,8 +6,9 @@ Upgrade: auto-upgrade when 30-day rolling volume crosses threshold.
 """
 from __future__ import annotations
 
+from collections.abc import Callable
 from dataclasses import dataclass
-from typing import Annotated
+from typing import Annotated, Any
 
 import jwt
 from fastapi import Depends, Header, HTTPException, status
@@ -106,7 +107,7 @@ async def get_current_user(
 _user_dep = Depends(get_current_user)
 
 
-def require_tier(minimum: Tier):
+def require_tier(minimum: Tier) -> Callable[..., Any]:
     """Dependency factory — raise 403 if user's tier is below minimum."""
     async def _check(user: DefiUser = _user_dep) -> DefiUser:
         if not tier_gte(user.tier, minimum):

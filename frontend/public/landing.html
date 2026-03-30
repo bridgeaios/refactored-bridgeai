@@ -3,91 +3,299 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <script src="/bridge-api-config.js"></script>
-  <script>if(typeof window.__API_BASE==="undefined")window.__API_BASE="";</script>
-  <title>Bridge AI OS — Landing</title>
-  <script>if(typeof window.__API_BASE==="undefined")window.__API_BASE="";if(typeof window.__WS_BASE==="undefined")window.__WS_BASE="";</script>
-  <script src="https://cdn.tailwindcss.com"></script>
+  <title>Bridge AI OS — AI That Runs Your Business</title>
+  <meta name="description" content="AI-powered business automation. Invoicing, CRM, marketing, support — all handled by intelligent agents. Try free.">
+  <meta property="og:title" content="Bridge AI OS — AI That Runs Your Business">
+  <meta property="og:description" content="Deploy AI agents that automate invoicing, CRM, marketing, and support. No coding required.">
+  <meta property="og:type" content="website">
+  <meta property="og:url" content="https://live.bridge-ai-os.com/landing.html">
   <link rel="icon" href="/favicon.svg" type="image/svg+xml">
-  <link rel="stylesheet" href="/mobile-friendly.css">
-  <link rel="stylesheet" href="/bridge-theme.css">
-  <script src="/bridge-shell.js"></script>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link href="https://fonts.googleapis.com/css2?family=Outfit:wght@400;500;600;700;800&family=JetBrains+Mono:wght@400;600&display=swap" rel="stylesheet">
+  <style>
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+    :root {
+      --bg: #060810; --bg2: #0a0e17; --bg3: #111827;
+      --cyan: #63ffda; --red: #FF0033; --green: #00FF88;
+      --text: #FFFFFF; --muted: #94a3b8; --border: #1a2a3a;
+    }
+    body { background: var(--bg); color: var(--text); font-family: 'Outfit', sans-serif; line-height: 1.6; overflow-x: hidden; }
+    a { color: var(--cyan); text-decoration: none; }
+
+    /* Nav */
+    .nav { position: fixed; top: 0; left: 0; right: 0; z-index: 999; background: rgba(6,8,16,0.9); backdrop-filter: blur(12px); border-bottom: 1px solid var(--border); padding: 12px 20px; display: flex; align-items: center; justify-content: space-between; }
+    .nav-brand { font-weight: 800; font-size: 16px; letter-spacing: 2px; color: var(--cyan); }
+    .nav-links { display: flex; gap: 20px; align-items: center; }
+    .nav-links a { color: var(--muted); font-size: 13px; font-weight: 500; transition: color 0.2s; }
+    .nav-links a:hover { color: var(--text); }
+    .nav-cta { background: var(--cyan); color: #000; padding: 8px 20px; border-radius: 6px; font-weight: 600; font-size: 13px; }
+    .nav-cta:hover { filter: brightness(1.1); }
+    @media (max-width: 640px) { .nav-links { display: none; } }
+
+    /* Hero */
+    .hero { padding: 120px 20px 60px; text-align: center; max-width: 800px; margin: 0 auto; }
+    .hero-badge { display: inline-block; font-size: 12px; color: var(--cyan); border: 1px solid rgba(99,255,218,0.3); padding: 4px 14px; border-radius: 20px; margin-bottom: 20px; font-family: 'JetBrains Mono', monospace; }
+    .hero h1 { font-size: clamp(32px, 6vw, 56px); font-weight: 800; line-height: 1.1; margin-bottom: 20px; }
+    .hero h1 span { color: var(--cyan); }
+    .hero p { font-size: 18px; color: var(--muted); max-width: 600px; margin: 0 auto 30px; }
+    .hero-cta { display: inline-block; background: var(--cyan); color: #000; padding: 14px 36px; border-radius: 8px; font-weight: 700; font-size: 16px; transition: all 0.2s; }
+    .hero-cta:hover { transform: translateY(-2px); box-shadow: 0 0 30px rgba(99,255,218,0.3); }
+    .hero-sub { font-size: 13px; color: var(--muted); margin-top: 12px; }
+
+    /* Stats */
+    .stats { display: flex; justify-content: center; gap: 40px; padding: 40px 20px; flex-wrap: wrap; }
+    .stat { text-align: center; }
+    .stat-num { font-size: 28px; font-weight: 700; color: var(--cyan); font-family: 'JetBrains Mono', monospace; }
+    .stat-label { font-size: 12px; color: var(--muted); text-transform: uppercase; letter-spacing: 1px; }
+
+    /* Features */
+    .features { padding: 60px 20px; max-width: 1000px; margin: 0 auto; }
+    .features h2 { text-align: center; font-size: 28px; margin-bottom: 40px; }
+    .features h2 span { color: var(--cyan); }
+    .feature-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(280px, 1fr)); gap: 20px; }
+    .feature-card { background: var(--bg2); border: 1px solid var(--border); border-radius: 12px; padding: 24px; transition: all 0.2s; }
+    .feature-card:hover { border-color: var(--cyan); transform: translateY(-4px); box-shadow: 0 8px 30px rgba(99,255,218,0.1); }
+    .feature-icon { font-size: 32px; margin-bottom: 12px; }
+    .feature-card h3 { font-size: 18px; margin-bottom: 8px; }
+    .feature-card p { font-size: 14px; color: var(--muted); line-height: 1.5; }
+    .feature-card .try-link { display: inline-block; margin-top: 12px; font-size: 13px; color: var(--cyan); font-weight: 600; }
+
+    /* How it works */
+    .how { padding: 60px 20px; max-width: 800px; margin: 0 auto; text-align: center; }
+    .how h2 { font-size: 28px; margin-bottom: 40px; }
+    .steps { display: flex; gap: 30px; justify-content: center; flex-wrap: wrap; }
+    .step { flex: 1; min-width: 200px; max-width: 250px; }
+    .step-num { width: 48px; height: 48px; border-radius: 50%; background: rgba(99,255,218,0.1); border: 2px solid var(--cyan); display: flex; align-items: center; justify-content: center; font-weight: 700; color: var(--cyan); margin: 0 auto 12px; font-family: 'JetBrains Mono', monospace; }
+    .step h3 { font-size: 16px; margin-bottom: 6px; }
+    .step p { font-size: 13px; color: var(--muted); }
+
+    /* Platforms */
+    .platforms { padding: 60px 20px; max-width: 1000px; margin: 0 auto; }
+    .platforms h2 { text-align: center; font-size: 28px; margin-bottom: 10px; }
+    .platforms .sub { text-align: center; color: var(--muted); margin-bottom: 30px; font-size: 14px; }
+    .platform-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 12px; }
+    .platform-pill { background: var(--bg2); border: 1px solid var(--border); border-radius: 8px; padding: 16px; display: flex; align-items: center; gap: 12px; transition: border-color 0.2s; }
+    .platform-pill:hover { border-color: var(--cyan); }
+    .platform-pill .icon { font-size: 24px; }
+    .platform-pill .name { font-weight: 600; font-size: 14px; }
+    .platform-pill .tag { font-size: 10px; color: var(--green); background: rgba(0,255,136,0.1); padding: 2px 8px; border-radius: 10px; margin-left: auto; }
+
+    /* Pricing */
+    .pricing { padding: 60px 20px; max-width: 900px; margin: 0 auto; }
+    .pricing h2 { text-align: center; font-size: 28px; margin-bottom: 30px; }
+    .price-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(250px, 1fr)); gap: 20px; }
+    .price-card { background: var(--bg2); border: 1px solid var(--border); border-radius: 12px; padding: 30px; text-align: center; }
+    .price-card.featured { border-color: var(--cyan); box-shadow: 0 0 30px rgba(99,255,218,0.1); }
+    .price-name { font-size: 14px; color: var(--muted); text-transform: uppercase; letter-spacing: 2px; }
+    .price-amount { font-size: 36px; font-weight: 800; margin: 10px 0; }
+    .price-amount span { font-size: 14px; color: var(--muted); }
+    .price-features { list-style: none; text-align: left; margin: 20px 0; }
+    .price-features li { padding: 6px 0; font-size: 13px; color: var(--muted); border-bottom: 1px solid rgba(255,255,255,0.05); }
+    .price-features li::before { content: '✓ '; color: var(--cyan); }
+    .price-btn { display: block; width: 100%; padding: 12px; border-radius: 6px; font-weight: 600; font-size: 14px; border: none; cursor: pointer; transition: all 0.2s; }
+    .price-btn-primary { background: var(--cyan); color: #000; }
+    .price-btn-secondary { background: transparent; color: var(--cyan); border: 1px solid var(--cyan); }
+
+    /* CTA */
+    .final-cta { padding: 80px 20px; text-align: center; }
+    .final-cta h2 { font-size: 32px; margin-bottom: 16px; }
+    .final-cta p { color: var(--muted); margin-bottom: 24px; }
+
+    /* Footer */
+    .footer { padding: 30px 20px; border-top: 1px solid var(--border); text-align: center; }
+    .footer-links { display: flex; justify-content: center; gap: 20px; flex-wrap: wrap; margin-bottom: 12px; }
+    .footer-links a { color: var(--muted); font-size: 13px; }
+    .footer-copy { font-size: 12px; color: var(--muted); }
+  </style>
 </head>
-<body class="bg-slate-950 text-slate-100 font-sans antialiased">
-  <div class="min-h-screen flex flex-col">
-    <nav class="bridge-nav bg-slate-900/60 border-b border-slate-800 backdrop-blur px-4 py-3 flex flex-wrap items-center justify-between gap-3">
-      <a href="/" class="bridge-nav-brand font-extrabold tracking-wide hover:text-amber-300">Bridge AI OS</a>
-      <button class="bridge-nav-toggle text-slate-300" aria-label="Toggle menu">☰</button>
-      <div class="bridge-nav-links">
-        <ul class="flex flex-wrap gap-3 text-sm text-slate-300 mt-2 md:mt-0">
-          <li><a href="/landing.html" class="text-amber-300 font-semibold">Landing</a></li>
-          <li><a href="/dashboards.html" class="hover:text-amber-300">Dashboards</a></li>
-          <li><a href="/corporate.html" class="hover:text-amber-300">Corporate</a></li>
-          <li><a href="/control-plane.html" class="hover:text-amber-300">Control Plane</a></li>
-          <li><a href="/status.html" class="hover:text-amber-300">Status</a></li>
-          <li><a href="/cfo.html" class="hover:text-amber-300">CFO</a></li>
+<body>
+
+  <!-- Nav -->
+  <nav class="nav">
+    <span class="nav-brand">BRIDGE AI</span>
+    <div class="nav-links">
+      <a href="#features">Features</a>
+      <a href="#platforms">Platforms</a>
+      <a href="#pricing">Pricing</a>
+      <a href="https://accounts.bridge-ai-os.com/sign-in" class="nav-cta">Sign In</a>
+    </div>
+  </nav>
+
+  <!-- Hero -->
+  <section class="hero">
+    <div class="hero-badge">AI-POWERED BUSINESS OS</div>
+    <h1>AI Agents That <span>Run Your Business</span></h1>
+    <p>Automate invoicing, CRM, marketing, and support with intelligent agents. Deploy in seconds. No coding required.</p>
+    <a href="https://abaas.bridge-ai-os.com/invoicing" class="hero-cta">Try Free — Generate an Invoice</a>
+    <div class="hero-sub">No signup required. See results in 30 seconds.</div>
+  </section>
+
+  <!-- Stats -->
+  <section class="stats">
+    <div class="stat"><div class="stat-num">9</div><div class="stat-label">Business Tools</div></div>
+    <div class="stat"><div class="stat-num">1,266</div><div class="stat-label">AI Skills</div></div>
+    <div class="stat"><div class="stat-num">10</div><div class="stat-label">Platforms</div></div>
+    <div class="stat"><div class="stat-num">R0</div><div class="stat-label">To Start</div></div>
+  </section>
+
+  <!-- Features -->
+  <section class="features" id="features">
+    <h2>Everything You Need to <span>Automate</span></h2>
+    <div class="feature-grid">
+      <div class="feature-card">
+        <div class="feature-icon">📄</div>
+        <h3>AI Invoicing</h3>
+        <p>Create professional invoices in 10 seconds. Auto-track payments, send reminders, manage your cash flow.</p>
+        <a href="https://abaas.bridge-ai-os.com/invoicing" class="try-link">Try Now →</a>
+      </div>
+      <div class="feature-card">
+        <div class="feature-icon">👥</div>
+        <h3>Smart CRM</h3>
+        <p>Manage contacts, track leads, add notes. AI identifies your best opportunities and suggests actions.</p>
+        <a href="https://abaas.bridge-ai-os.com/crm" class="try-link">Try Now →</a>
+      </div>
+      <div class="feature-card">
+        <div class="feature-icon">📊</div>
+        <h3>Marketing Suite</h3>
+        <p>Funnel analytics, SEO tracking, social management, email campaigns — all from one dashboard.</p>
+        <a href="https://abaas.bridge-ai-os.com/marketing" class="try-link">Try Now →</a>
+      </div>
+      <div class="feature-card">
+        <div class="feature-icon">⚖️</div>
+        <h3>Legal & Compliance</h3>
+        <p>Generate contracts, track compliance (POPIA, GDPR). AI reviews documents and flags issues.</p>
+        <a href="https://abaas.bridge-ai-os.com/legal" class="try-link">Try Now →</a>
+      </div>
+      <div class="feature-card">
+        <div class="feature-icon">🎫</div>
+        <h3>Support Tickets</h3>
+        <p>Customer support inbox with AI triage. Auto-assign, auto-reply suggestions, SLA tracking.</p>
+        <a href="https://abaas.bridge-ai-os.com/tickets" class="try-link">Try Now →</a>
+      </div>
+      <div class="feature-card">
+        <div class="feature-icon">🤖</div>
+        <h3>AI Agents</h3>
+        <p>Deploy autonomous agents for sales, research, trading, and more. 8 agent types, 1,266 skills.</p>
+        <a href="https://abaas.bridge-ai-os.com/agents" class="try-link">Try Now →</a>
+      </div>
+    </div>
+  </section>
+
+  <!-- How it works -->
+  <section class="how">
+    <h2>How It Works</h2>
+    <div class="steps">
+      <div class="step">
+        <div class="step-num">1</div>
+        <h3>Pick a Tool</h3>
+        <p>Choose from 9 business tools — invoicing, CRM, marketing, legal, and more.</p>
+      </div>
+      <div class="step">
+        <div class="step-num">2</div>
+        <h3>AI Does the Work</h3>
+        <p>Our agents handle the task using 1,266 trained skills. Results in seconds.</p>
+      </div>
+      <div class="step">
+        <div class="step-num">3</div>
+        <h3>Scale Your Business</h3>
+        <p>Free up hours every week. Upgrade for unlimited AI tasks and premium features.</p>
+      </div>
+    </div>
+  </section>
+
+  <!-- Platforms -->
+  <section class="platforms" id="platforms">
+    <h2>10 Platforms, One Ecosystem</h2>
+    <p class="sub">Specialized tools for every industry</p>
+    <div class="platform-grid">
+      <a href="https://ehsa.bridge-ai-os.com" class="platform-pill"><span class="icon">🏥</span><span class="name">EHSA Health</span><span class="tag">LIVE</span></a>
+      <a href="https://supac.bridge-ai-os.com" class="platform-pill"><span class="icon">🤖</span><span class="name">SUPAC Agents</span><span class="tag">LIVE</span></a>
+      <a href="https://ban.bridge-ai-os.com" class="platform-pill"><span class="icon">⚡</span><span class="name">BAN Tasks</span><span class="tag">LIVE</span></a>
+      <a href="https://aid.bridge-ai-os.com" class="platform-pill"><span class="icon">🆘</span><span class="name">AID Platform</span><span class="tag">LIVE</span></a>
+      <a href="https://ubi.bridge-ai-os.com" class="platform-pill"><span class="icon">💚</span><span class="name">UBI Income</span><span class="tag">LIVE</span></a>
+      <a href="https://aurora.bridge-ai-os.com" class="platform-pill"><span class="icon">✨</span><span class="name">Aurora AI</span><span class="tag">LIVE</span></a>
+      <a href="https://rootedearth.bridge-ai-os.com" class="platform-pill"><span class="icon">🌱</span><span class="name">Rooted Earth</span><span class="tag">LIVE</span></a>
+      <a href="https://hospitalinabox.bridge-ai-os.com" class="platform-pill"><span class="icon">🏨</span><span class="name">Hospital Box</span><span class="tag">PLAN</span></a>
+      <a href="https://abaas.bridge-ai-os.com/defi" class="platform-pill"><span class="icon">💎</span><span class="name">DeFi</span><span class="tag">LIVE</span></a>
+      <a href="https://abaas.bridge-ai-os.com/marketplace" class="platform-pill"><span class="icon">🛒</span><span class="name">Marketplace</span><span class="tag">LIVE</span></a>
+    </div>
+  </section>
+
+  <!-- Pricing -->
+  <section class="pricing" id="pricing">
+    <h2>Simple Pricing</h2>
+    <div class="price-grid">
+      <div class="price-card">
+        <div class="price-name">Free</div>
+        <div class="price-amount">R0<span>/mo</span></div>
+        <ul class="price-features">
+          <li>10 AI tasks per day</li>
+          <li>Basic CRM & Invoicing</li>
+          <li>Community support</li>
+          <li>1 AI agent</li>
         </ul>
+        <a href="https://accounts.bridge-ai-os.com/sign-up" class="price-btn price-btn-secondary">Get Started Free</a>
       </div>
-    </nav>
-
-    <main class="flex-1 max-w-6xl mx-auto px-4 py-10 w-full">
-      <div class="grid grid-cols-1 lg:grid-cols-2 gap-8 items-start">
-        <section class="rounded-2xl border border-slate-800 bg-slate-900/40 p-7">
-          <div class="inline-flex items-center gap-2 text-xs px-2.5 py-1 rounded-full bg-slate-800 text-slate-200">
-            <span class="w-2 h-2 rounded-full bg-emerald-400 animate-pulse"></span>
-            Self-running economic control surface
-          </div>
-          <h1 class="mt-4 text-4xl font-extrabold leading-tight">
-            Build → Debug → Sustain → Perpetuate
-          </h1>
-          <p class="mt-3 text-slate-300">
-            This system continuously checks live status, generates demand, routes revenue into treasury buckets,
-            funds UBI, tracks swarm health + reputation, and exposes CFO controls — all on localhost.
-          </p>
-          <div class="mt-6 flex flex-wrap gap-3">
-            <a class="px-4 py-2 rounded-lg bg-amber-500 hover:bg-amber-400 text-slate-900 font-extrabold" href="/50-applications.html#wins">
-              Go to Wins (Goal #1)
-            </a>
-            <a class="px-4 py-2 rounded-lg bg-slate-800 hover:bg-slate-700 font-semibold" href="/control-plane.html">
-              Open Control Plane
-            </a>
-            <a class="px-4 py-2 rounded-lg border border-slate-700 hover:bg-slate-900 font-semibold" href="/status.html">
-              System Status
-            </a>
-          </div>
-          <div class="mt-6 text-xs text-slate-400">
-            Tip: If something is down, open <a class="text-blue-300 hover:underline" href="/status.html">Status</a> → Smart Debug → copy commands.
-          </div>
-        </section>
-
-        <section class="rounded-2xl border border-slate-800 bg-slate-900/40 p-7">
-          <h2 class="text-lg font-bold text-slate-100">Guided path</h2>
-          <ol class="mt-3 space-y-2 text-sm text-slate-300 list-decimal list-inside">
-            <li><a class="text-blue-300 hover:underline" href="/corporate.html">Corporate</a>: what this is + what it sells.</li>
-            <li><a class="text-blue-300 hover:underline" href="/control-plane.html">Control Plane</a>: economics + automation controls + CLI runner queue.</li>
-            <li><a class="text-blue-300 hover:underline" href="/">Main App</a>: Digital Twin (render + terminal).</li>
-            <li><a class="text-blue-300 hover:underline" href="/50-applications.html#wins">Wins</a>: target milestone + revenue demand feed.</li>
-          </ol>
-          <div class="mt-6 rounded-lg bg-slate-950 border border-slate-800 p-4">
-            <div class="text-xs text-slate-400">Live check</div>
-            <div id="live" class="mt-1 text-sm text-slate-200">Loading…</div>
-          </div>
-        </section>
+      <div class="price-card featured">
+        <div class="price-name">Pro</div>
+        <div class="price-amount">R299<span>/mo</span></div>
+        <ul class="price-features">
+          <li>Unlimited AI tasks</li>
+          <li>All 9 business tools</li>
+          <li>Priority AI (GPT-4o)</li>
+          <li>8 AI agents</li>
+          <li>Email support</li>
+          <li>Referral program</li>
+        </ul>
+        <button class="price-btn price-btn-primary" id="btn-pro">Upgrade to Pro</button>
       </div>
-    </main>
-  </div>
+      <div class="price-card">
+        <div class="price-name">Enterprise</div>
+        <div class="price-amount">R2,499<span>/mo</span></div>
+        <ul class="price-features">
+          <li>Everything in Pro</li>
+          <li>Custom AI agents</li>
+          <li>API access</li>
+          <li>Dedicated support</li>
+          <li>White-label option</li>
+          <li>SLA guarantee</li>
+        </ul>
+        <a href="mailto:admin@ai-os.co.za" class="price-btn price-btn-secondary">Contact Sales</a>
+      </div>
+    </div>
+  </section>
+
+  <!-- Final CTA -->
+  <section class="final-cta">
+    <h2>Ready to Automate Your Business?</h2>
+    <p>Join the AI-powered economy. Start free, upgrade when you're ready.</p>
+    <a href="https://abaas.bridge-ai-os.com/invoicing" class="hero-cta">Try Free Now</a>
+    <div class="hero-sub">No credit card required</div>
+  </section>
+
+  <!-- Footer -->
+  <footer class="footer">
+    <div class="footer-links">
+      <a href="https://abaas.bridge-ai-os.com/docs">Docs</a>
+      <a href="https://abaas.bridge-ai-os.com/pricing">Pricing</a>
+      <a href="https://abaas.bridge-ai-os.com/affiliate">Affiliates</a>
+      <a href="https://abaas.bridge-ai-os.com/join">Join as Agent</a>
+      <a href="https://abaas.bridge-ai-os.com/sitemap">Sitemap</a>
+      <a href="https://go.ai-os.co.za">VPS Portal</a>
+    </div>
+    <div class="footer-copy">© 2026 Bridge AI OS · Part of the Bridge AI Network · <a href="https://ai-os.co.za">ai-os.co.za</a></div>
+  </footer>
 
   <script>
-  (function(){
-    async function get(path){ try{ const r=await fetch(path); return r.ok?await r.json():null; }catch(_){ return null; } }
-    const el=document.getElementById('live');
-    Promise.all([get('/api/live/report'), get('/api/treasury/status')]).then(([live, treas])=>{
-      const twins = live && Array.isArray(live.twins) ? live.twins.length : 0;
-      const total = treas && typeof treas.total_collected_brdg !== 'undefined' ? Number(treas.total_collected_brdg).toFixed(2) : '—';
-      el.textContent = `Twins: ${twins} · Treasury collected: ${total} BRDG`;
-    }).catch(()=>{ el.textContent='Backend offline — open Status.'; });
-  })();
+    document.getElementById('btn-pro').onclick = async () => {
+      const resp = await fetch('https://abaas.bridge-ai-os.com/create-payment', {
+        method: 'POST',
+        headers: {'Content-Type': 'application/json'},
+        body: JSON.stringify({ client: 'Pro Upgrade', amount: '299.00', email: '' })
+      });
+      const data = await resp.json();
+      if (data.payment_url) window.location.href = data.payment_url;
+    };
   </script>
-  <script src="/bridge-nav.js"></script>
 </body>
 </html>

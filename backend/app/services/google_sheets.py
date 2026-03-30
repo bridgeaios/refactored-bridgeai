@@ -12,8 +12,8 @@ from google.oauth2.service_account import Credentials
 logger = logging.getLogger(__name__)
 
 class GoogleSheetsService:
-    def __init__(self):
-        self.client = None
+    def __init__(self) -> None:
+        self.client: Any = None
         self._initialize_client()
 
     def _initialize_client(self):
@@ -97,7 +97,7 @@ class GoogleSheetsService:
 
             data = worksheet.get(cell_range)
             logger.info(f"Read {len(data)} rows from Google Sheets")
-            return data
+            return data  # type: ignore[no-any-return]
 
         except Exception as e:
             logger.error(f"Failed to read from Google Sheets: {e}")

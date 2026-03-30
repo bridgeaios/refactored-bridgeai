@@ -1,12 +1,13 @@
 import { fetchJson } from './api.js';
 import { API_BASE } from './config.js';
+import { escapeHtml } from './bridgeUi.js';
 import { getParsedSharedXml, onSharedXmlUpdate } from './twinSharedXml.js';
 
 export function initMissionBoard(){
     const board = document.getElementById('missionBoard');
     board.innerHTML = '<div style="font-weight:bold">Mission Board</div><div>Loading...</div>';
     function render(data) {
-        const b = data.backlog ?? 0, i = data.in_progress ?? 0, r = data.review ?? 0, d = data.done ?? 0;
+        const b = escapeHtml(String(data.backlog ?? 0)), i = escapeHtml(String(data.in_progress ?? 0)), r = escapeHtml(String(data.review ?? 0)), d = escapeHtml(String(data.done ?? 0));
         board.innerHTML = `Backlog: ${b}<br>In Progress: ${i}<br>Review: ${r}<br>Done: ${d}`;
     }
     function updateBoard(){
@@ -43,6 +44,6 @@ export class MissionBoard {
 
   _render(){
     this.el.innerHTML = `<div style='font-weight:bold'>Mission Board</div>` +
-      `<div>Backlog: ${this.counts.backlog}</div><div>In Progress: ${this.counts.in_progress}</div><div>Review: ${this.counts.review}</div><div>Done: ${this.counts.done}</div>`;
+      `<div>Backlog: ${escapeHtml(String(this.counts.backlog))}</div><div>In Progress: ${escapeHtml(String(this.counts.in_progress))}</div><div>Review: ${escapeHtml(String(this.counts.review))}</div><div>Done: ${escapeHtml(String(this.counts.done))}</div>`;
   }
 }

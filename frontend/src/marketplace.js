@@ -1,6 +1,7 @@
 // frontend/src/marketplace.js
 import { fetchJson } from './api.js';
 import { API_BASE } from './config.js';
+import { signMessageEVM, signMessageSolana } from './wallet.js';
 
 const LOCAL_KEY = 'bridge.marketplace.tasks.v1';
 const PLEDGE_EVENTS_KEY = 'bridge.marketplace.pledges.v1';

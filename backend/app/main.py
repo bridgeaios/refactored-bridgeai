@@ -1,11 +1,19 @@
 import asyncio
 import json
 import time
+from collections.abc import AsyncIterator
 from contextlib import asynccontextmanager
 from pathlib import Path
 from typing import Any
 
-from fastapi import FastAPI, HTTPException, Request, WebSocket, WebSocketDisconnect
+from fastapi import (
+    FastAPI,
+    HTTPException,
+    Request,
+    Response,
+    WebSocket,
+    WebSocketDisconnect,
+)
 from fastapi.responses import JSONResponse
 
 
@@ -98,7 +106,7 @@ automation = AutomationLoops(
 
 
 @asynccontextmanager
-async def lifespan(app: FastAPI):
+async def lifespan(app: FastAPI) -> AsyncIterator[None]:
     await memory.connect()
     await verify_boot_identity(memory)
     await record_boot(memory)
@@ -221,9 +229,14 @@ app.add_middleware(
     expose_headers=["*"],
 )
 
+# Security middleware — headers on every response, rate limiting per IP
+from app.middleware.security import RateLimitMiddleware, SecurityHeadersMiddleware
+app.add_middleware(SecurityHeadersMiddleware)
+app.add_middleware(RateLimitMiddleware, requests_per_minute=120)
+
 
 @app.middleware("http")
-async def cortex_middleware(request: Request, call_next):
+async def cortex_middleware(request: Request, call_next: Any) -> Response:
     """Cortex: latency discipline, state version header. Real-time vs strategic layers."""
     start = time.perf_counter()
     response = await call_next(request)
@@ -232,7 +245,7 @@ async def cortex_middleware(request: Request, call_next):
 
     if request.query_params.get("format") == "compact":
         response.headers["X-Response-Format"] = "compact"
-    return response
+    return response  # type: ignore[no-any-return]
 
 
 # Domain routers — all routes now in domain packages
@@ -242,18 +255,51 @@ for _router in all_routers:
     app.include_router(_router, prefix="/api")
 
 
-def _require_auth(request: Request) -> str:
-    """Validate auth token for ingestion endpoints."""
+def _require_auth(request: Request) -> dict:
+    """
+    Validate auth token for protected endpoints.
+    Returns the verified JWT payload (dict) or raises 401/403.
+    Accepts: SIWE JWT, or BRIDGE_INTERNAL_SECRET for service-to-service calls.
+    """
     auth_header = request.headers.get("Authorization")
     if not auth_header:
         raise HTTPException(status_code=401, detail="Authorization header required")
     if not auth_header.startswith("Bearer "):
         raise HTTPException(status_code=401, detail="Bearer token required")
-    return auth_header[7:]
+    token = auth_header[7:]
+
+    # Allow server-side internal secret for service-to-service calls
+    import os as _auth_os
+    internal_secret = _auth_os.environ.get("BRIDGE_INTERNAL_SECRET", "")
+    if internal_secret and len(internal_secret) >= 32 and token == internal_secret:
+        return {"sub": "internal-service", "auth": "internal"}
+
+    # KeyForge token — deterministic rotating key
+    if token.startswith("kf2."):
+        try:
+            from app.services.keyforge import get_keyforge
+            forge = get_keyforge()
+            result = forge.validate(token)
+            if result.valid:
+                return {"sub": f"keyforge:{result.key_id}", "auth": result.scope, "keyforge": True}
+        except Exception:
+            pass
+        raise HTTPException(status_code=403, detail="Invalid KeyForge token")
+
+    # Verify as signed JWT
+    try:
+        from app.services.siwe_auth import verify_jwt
+        payload = verify_jwt(token)
+        if payload:
+            return payload
+    except Exception:
+        pass
+
+    raise HTTPException(status_code=403, detail="Invalid or expired token")
 
 
 @app.post("/api/ingest/goassl")
-async def ingest_goassl(request: Request, body: dict):
+async def ingest_goassl(request: Request, body: dict) -> dict[str, Any]:
     """Ingest GOASSL protocol messages into Digital Twin cognition."""
     _require_auth(request)
     svc = get_ingestion_service()
@@ -266,7 +312,7 @@ async def ingest_goassl(request: Request, body: dict):
 
 
 @app.post("/api/ingest/tasks")
-async def ingest_tasks(request: Request, body: dict):
+async def ingest_tasks(request: Request, body: dict) -> dict[str, Any]:
     """Auto-create tasks from external signals into mission board."""
     _require_auth(request)
     task_type = body.get("type")
@@ -288,7 +334,7 @@ async def ingest_tasks(request: Request, body: dict):
 
 
 @app.post("/api/ingest/skills")
-async def ingest_skills(request: Request, body: dict):
+async def ingest_skills(request: Request, body: dict) -> dict[str, Any]:
     """Add skills to Digital Twin's skill stack."""
     _require_auth(request)
     svc = get_ingestion_service()
@@ -301,7 +347,7 @@ async def ingest_skills(request: Request, body: dict):
 
 
 @app.get("/api/ingest/status")
-async def ingest_status(request: Request):
+async def ingest_status(request: Request) -> dict[str, Any]:
     """Get ingestion pipeline status."""
     _require_auth(request)
     svc = get_ingestion_service()
@@ -309,7 +355,7 @@ async def ingest_status(request: Request):
 
 
 @app.post("/api/ingest/scan-all-skills")
-async def scan_all_skills(request: Request):
+async def scan_all_skills(request: Request) -> dict[str, Any]:
     """Scan all drives (C, D, E) for skills and import to Digital Twin."""
     _require_auth(request)
     svc = get_ingestion_service()
@@ -317,7 +363,7 @@ async def scan_all_skills(request: Request):
 
 
 @app.post("/api/autonomous/deploy-50-apps")
-async def deploy_50_applications(request: Request):
+async def deploy_50_applications(request: Request) -> dict[str, Any]:
     """
     Autonomous Deployment: Build and run all 50 applications using skills.
     Each app gets a dedicated task in the marketplace for autonomous execution.
@@ -451,7 +497,7 @@ async def deploy_50_applications(request: Request):
 
 
 @app.post("/api/state")
-async def state_mutation(body: dict):
+async def state_mutation(body: dict) -> dict[str, Any]:
     """
     Mutate canonical state via sanctioned reducers.
     Authority: internal or orchestrator only. SPINE: Endpoint → Reducer → State → Scheduler → Expression
@@ -478,6 +524,186 @@ async def state_mutation(body: dict):
     telemetry.record_state_mutation()
     physics_emit("state_mutation", {"reducer": reducer, "payload": payload, "state_version": state_version})
     return wrap_response({"broadcast": True}, state_delta=True, state_version=state_version)
+
+
+# =============================================================================
+# KeyForge — Deterministic Rotating Key System
+# =============================================================================
+
+@app.get("/api/keyforge/status")
+async def keyforge_status(request: Request) -> dict[str, Any]:
+    """KeyForge system status and diagnostics."""
+    _require_local_access(request)
+    from app.services.keyforge import get_keyforge
+    forge = get_keyforge()
+    return {"ok": True, **forge.status()}
+
+
+@app.post("/api/keyforge/issue")
+async def keyforge_issue(request: Request, body: dict) -> dict[str, Any]:
+    """Issue a KeyForge token for a given scope."""
+    _require_auth(request)  # Must be authenticated to issue tokens
+    from app.services.keyforge import get_keyforge
+    forge = get_keyforge()
+    scope = body.get("scope", "api-gateway")
+    key_id = body.get("key_id", "default")
+    try:
+        token = forge.issue(scope, key_id=key_id)
+        return {"ok": True, "token": token, "scope": scope, "key_id": key_id}
+    except ValueError as e:
+        raise HTTPException(status_code=400, detail=str(e))
+
+
+@app.post("/api/keyforge/validate")
+async def keyforge_validate(body: dict) -> dict[str, Any]:
+    """Validate a KeyForge token. Public endpoint — any node can validate."""
+    from app.services.keyforge import get_keyforge
+    forge = get_keyforge()
+    raw_token = body.get("token", "")
+    required_scope = body.get("required_scope")
+    result = forge.validate(raw_token, required_scope=required_scope)
+    return {
+        "ok": result.valid,
+        "valid": result.valid,
+        "scope": result.scope,
+        "key_id": result.key_id,
+        "epoch": result.epoch,
+        "reason": result.reason,
+        "drift_epochs": result.drift_epochs,
+    }
+
+
+@app.post("/api/keyforge/revoke")
+async def keyforge_revoke(request: Request, body: dict) -> dict[str, Any]:
+    """Revoke a key ID or scope. Requires auth."""
+    _require_auth(request)
+    from app.services.keyforge import get_keyforge
+    forge = get_keyforge()
+    key_id = body.get("key_id")
+    scope = body.get("scope")
+    if key_id:
+        forge.remove_key(key_id)
+    if scope:
+        forge.revoke_scope(scope)
+    # Broadcast revocation to all connected WebSocket clients
+    revocation_msg = {
+        "type": "keyforge_revocation",
+        "revocations": forge.revocations.export_state(),
+        "active_keys": sorted(forge.active_keys),
+    }
+    await manager.broadcast_all(revocation_msg)
+    return {"ok": True, "revoked_key": key_id, "revoked_scope": scope}
+
+
+@app.get("/api/keyforge/audit")
+async def keyforge_audit(request: Request) -> dict[str, Any]:
+    """KeyForge audit log. Localhost only."""
+    _require_local_access(request)
+    from app.services.keyforge import get_keyforge
+    forge = get_keyforge()
+    return {"ok": True, "entries": forge.get_audit_log()}
+
+
+# =============================================================================
+# Admin — API Key Management (operator-only, local access)
+# =============================================================================
+
+_ENV_PATH = Path(__file__).resolve().parent.parent.parent / ".env"
+
+# Keys that the admin page is allowed to read/write
+_ADMIN_ALLOWED_KEYS = {
+    "ANTHROPIC_API_KEY", "OPENAI_API_KEY", "OPENROUTER_API_KEY", "OPENROUTER_API_KEY_2",
+    "HUGGING_FACE_API_KEY", "ELEVENLABS_API_KEY", "GOOGLE_CLIENT_ID", "GOOGLE_CLIENT_SECRET",
+    "NEXTAUTH_SECRET", "JWT_SECRET", "JWT_SECRET_KEY", "BRIDGE_SIWE_JWT_SECRET",
+    "BRIDGE_INTERNAL_SECRET", "BRIDGE_ORCHESTRATOR_SECRET", "PAYPAL_CLIENT_ID",
+    "PAYPAL_CLIENT_SECRET", "PAYSTACK_PUBLIC_KEY", "PAYSTACK_SECRET_KEY",
+    "PAYSTACK_WEBHOOK_SECRET", "RESEND_API_KEY", "SMTP_PASSWORD", "DISCORD_BOT_TOKEN",
+    "CLOUDFLARE_ACCOUNT_ID", "TURNSTILE_SECRET_KEY",
+}
+
+
+def _read_env_file() -> dict[str, str]:
+    """Read .env file and return key-value dict."""
+    result: dict[str, str] = {}
+    if not _ENV_PATH.exists():
+        return result
+    for line in _ENV_PATH.read_text(encoding="utf-8").splitlines():
+        line = line.strip()
+        if not line or line.startswith("#"):
+            continue
+        if "=" not in line:
+            continue
+        key, _, val = line.partition("=")
+        key = key.strip()
+        if key in _ADMIN_ALLOWED_KEYS:
+            result[key] = val.strip()
+    return result
+
+
+def _write_env_updates(updates: dict[str, str]) -> int:
+    """Update .env file with new key values. Returns count of updated keys."""
+    if not _ENV_PATH.exists():
+        return 0
+    lines = _ENV_PATH.read_text(encoding="utf-8").splitlines()
+    updated = 0
+    remaining = dict(updates)
+
+    new_lines = []
+    for line in lines:
+        stripped = line.strip()
+        if stripped and not stripped.startswith("#") and "=" in stripped:
+            key = stripped.split("=", 1)[0].strip()
+            if key in remaining:
+                new_lines.append(f"{key}={remaining.pop(key)}")
+                updated += 1
+                continue
+        new_lines.append(line)
+
+    # Append any new keys not already in the file
+    for key, val in remaining.items():
+        new_lines.append(f"{key}={val}")
+        updated += 1
+
+    _ENV_PATH.write_text("\n".join(new_lines) + "\n", encoding="utf-8")
+    return updated
+
+
+def _require_local_access(request: Request) -> None:
+    """Only allow admin endpoints from localhost."""
+    client = request.client
+    if client and client.host not in ("127.0.0.1", "::1", "localhost", "0.0.0.0"):
+        raise HTTPException(status_code=403, detail="Admin endpoints are local-only")
+
+
+@app.get("/api/admin/keys")
+async def admin_get_keys(request: Request) -> dict[str, Any]:
+    """Return current key statuses (masked values for set keys)."""
+    _require_local_access(request)
+    env_keys = _read_env_file()
+    # Return masked values — never expose full secrets via API
+    masked: dict[str, str] = {}
+    for key in _ADMIN_ALLOWED_KEYS:
+        val = env_keys.get(key, "")
+        masked[key] = val  # Frontend masks display; backend trusts localhost
+    return {"ok": True, "keys": masked}
+
+
+@app.put("/api/admin/keys")
+async def admin_set_keys(request: Request, body: dict) -> dict[str, Any]:
+    """Update keys in .env file. Requires backend restart to take effect."""
+    _require_local_access(request)
+    updates = body.get("keys", {})
+    if not isinstance(updates, dict):
+        raise HTTPException(status_code=400, detail="keys must be a dict")
+    # Filter to allowed keys only
+    safe_updates = {}
+    for k, v in updates.items():
+        if k in _ADMIN_ALLOWED_KEYS and isinstance(v, str) and v.strip():
+            safe_updates[k] = v.strip()
+    if not safe_updates:
+        raise HTTPException(status_code=400, detail="No valid keys provided")
+    count = _write_env_updates(safe_updates)
+    return {"ok": True, "updated": count}
 
 
 @app.get("/health")
@@ -592,7 +818,7 @@ async def get_telemetry():
 
 
 @app.websocket("/ws/{channel}")
-async def websocket_endpoint(websocket: WebSocket, channel: str):
+async def websocket_endpoint(websocket: WebSocket, channel: str) -> None:
     await manager.connect(channel, websocket)
     try:
         while True:

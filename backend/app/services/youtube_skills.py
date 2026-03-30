@@ -76,7 +76,7 @@ class YouTubeSkillsService:
         if not self.available:
             return {"ok": False, "reason": "no_api_key", "hint": "Set YOUTUBE_API_KEY in .env", "results": []}
 
-        params = {
+        params: dict[str, str | int] = {
             "part":       "snippet",
             "q":          query,
             "type":       "video",
