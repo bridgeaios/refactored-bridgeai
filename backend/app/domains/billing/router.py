@@ -53,12 +53,61 @@ async def get_invoice(invoice_id: str, svc: BillingDep, _: dict = Depends(requir
 
 @router.post("/invoices/{invoice_id}/send")
 async def send_invoice(invoice_id: str, svc: BillingDep, _: dict = Depends(require_jwt)) -> dict[str, Any]:
-    """Mark invoice as sent. Wire email delivery via OUTREACH_EMAIL_PROVIDER."""
+    """Mark invoice as sent and email it to the client."""
     invoice = await svc.mark_sent(invoice_id)
     if not invoice:
         raise HTTPException(404, detail="Invoice not found")
-    # TODO: trigger email via outreach domain when OUTREACH_EMAIL_PROVIDER is set
-    return {"ok": True, "invoice": invoice, "email_queued": False}
+
+    email_queued = False
+    try:
+        import os, html as _html
+        from app.services.email_sender import send_email
+        provider = os.environ.get("OUTREACH_EMAIL_PROVIDER", "")
+        if provider:
+            client_email = invoice.get("client_email", "")
+            client_name = invoice.get("client_name") or invoice.get("client_company") or "Client"
+            inv_number = invoice.get("invoice_number", invoice_id)
+            total = invoice.get("total", 0)
+            currency = invoice.get("currency", "ZAR")
+            due_date = invoice.get("due_date", "—")
+            pay_link = invoice.get("payment_link") or ""
+            pay_section = (
+                f'<p style="margin:1rem 0"><a href="{_html.escape(pay_link)}" '
+                f'style="background:#0284c7;color:#fff;padding:.6rem 1.4rem;border-radius:6px;'
+                f'text-decoration:none;font-weight:600">Pay Now</a></p>'
+                if pay_link else ""
+            )
+            subject = f"Invoice {inv_number} from BridgeAI — {currency} {total:,.2f} due {due_date}"
+            html_body = f"""
+<div style="font-family:Inter,system-ui,sans-serif;max-width:560px;margin:0 auto;color:#1e293b">
+  <div style="background:#0f172a;padding:1.5rem 2rem;border-radius:8px 8px 0 0">
+    <h2 style="color:#38bdf8;margin:0;font-size:1.1rem">BridgeAI Invoice</h2>
+  </div>
+  <div style="background:#f8fafc;padding:1.5rem 2rem;border-radius:0 0 8px 8px;border:1px solid #e2e8f0">
+    <p>Hi {_html.escape(client_name)},</p>
+    <p>Please find your invoice <strong>{_html.escape(inv_number)}</strong> attached.</p>
+    <table style="width:100%;border-collapse:collapse;margin:1rem 0">
+      <tr><td style="padding:.4rem 0;color:#64748b">Amount due</td>
+          <td style="text-align:right;font-weight:700">{currency} {total:,.2f}</td></tr>
+      <tr><td style="padding:.4rem 0;color:#64748b">Due date</td>
+          <td style="text-align:right">{_html.escape(due_date)}</td></tr>
+    </table>
+    {pay_section}
+    <p style="color:#64748b;font-size:.85rem">Questions? Reply to this email.</p>
+  </div>
+</div>"""
+            text_body = (
+                f"Hi {client_name},\n\nInvoice {inv_number} — {currency} {total:,.2f} due {due_date}.\n"
+                + (f"\nPay online: {pay_link}\n" if pay_link else "")
+                + "\nThank you,\nBridgeAI"
+            )
+            result = await send_email(client_email, subject, html_body, text_body)
+            email_queued = result.get("ok", False)
+    except Exception:
+        import logging
+        logging.getLogger(__name__).exception("Invoice email failed for %s", invoice_id)
+
+    return {"ok": True, "invoice": invoice, "email_queued": email_queued}
 
 
 @router.post("/invoices/{invoice_id}/mark-paid")
@@ -127,6 +176,7 @@ async def download_invoice_pdf(
 async def reconcile_webhook(
     payload: dict[str, Any],
     svc: BillingDep,
+    _: dict = Depends(require_jwt),
 ) -> dict[str, Any]:
     """Called by payment webhooks to auto-match and mark invoices paid."""
     amount = float(payload.get("amount", 0))
