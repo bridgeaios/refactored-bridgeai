@@ -1,0 +1,20 @@
+.env
+
+# Logs — never commit runtime logs
+*.log
+server.log
+backend.log
+backend_fresh.log
+backend_test.log
+server_startup.log
+
+# SQLite dev database (use DATABASE_DEFI_URL=postgresql+asyncpg://... in prod)
+data/
+*.db
+
+# Python artefacts
+__pycache__/
+*.pyc
+*.pyo
+.venv/
+venv/

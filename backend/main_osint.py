@@ -5,18 +5,77 @@ from datetime import datetime
 
 from fastapi import FastAPI, WebSocket
 from fastapi.staticfiles import StaticFiles
+from fastapi.middleware.cors import CORSMiddleware
+
+# Import execution layer
+from db import db
+from workers import worker_loop
+from agents import router as agents_router
+from tasks import router as tasks_router
+from ledger import router as ledger_router
+from treasury import router as treasury_router
+from telemetry import router as telemetry_router
 
 app = FastAPI()
 
-ROOT = "E:/A/output"
+# CORS middleware
+_ALLOWED_ORIGINS = [o.strip() for o in os.environ.get(
+    "CORS_ORIGINS", "http://localhost:3000,http://localhost:5173"
+).split(",") if o.strip()]
+
+app.add_middleware(
+    CORSMiddleware,
+    allow_origins=_ALLOWED_ORIGINS,
+    allow_credentials=True,
+    allow_methods=["*"],
+    allow_headers=["*"],
+)
+
+# Include routers
+app.include_router(agents_router)
+app.include_router(tasks_router)
+app.include_router(ledger_router)
+app.include_router(treasury_router)
+app.include_router(telemetry_router)
+
+ROOT = os.environ.get("BRIDGE_OUTPUT_ROOT", "./output")
 
 STATE = {
     "status": "idle",
     "last_run": None,
     "merkle": None,
     "agents": {},
-    "history": []
+    "history": [],
+    "worker_task": None
 }
+
+# ===== STARTUP / SHUTDOWN =====
+@app.on_event("startup")
+async def startup():
+    """Initialize database and start worker loop"""
+    print(f"[STARTUP] FastAPI server starting... (timestamp: {datetime.utcnow().isoformat()})")
+    try:
+        await db.connect()
+        print("[STARTUP] [OK] Database connected")
+
+        # Start worker loop in background
+        STATE["worker_task"] = asyncio.create_task(worker_loop())
+        print("[STARTUP] [OK] Worker loop started in background")
+    except Exception as e:
+        print(f"[STARTUP] [FAIL] Startup failed: {e}")
+        raise
+
+
+@app.on_event("shutdown")
+async def shutdown():
+    """Clean up on shutdown"""
+    try:
+        if STATE["worker_task"]:
+            STATE["worker_task"].cancel()
+        await db.disconnect()
+        print("[INFO] Database disconnected")
+    except Exception as e:
+        print(f"[ERROR] Shutdown error: {e}")
 
 app.mount("/output", StaticFiles(directory=ROOT), name="output")
 
@@ -60,7 +119,7 @@ def delta_check():
 # -------------------------
 # TELEMETRY
 # -------------------------
-@app.post("/api/telemetry/events")
+@app.post("/telemetry/events")
 async def telemetry(data: dict):
     ts = datetime.utcnow().isoformat()
     changed, merkle = delta_check()
@@ -105,6 +164,6 @@ async def ws(ws: WebSocket):
 # -------------------------
 # HEALTH
 # -------------------------
-@app.get("/api/health")
+@app.get("/health")
 def health():
     return {"status":"ok"}

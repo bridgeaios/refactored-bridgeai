@@ -74,3 +74,61 @@ class NetworkServices:
         from app.runtime import replication_engine
         await replication_engine.register_node(node_id, url, capabilities)
         return {"ok": True, "node_id": node_id, "url": url}
+
+    # ------------------------------------------------------------------
+    # OSINT Agent / Task / Ledger
+    # Backed by memory store (Redis); migrate to Neon/PostgreSQL when ready.
+    # ------------------------------------------------------------------
+
+    async def create_agent(self, name: str, agent_type: str = "leadgen") -> dict[str, Any]:
+        from uuid import uuid4
+        from datetime import datetime
+        agent_id = str(uuid4())
+        name = name or f"agent-{agent_id[:8]}"
+        agent = {"id": agent_id, "name": name, "type": agent_type, "status": "active",
+                 "created_at": datetime.utcnow().isoformat()}
+        await self._memory.set(f"agent:{agent_id}", agent)
+        ids: list = await self._memory.get("agent:index") or []
+        ids.append(agent_id)
+        await self._memory.set("agent:index", ids)
+        return agent
+
+    async def get_agent(self, agent_id: str) -> dict[str, Any] | None:
+        return await self._memory.get(f"agent:{agent_id}")
+
+    async def list_agents(self) -> list[dict]:
+        ids: list = await self._memory.get("agent:index") or []
+        agents = [await self._memory.get(f"agent:{i}") for i in ids]
+        return [a for a in agents if a]
+
+    async def create_task(self, agent_id: str, task_payload: dict) -> dict[str, Any]:
+        from uuid import uuid4
+        from datetime import datetime
+        task_id = str(uuid4())
+        task = {"id": task_id, "agent_id": agent_id, "payload": task_payload,
+                "status": "pending", "created_at": datetime.utcnow().isoformat()}
+        await self._memory.set(f"task:{task_id}", task)
+        task_ids: list = await self._memory.get(f"agent:{agent_id}:tasks") or []
+        task_ids.append(task_id)
+        await self._memory.set(f"agent:{agent_id}:tasks", task_ids)
+        return task
+
+    async def get_task(self, task_id: str) -> dict[str, Any] | None:
+        return await self._memory.get(f"task:{task_id}")
+
+    async def list_tasks(
+        self, agent_id: str | None = None, status: str | None = None
+    ) -> list[dict]:
+        if agent_id:
+            task_ids: list = await self._memory.get(f"agent:{agent_id}:tasks") or []
+            tasks = [await self._memory.get(f"task:{i}") for i in task_ids]
+        else:
+            tasks = []
+        tasks = [t for t in tasks if t]
+        if status:
+            tasks = [t for t in tasks if t.get("status") == status]
+        return tasks
+
+    async def ledger_entries(self, limit: int = 100) -> list[dict]:
+        entries: list = await self._memory.get("osint:ledger") or []
+        return entries[-limit:]

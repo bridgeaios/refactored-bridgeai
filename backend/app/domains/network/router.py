@@ -9,6 +9,7 @@ from typing import Annotated, Any
 from fastapi import APIRouter, Depends, HTTPException
 
 from app.domains.network.deps import get_network
+from app.domains.infra.deps import require_jwt
 from app.domains.network.models import ProjectRegisterRequest, SwarmMessageRequest
 from app.domains.network.services import NetworkServices
 
@@ -110,3 +111,59 @@ async def replication_register(data: dict[str, Any], svc: NetworkDep) -> dict[st
     if isinstance(capabilities, str):
         capabilities = [c.strip() for c in capabilities.split(",") if c.strip()]
     return await svc.replication_register(node_id=str(node_id), url=str(url), capabilities=capabilities)
+
+
+# ------------------------------------------------------------------
+# OSINT Agents — absorbed from backend/agents.py + tasks.py + ledger.py
+# Entry point: uvicorn app.main:app (not backend/main.py which is dev-only)
+# ------------------------------------------------------------------
+
+@router.post("/agents")
+async def create_agent(payload: dict[str, Any], svc: NetworkDep, _: dict = Depends(require_jwt)) -> dict[str, Any]:
+    return await svc.create_agent(
+        name=payload.get("name", ""),
+        agent_type=payload.get("type", "leadgen"),
+    )
+
+
+@router.get("/agents")
+async def list_agents(svc: NetworkDep) -> dict[str, Any]:
+    agents = await svc.list_agents()
+    return {"ok": True, "agents": agents, "count": len(agents)}
+
+
+@router.get("/agents/{agent_id}")
+async def get_agent(agent_id: str, svc: NetworkDep) -> dict[str, Any]:
+    agent = await svc.get_agent(agent_id)
+    if not agent:
+        raise HTTPException(status_code=404, detail="Agent not found")
+    return agent
+
+
+@router.post("/agents/{agent_id}/tasks")
+async def create_agent_task(
+    agent_id: str, payload: dict[str, Any], svc: NetworkDep, _: dict = Depends(require_jwt),
+) -> dict[str, Any]:
+    return await svc.create_task(agent_id=agent_id, task_payload=payload.get("payload", {}))
+
+
+@router.get("/agents/{agent_id}/tasks")
+async def list_agent_tasks(
+    agent_id: str, svc: NetworkDep, status: str | None = None,
+) -> dict[str, Any]:
+    tasks = await svc.list_tasks(agent_id=agent_id, status=status)
+    return {"ok": True, "tasks": tasks}
+
+
+@router.get("/tasks/{task_id}")
+async def get_task(task_id: str, svc: NetworkDep) -> dict[str, Any]:
+    task = await svc.get_task(task_id)
+    if not task:
+        raise HTTPException(status_code=404, detail="Task not found")
+    return task
+
+
+@router.get("/osint/ledger")
+async def osint_ledger(svc: NetworkDep, limit: int = 100) -> dict[str, Any]:
+    entries = await svc.ledger_entries(limit=limit)
+    return {"ok": True, "entries": entries, "count": len(entries)}

@@ -11,7 +11,7 @@ from typing import Annotated, Any
 
 from fastapi import APIRouter, Depends, HTTPException, Request
 
-from app.domains.infra.deps import get_infra
+from app.domains.infra.deps import get_infra, require_jwt
 from app.domains.infra.models import HealthResponse, SiweLoginRequest
 from app.domains.infra.services import InfraServices
 
@@ -247,3 +247,46 @@ async def orchestrate_directives(svc: InfraDep) -> dict[str, Any]:
 @router.get("/wiki/registry")
 async def wiki_registry(svc: InfraDep) -> dict[str, Any]:
     return await svc.wiki_registry()
+
+
+# ------------------------------------------------------------------
+# KeyForge — Deterministic rotating key system
+# ------------------------------------------------------------------
+
+@router.get("/keyforge/status")
+async def keyforge_status() -> dict[str, Any]:
+    from app.services.keyforge import get_keyforge
+    return get_keyforge().status()
+
+
+@router.post("/keyforge/issue")
+async def keyforge_issue(payload: dict[str, Any], _: dict = Depends(require_jwt)) -> dict[str, Any]:
+    from app.services.keyforge import get_keyforge
+    scope = payload.get("scope", "api-gateway")
+    token = get_keyforge().issue(scope)
+    return {"token": token, "scope": scope}
+
+
+@router.post("/keyforge/validate")
+async def keyforge_validate(payload: dict[str, Any]) -> dict[str, Any]:
+    from app.services.keyforge import get_keyforge
+    token = payload.get("token", "")
+    if not token:
+        raise HTTPException(400, detail="token required")
+    result = get_keyforge().validate(token)
+    return {"valid": result.valid, "scope": result.scope if result.valid else None}
+
+
+@router.post("/keyforge/revoke")
+async def keyforge_revoke(payload: dict[str, Any], _: dict = Depends(require_jwt)) -> dict[str, Any]:
+    from app.services.keyforge import get_keyforge
+    key_id = payload.get("key_id")
+    scope = payload.get("scope")
+    forge = get_keyforge()
+    if key_id:
+        forge.revoke_key(key_id)
+    elif scope:
+        forge.revoke_scope(scope)
+    else:
+        raise HTTPException(400, detail="key_id or scope required")
+    return {"ok": True}
