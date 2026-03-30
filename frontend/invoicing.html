@@ -1,0 +1,381 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>BridgeAI · Invoicing</title>
+  <link rel="stylesheet" href="/public/bridge-tokens.css" />
+  <style>
+    *{box-sizing:border-box;margin:0;padding:0}
+    body{background:#0a0a0f;color:#e2e8f0;font-family:Inter,system-ui,sans-serif;min-height:100vh}
+    header{display:flex;align-items:center;justify-content:space-between;padding:1rem 2rem;border-bottom:1px solid #1e293b;background:#0f172a}
+    h1{font-size:1.25rem;font-weight:600;color:#f8fafc}
+    .main{display:grid;grid-template-columns:1fr 1fr;gap:0;min-height:calc(100vh - 65px)}
+    .panel{padding:1.5rem;border-right:1px solid #1e293b;overflow-y:auto}
+    .panel h2{font-size:.85rem;font-weight:600;text-transform:uppercase;letter-spacing:.06em;color:#94a3b8;margin-bottom:1rem}
+    .field{margin-bottom:.75rem}
+    .field label{display:block;font-size:.72rem;color:#64748b;margin-bottom:.25rem}
+    .field input,.field select,.field textarea{width:100%;background:#1e293b;border:1px solid #334155;border-radius:6px;padding:.5rem .75rem;color:#f1f5f9;font-size:.85rem}
+    .row2{display:grid;grid-template-columns:1fr 1fr;gap:.75rem}
+    .items-table{width:100%;border-collapse:collapse;font-size:.8rem;margin-bottom:.75rem}
+    .items-table th{background:#0f172a;padding:.5rem .75rem;text-align:left;color:#64748b;border-bottom:1px solid #1e293b}
+    .items-table td{padding:.45rem .75rem;border-bottom:1px solid #1e293b}
+    .items-table input{background:#0f172a;border:1px solid #334155;border-radius:4px;padding:.3rem .5rem;color:#f1f5f9;font-size:.8rem;width:100%}
+    .btn{padding:.5rem 1.25rem;border-radius:6px;border:none;cursor:pointer;font-size:.85rem;font-weight:600}
+    .btn-primary{background:#0284c7;color:#fff}
+    .btn-secondary{background:#1e293b;color:#94a3b8}
+    .btn-danger{background:#7f1d1d;color:#fca5a5;padding:.3rem .6rem;font-size:.75rem}
+    .btn-sm{padding:.3rem .75rem;font-size:.75rem}
+    .totals{background:#0f172a;border-radius:8px;padding:1rem;margin-top:.75rem}
+    .total-row{display:flex;justify-content:space-between;padding:.25rem 0;font-size:.85rem;color:#94a3b8}
+    .total-row.grand{font-size:1.1rem;font-weight:700;color:#f1f5f9;border-top:1px solid #334155;margin-top:.5rem;padding-top:.5rem}
+    .invoice-list{padding:1.5rem;overflow-y:auto}
+    .inv-card{background:#0f172a;border:1px solid #1e293b;border-radius:8px;padding:1rem;margin-bottom:.75rem;display:flex;justify-content:space-between;align-items:center}
+    .inv-number{font-size:.85rem;font-weight:600;color:#f1f5f9}
+    .inv-client{font-size:.75rem;color:#94a3b8;margin-top:2px}
+    .inv-total{font-size:1rem;font-weight:700;color:#38bdf8;text-align:right}
+    .inv-currency{font-size:.7rem;color:#64748b}
+    .status-badge{display:inline-block;padding:2px 8px;border-radius:4px;font-size:.7rem;font-weight:600}
+    .s-draft{background:#1e293b;color:#94a3b8}
+    .s-sent{background:#0c4a6e;color:#7dd3fc}
+    .s-paid{background:#064e3b;color:#34d399}
+    .s-overdue{background:#7f1d1d;color:#fca5a5}
+    .inv-actions{display:flex;gap:.5rem;margin-top:.5rem;flex-wrap:wrap}
+    .summary-bar{display:flex;gap:1rem;padding:.75rem 1.5rem;background:#0f172a;border-bottom:1px solid #1e293b;grid-column:1/-1}
+    .sstat{background:#1e293b;border-radius:6px;padding:.4rem .9rem;font-size:.75rem}
+    .sstat-val{font-size:1rem;font-weight:700;color:#38bdf8}
+  </style>
+</head>
+<body>
+<header>
+  <h1>Invoicing</h1>
+  <div style="display:flex;gap:.75rem">
+    <a href="/crm.html" style="color:#38bdf8;text-decoration:none;font-size:.85rem;align-self:center">← CRM</a>
+  </div>
+</header>
+
+<div class="main">
+  <!-- Summary bar full-width -->
+  <div class="summary-bar">
+    <div class="sstat"><div class="sstat-val" id="ss-total">—</div><div>Total Invoices</div></div>
+    <div class="sstat"><div class="sstat-val" id="ss-billed">—</div><div>Billed</div></div>
+    <div class="sstat"><div class="sstat-val" id="ss-paid">—</div><div>Paid</div></div>
+    <div class="sstat"><div class="sstat-val" id="ss-outstanding">—</div><div>Outstanding</div></div>
+  </div>
+
+  <!-- Create panel -->
+  <div class="panel">
+    <h2>Create Invoice</h2>
+    <div class="row2">
+      <div class="field">
+        <label>Client Email *</label>
+        <input type="email" id="c-email" placeholder="client@company.com" />
+      </div>
+      <div class="field">
+        <label>Client Name</label>
+        <input type="text" id="c-name" placeholder="Jane Smith" />
+      </div>
+    </div>
+    <div class="row2">
+      <div class="field">
+        <label>Company</label>
+        <input type="text" id="c-company" placeholder="Acme Corp" />
+      </div>
+      <div class="field">
+        <label>Currency</label>
+        <select id="c-currency">
+          <option value="ZAR">ZAR (R)</option>
+          <option value="USD">USD ($)</option>
+          <option value="EUR">EUR (€)</option>
+          <option value="GBP">GBP (£)</option>
+        </select>
+      </div>
+    </div>
+    <div class="row2">
+      <div class="field">
+        <label>Tax Rate (%)</label>
+        <input type="number" id="c-tax" value="15" min="0" max="100" step="1" />
+      </div>
+      <div class="field">
+        <label>Due Days</label>
+        <input type="number" id="c-due" value="30" min="0" max="365" />
+      </div>
+    </div>
+    <div class="field">
+      <label>Notes</label>
+      <textarea id="c-notes" rows="2" placeholder="Payment terms, bank details…"></textarea>
+    </div>
+
+    <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:.5rem">
+      <div style="font-size:.8rem;font-weight:600;color:#94a3b8">Line Items</div>
+      <button class="btn btn-secondary btn-sm" onclick="addItem()">+ Add Item</button>
+    </div>
+    <table class="items-table">
+      <thead>
+        <tr><th>Description</th><th style="width:70px">Qty</th><th style="width:90px">Unit Price</th><th style="width:30px"></th></tr>
+      </thead>
+      <tbody id="items-body"></tbody>
+    </table>
+
+    <div class="totals">
+      <div class="total-row"><span>Subtotal</span><span id="t-sub">R 0.00</span></div>
+      <div class="total-row"><span>Tax (<span id="t-taxrate">15</span>%)</span><span id="t-tax">R 0.00</span></div>
+      <div class="total-row grand"><span>TOTAL</span><span id="t-total">R 0.00</span></div>
+    </div>
+
+    <div style="display:flex;gap:.75rem;margin-top:1rem">
+      <button class="btn btn-primary" onclick="createInvoice()">Create Invoice</button>
+      <button class="btn btn-secondary" onclick="clearForm()">Clear</button>
+    </div>
+  </div>
+
+  <!-- Invoice list panel -->
+  <div class="invoice-list">
+    <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:1rem">
+      <div style="font-size:.85rem;font-weight:600;color:#94a3b8">All Invoices</div>
+      <select id="filter-status" onchange="loadInvoices()" style="background:#1e293b;border:1px solid #334155;border-radius:6px;padding:.35rem .65rem;color:#f1f5f9;font-size:.8rem">
+        <option value="">All</option>
+        <option value="draft">Draft</option>
+        <option value="sent">Sent</option>
+        <option value="paid">Paid</option>
+        <option value="overdue">Overdue</option>
+      </select>
+    </div>
+    <div id="invoice-list"></div>
+  </div>
+</div>
+
+<script>
+const API = '';
+let _items = [];
+
+function getToken() { return localStorage.getItem('bridge_token') || ''; }
+
+async function apiFetch(path, opts = {}) {
+  const res = await fetch(API + '/api' + path, {
+    headers: { 'Content-Type': 'application/json', Authorization: 'Bearer ' + getToken() },
+    ...opts,
+  });
+  if (!res.ok) throw new Error(await res.text());
+  return res.json();
+}
+
+// Pre-fill from URL params (when coming from CRM)
+const _params = new URLSearchParams(location.search);
+if (_params.get('email')) document.getElementById('c-email').value = _params.get('email');
+if (_params.get('company')) document.getElementById('c-company').value = _params.get('company');
+
+// ---------- Line items ----------
+function addItem(desc = '', qty = 1, price = 0) {
+  const id = Date.now();
+  _items.push({ id, desc, qty, price });
+  renderItems();
+}
+
+function removeItem(id) {
+  _items = _items.filter(i => i.id !== id);
+  renderItems();
+}
+
+function renderItems() {
+  const tbody = document.getElementById('items-body');
+  tbody.textContent = '';
+  _items.forEach(item => {
+    const tr = document.createElement('tr');
+
+    const descTd = document.createElement('td');
+    const descIn = document.createElement('input');
+    descIn.type = 'text';
+    descIn.value = item.desc;
+    descIn.placeholder = 'Service description';
+    descIn.addEventListener('input', e => { item.desc = e.target.value; });
+    descTd.appendChild(descIn);
+    tr.appendChild(descTd);
+
+    const qtyTd = document.createElement('td');
+    const qtyIn = document.createElement('input');
+    qtyIn.type = 'number'; qtyIn.min = '0.01'; qtyIn.step = '1'; qtyIn.value = item.qty;
+    qtyIn.addEventListener('input', e => { item.qty = parseFloat(e.target.value) || 1; updateTotals(); });
+    qtyTd.appendChild(qtyIn);
+    tr.appendChild(qtyTd);
+
+    const priceTd = document.createElement('td');
+    const priceIn = document.createElement('input');
+    priceIn.type = 'number'; priceIn.min = '0'; priceIn.step = '0.01'; priceIn.value = item.price;
+    priceIn.addEventListener('input', e => { item.price = parseFloat(e.target.value) || 0; updateTotals(); });
+    priceTd.appendChild(priceIn);
+    tr.appendChild(priceTd);
+
+    const delTd = document.createElement('td');
+    const delBtn = document.createElement('button');
+    delBtn.className = 'btn btn-danger';
+    delBtn.textContent = '✕';
+    delBtn.onclick = () => removeItem(item.id);
+    delTd.appendChild(delBtn);
+    tr.appendChild(delTd);
+
+    tbody.appendChild(tr);
+  });
+  updateTotals();
+}
+
+function updateTotals() {
+  const currency = document.getElementById('c-currency').value;
+  const symbol = { ZAR:'R', USD:'$', EUR:'€', GBP:'£' }[currency] || currency;
+  const taxRate = (parseFloat(document.getElementById('c-tax').value) || 0) / 100;
+  const sub = _items.reduce((a, i) => a + i.qty * i.price, 0);
+  const tax = sub * taxRate;
+  const total = sub + tax;
+  document.getElementById('t-taxrate').textContent = document.getElementById('c-tax').value || '0';
+  document.getElementById('t-sub').textContent = symbol + ' ' + sub.toFixed(2);
+  document.getElementById('t-tax').textContent = symbol + ' ' + tax.toFixed(2);
+  document.getElementById('t-total').textContent = symbol + ' ' + total.toFixed(2);
+}
+
+document.getElementById('c-currency').addEventListener('change', updateTotals);
+document.getElementById('c-tax').addEventListener('input', updateTotals);
+
+function clearForm() {
+  ['c-email','c-name','c-company','c-notes'].forEach(id => {
+    document.getElementById(id).value = '';
+  });
+  document.getElementById('c-currency').value = 'ZAR';
+  document.getElementById('c-tax').value = '15';
+  document.getElementById('c-due').value = '30';
+  _items = [];
+  renderItems();
+}
+
+async function createInvoice() {
+  const email = document.getElementById('c-email').value.trim();
+  if (!email) { alert('Client email required'); return; }
+  if (!_items.length) { alert('Add at least one line item'); return; }
+
+  const payload = {
+    client_email: email,
+    client_name: document.getElementById('c-name').value.trim(),
+    client_company: document.getElementById('c-company').value.trim(),
+    currency: document.getElementById('c-currency').value,
+    tax_rate: (parseFloat(document.getElementById('c-tax').value) || 0) / 100,
+    due_days: parseInt(document.getElementById('c-due').value, 10) || 30,
+    notes: document.getElementById('c-notes').value.trim(),
+    lead_id: _params.get('lead_id') || null,
+    items: _items.map(i => ({
+      description: i.desc,
+      quantity: i.qty,
+      unit_price: i.price,
+    })),
+  };
+
+  try {
+    const r = await apiFetch('/invoices', { method: 'POST', body: JSON.stringify(payload) });
+    alert('Invoice ' + r.invoice.invoice_number + ' created!');
+    clearForm();
+    await Promise.all([loadInvoices(), loadStats()]);
+  } catch(e) { alert('Error: ' + e.message); }
+}
+
+// ---------- Invoice list ----------
+function statusClass(s) {
+  return { draft:'s-draft', sent:'s-sent', paid:'s-paid', overdue:'s-overdue' }[s] || 's-draft';
+}
+
+async function loadInvoices() {
+  const status = document.getElementById('filter-status').value;
+  const url = '/invoices' + (status ? '?status=' + encodeURIComponent(status) : '');
+  try {
+    const r = await apiFetch(url);
+    const el = document.getElementById('invoice-list');
+    el.textContent = '';
+    (r.invoices || []).forEach(inv => {
+      const card = document.createElement('div');
+      card.className = 'inv-card';
+
+      const left = document.createElement('div');
+
+      const num = document.createElement('div');
+      num.className = 'inv-number';
+      num.textContent = inv.invoice_number;
+      left.appendChild(num);
+
+      const client = document.createElement('div');
+      client.className = 'inv-client';
+      client.textContent = (inv.client_name || inv.client_email) + ' · ' + (inv.client_company || '');
+      left.appendChild(client);
+
+      const badge = document.createElement('span');
+      badge.className = 'status-badge ' + statusClass(inv.status);
+      badge.textContent = inv.status;
+      left.appendChild(badge);
+
+      const actions = document.createElement('div');
+      actions.className = 'inv-actions';
+      if (inv.status === 'draft') {
+        const sendBtn = document.createElement('button');
+        sendBtn.className = 'btn btn-secondary btn-sm';
+        sendBtn.textContent = '✉ Send';
+        sendBtn.onclick = () => sendInvoice(inv.id);
+        actions.appendChild(sendBtn);
+      }
+      if (inv.status !== 'paid') {
+        const paidBtn = document.createElement('button');
+        paidBtn.className = 'btn btn-sm';
+        paidBtn.style.cssText = 'background:#064e3b;color:#34d399';
+        paidBtn.textContent = '✓ Mark Paid';
+        paidBtn.onclick = () => markPaid(inv.id);
+        actions.appendChild(paidBtn);
+      }
+      left.appendChild(actions);
+      card.appendChild(left);
+
+      const right = document.createElement('div');
+      right.style.textAlign = 'right';
+      const total = document.createElement('div');
+      total.className = 'inv-total';
+      const symbol = { ZAR:'R', USD:'$', EUR:'€', GBP:'£' }[inv.currency] || inv.currency;
+      total.textContent = symbol + ' ' + (inv.total ?? 0).toFixed(2);
+      right.appendChild(total);
+      const curr = document.createElement('div');
+      curr.className = 'inv-currency';
+      curr.textContent = inv.currency + ' · due ' + (inv.due_date || '—');
+      right.appendChild(curr);
+      card.appendChild(right);
+
+      el.appendChild(card);
+    });
+  } catch(e) { console.warn('invoices', e); }
+}
+
+async function sendInvoice(id) {
+  try {
+    await apiFetch('/invoices/' + encodeURIComponent(id) + '/send', { method: 'POST', body: '{}' });
+    await loadInvoices();
+  } catch(e) { alert('Error: ' + e.message); }
+}
+
+async function markPaid(id) {
+  try {
+    await apiFetch('/invoices/' + encodeURIComponent(id) + '/mark-paid', {
+      method: 'POST', body: JSON.stringify({ payment_method: 'manual' }),
+    });
+    await Promise.all([loadInvoices(), loadStats()]);
+  } catch(e) { alert('Error: ' + e.message); }
+}
+
+async function loadStats() {
+  try {
+    const s = await apiFetch('/invoices/stats');
+    document.getElementById('ss-total').textContent = s.total_invoices ?? 0;
+    document.getElementById('ss-billed').textContent = 'R ' + (s.total_billed ?? 0).toFixed(0);
+    document.getElementById('ss-paid').textContent = 'R ' + (s.total_paid ?? 0).toFixed(0);
+    document.getElementById('ss-outstanding').textContent = 'R ' + (s.outstanding ?? 0).toFixed(0);
+  } catch(e) { console.warn('stats', e); }
+}
+
+// Init
+addItem('Professional Services', 1, 0);
+Promise.all([loadInvoices(), loadStats()]);
+setInterval(() => Promise.all([loadInvoices(), loadStats()]), 30000);
+</script>
+</body>
+</html>

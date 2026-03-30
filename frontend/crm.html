@@ -1,0 +1,303 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>BridgeAI · CRM Pipeline</title>
+  <link rel="stylesheet" href="/public/bridge-tokens.css" />
+  <style>
+    *{box-sizing:border-box;margin:0;padding:0}
+    body{background:#0a0a0f;color:#e2e8f0;font-family:Inter,system-ui,sans-serif;min-height:100vh}
+    header{display:flex;align-items:center;justify-content:space-between;padding:1rem 2rem;border-bottom:1px solid #1e293b;background:#0f172a}
+    header h1{font-size:1.25rem;font-weight:600;color:#f8fafc}
+    .stats-bar{display:flex;gap:1.5rem;padding:1rem 2rem;background:#0f172a;border-bottom:1px solid #1e293b;overflow-x:auto}
+    .stat{background:#1e293b;border-radius:8px;padding:.6rem 1.2rem;min-width:120px}
+    .stat-value{font-size:1.4rem;font-weight:700;color:#38bdf8}
+    .stat-label{font-size:.7rem;color:#94a3b8;text-transform:uppercase;letter-spacing:.05em}
+    .pipeline{display:flex;gap:1rem;padding:1.5rem 2rem;overflow-x:auto;min-height:calc(100vh - 160px)}
+    .column{flex:0 0 260px;background:#0f172a;border-radius:10px;border:1px solid #1e293b}
+    .col-header{padding:.75rem 1rem;border-bottom:1px solid #1e293b;display:flex;justify-content:space-between;align-items:center}
+    .col-title{font-size:.8rem;font-weight:600;text-transform:uppercase;letter-spacing:.06em}
+    .col-count{background:#1e293b;border-radius:12px;padding:2px 8px;font-size:.75rem;color:#94a3b8}
+    .col-body{padding:.75rem;display:flex;flex-direction:column;gap:.6rem;min-height:200px}
+    .lead-card{background:#1e293b;border-radius:8px;padding:.75rem;cursor:pointer;border:1px solid transparent;transition:border-color .15s}
+    .lead-card:hover{border-color:#38bdf8}
+    .lead-email{font-size:.8rem;font-weight:600;color:#f1f5f9;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+    .lead-company{font-size:.72rem;color:#94a3b8;margin-top:2px}
+    .lead-meta{display:flex;justify-content:space-between;align-items:center;margin-top:.5rem}
+    .score-badge{font-size:.65rem;font-weight:700;padding:2px 6px;border-radius:4px}
+    .score-high{background:#064e3b;color:#34d399}
+    .score-mid{background:#451a03;color:#fb923c}
+    .score-low{background:#1e293b;color:#64748b}
+    .industry-tag{font-size:.65rem;color:#7dd3fc;background:#0c4a6e;padding:2px 6px;border-radius:4px}
+    .modal-overlay{display:none;position:fixed;inset:0;background:rgba(0,0,0,.7);z-index:100;justify-content:center;align-items:flex-start;padding:2rem;overflow-y:auto}
+    .modal-overlay.open{display:flex}
+    .modal{background:#0f172a;border-radius:12px;border:1px solid #334155;padding:1.5rem;width:100%;max-width:520px}
+    .modal h2{font-size:1rem;font-weight:600;margin-bottom:1rem}
+    .field-group{margin-bottom:.75rem}
+    .field-group label{display:block;font-size:.75rem;color:#94a3b8;margin-bottom:.3rem}
+    .field-group select,.field-group textarea{width:100%;background:#1e293b;border:1px solid #334155;border-radius:6px;padding:.5rem .75rem;color:#f1f5f9;font-size:.85rem}
+    .actions{display:flex;gap:.75rem;flex-wrap:wrap;margin-top:1rem}
+    .btn{padding:.5rem 1.25rem;border-radius:6px;border:none;cursor:pointer;font-size:.85rem;font-weight:600;text-decoration:none;display:inline-block}
+    .btn-primary{background:#0284c7;color:#fff}
+    .btn-secondary{background:#1e293b;color:#94a3b8}
+    .activity-log{margin-top:1rem;border-top:1px solid #1e293b;padding-top:1rem}
+    .activity-item{font-size:.75rem;color:#94a3b8;padding:.3rem 0;border-bottom:1px solid #1e293b;display:flex;justify-content:space-between}
+    .pain-section{margin-bottom:.75rem}
+    .pain-label{font-size:.72rem;color:#94a3b8;margin-bottom:.3rem}
+    .pain-tag{display:inline-block;background:#1e293b;border-radius:4px;padding:2px 6px;font-size:.65rem;color:#cbd5e1;margin:2px}
+    .empty-col{font-size:.75rem;color:#475569;text-align:center;padding:1rem}
+  </style>
+</head>
+<body>
+<header>
+  <h1>CRM Pipeline</h1>
+  <div style="display:flex;gap:.75rem">
+    <button class="btn btn-secondary" onclick="loadAll()">↺ Refresh</button>
+    <a href="/leads.html" class="btn btn-secondary">Lead Gen</a>
+    <a href="/invoicing.html" class="btn btn-primary">+ Invoice</a>
+  </div>
+</header>
+
+<div class="stats-bar">
+  <div class="stat"><div class="stat-value" id="s-total">—</div><div class="stat-label">Total Leads</div></div>
+  <div class="stat"><div class="stat-value" id="s-qual">—</div><div class="stat-label">Qualified</div></div>
+  <div class="stat"><div class="stat-value" id="s-won">—</div><div class="stat-label">Won</div></div>
+  <div class="stat"><div class="stat-value" id="s-conv">—</div><div class="stat-label">Conversion</div></div>
+  <div class="stat"><div class="stat-value" id="s-score">—</div><div class="stat-label">Avg Score</div></div>
+</div>
+
+<div class="pipeline" id="pipeline"></div>
+
+<div class="modal-overlay" id="modal">
+  <div class="modal">
+    <h2 id="m-email"></h2>
+    <div id="m-meta" style="font-size:.8rem;color:#94a3b8;margin-bottom:.75rem"></div>
+    <div class="field-group">
+      <label>Stage</label>
+      <select id="m-stage">
+        <option value="new">New</option>
+        <option value="qualified">Qualified</option>
+        <option value="proposal">Proposal</option>
+        <option value="negotiation">Negotiation</option>
+        <option value="won">Won</option>
+        <option value="lost">Lost</option>
+      </select>
+    </div>
+    <div id="m-pains" class="pain-section" style="display:none">
+      <div class="pain-label">Pain points</div>
+      <div id="m-pain-tags"></div>
+    </div>
+    <div class="field-group">
+      <label>Add Note</label>
+      <textarea id="m-note" rows="3" placeholder="Note…"></textarea>
+    </div>
+    <div class="actions">
+      <button class="btn btn-primary" onclick="saveStage()">Save Stage</button>
+      <button class="btn btn-secondary" onclick="addNote()">Add Note</button>
+      <button class="btn btn-secondary" onclick="goInvoice()">Invoice →</button>
+      <button class="btn btn-secondary" onclick="closeModal()">Close</button>
+    </div>
+    <div class="activity-log" id="m-activities"></div>
+  </div>
+</div>
+
+<script>
+const API = '';
+let _lead = null;
+const STAGE_COLORS = {
+  new:'#94a3b8',qualified:'#38bdf8',proposal:'#a78bfa',
+  negotiation:'#fb923c',won:'#34d399',lost:'#f87171'
+};
+
+function getToken() { return localStorage.getItem('bridge_token') || ''; }
+
+async function apiFetch(path, opts = {}) {
+  const res = await fetch(API + '/api' + path, {
+    headers: { 'Content-Type':'application/json', Authorization:'Bearer '+getToken() },
+    ...opts,
+  });
+  if (!res.ok) throw new Error(await res.text());
+  return res.json();
+}
+
+// Safe text setter
+function setText(id, val) {
+  const el = document.getElementById(id);
+  if (el) el.textContent = String(val ?? '—');
+}
+
+async function loadStats() {
+  try {
+    const s = await apiFetch('/crm/stats');
+    setText('s-total', s.total_leads);
+    setText('s-qual', s.by_stage?.qualified ?? 0);
+    setText('s-won', s.by_stage?.won ?? 0);
+    setText('s-conv', ((s.conversion_rate ?? 0)*100).toFixed(1)+'%');
+    setText('s-score', (s.avg_score ?? 0).toFixed(2));
+  } catch(e) { console.warn('stats', e); }
+}
+
+function makeCard(lead) {
+  const card = document.createElement('div');
+  card.className = 'lead-card';
+
+  const email = document.createElement('div');
+  email.className = 'lead-email';
+  email.textContent = lead.email;
+  card.appendChild(email);
+
+  const company = document.createElement('div');
+  company.className = 'lead-company';
+  company.textContent = lead.company || '—';
+  card.appendChild(company);
+
+  const meta = document.createElement('div');
+  meta.className = 'lead-meta';
+
+  const score = document.createElement('span');
+  const s = lead.score ?? 0;
+  score.className = 'score-badge ' + (s >= .7 ? 'score-high' : s >= .45 ? 'score-mid' : 'score-low');
+  score.textContent = (s*100).toFixed(0)+'%';
+  meta.appendChild(score);
+
+  const ind = document.createElement('span');
+  ind.className = 'industry-tag';
+  ind.textContent = lead.industry || '?';
+  meta.appendChild(ind);
+  card.appendChild(meta);
+
+  card.addEventListener('click', () => openLead(lead));
+  return card;
+}
+
+async function loadPipeline() {
+  try {
+    const p = await apiFetch('/crm/pipeline');
+    const el = document.getElementById('pipeline');
+    el.textContent = '';
+
+    for (const st of (p.stages || [])) {
+      const col = document.createElement('div');
+      col.className = 'column';
+
+      const hdr = document.createElement('div');
+      hdr.className = 'col-header';
+
+      const title = document.createElement('span');
+      title.className = 'col-title';
+      title.style.color = STAGE_COLORS[st.name] || '#94a3b8';
+      title.textContent = st.name;
+      hdr.appendChild(title);
+
+      const cnt = document.createElement('span');
+      cnt.className = 'col-count';
+      cnt.textContent = st.count;
+      hdr.appendChild(cnt);
+      col.appendChild(hdr);
+
+      const body = document.createElement('div');
+      body.className = 'col-body';
+      const leads = st.leads || [];
+      if (leads.length === 0) {
+        const empty = document.createElement('div');
+        empty.className = 'empty-col';
+        empty.textContent = 'Empty';
+        body.appendChild(empty);
+      } else {
+        leads.forEach(l => body.appendChild(makeCard(l)));
+      }
+      col.appendChild(body);
+      el.appendChild(col);
+    }
+  } catch(e) { console.warn('pipeline', e); }
+}
+
+function openLead(lead) {
+  _lead = lead;
+  document.getElementById('m-email').textContent = lead.email;
+  document.getElementById('m-meta').textContent =
+    (lead.company || '—') + ' · ' + (lead.industry || '?') + ' · score ' + ((lead.score??0)*100).toFixed(0)+'%';
+  document.getElementById('m-stage').value = lead.stage || 'new';
+  document.getElementById('m-note').value = '';
+
+  const pains = lead.pain_points || [];
+  const painSection = document.getElementById('m-pains');
+  const painTags = document.getElementById('m-pain-tags');
+  painTags.textContent = '';
+  if (pains.length) {
+    painSection.style.display = 'block';
+    pains.forEach(p => {
+      const tag = document.createElement('span');
+      tag.className = 'pain-tag';
+      tag.textContent = p;
+      painTags.appendChild(tag);
+    });
+  } else {
+    painSection.style.display = 'none';
+  }
+
+  const actEl = document.getElementById('m-activities');
+  actEl.textContent = '';
+  const acts = (lead.activities || []).slice(-8).reverse();
+  acts.forEach(a => {
+    const row = document.createElement('div');
+    row.className = 'activity-item';
+    const text = document.createElement('span');
+    text.textContent = a.type + ': ' + a.text;
+    const date = document.createElement('span');
+    date.textContent = (a.created_at || '').slice(0, 10);
+    row.appendChild(text);
+    row.appendChild(date);
+    actEl.appendChild(row);
+  });
+
+  document.getElementById('modal').classList.add('open');
+}
+
+function closeModal() { document.getElementById('modal').classList.remove('open'); }
+
+async function saveStage() {
+  if (!_lead) return;
+  const stage = document.getElementById('m-stage').value;
+  const note = document.getElementById('m-note').value;
+  try {
+    await apiFetch('/crm/leads/' + encodeURIComponent(_lead.id) + '/stage', {
+      method: 'PUT',
+      body: JSON.stringify({ stage, note }),
+    });
+    closeModal();
+    await loadAll();
+  } catch(e) { alert('Error: ' + e.message); }
+}
+
+async function addNote() {
+  if (!_lead) return;
+  const text = document.getElementById('m-note').value.trim();
+  if (!text) return;
+  try {
+    await apiFetch('/crm/leads/' + encodeURIComponent(_lead.id) + '/notes', {
+      method: 'POST',
+      body: JSON.stringify({ text }),
+    });
+    document.getElementById('m-note').value = '';
+    alert('Note saved');
+  } catch(e) { alert('Error: ' + e.message); }
+}
+
+function goInvoice() {
+  if (!_lead) return;
+  const p = new URLSearchParams({ email: _lead.email, company: _lead.company||'', lead_id: _lead.id });
+  window.location.href = '/invoicing.html?' + p.toString();
+}
+
+document.getElementById('modal').addEventListener('click', e => {
+  if (e.target === document.getElementById('modal')) closeModal();
+});
+
+async function loadAll() { await Promise.all([loadStats(), loadPipeline()]); }
+loadAll();
+setInterval(loadAll, 30000);
+</script>
+</body>
+</html>

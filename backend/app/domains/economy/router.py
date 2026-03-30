@@ -274,7 +274,20 @@ async def list_rails(svc: EconomyDep) -> dict[str, Any]:
 async def webhook_paystack(request: Request, svc: EconomyDep) -> dict[str, Any]:
     body = await request.body()
     signature = request.headers.get("x-paystack-signature", "")
-    return await svc.webhook_paystack(body, signature)
+    result = await svc.webhook_paystack(body, signature)
+    # Auto-reconcile matching invoice if a payment came in
+    if result.get("ok") and result.get("type") == "payment":
+        try:
+            from app.domains.billing.deps import get_billing
+            billing = get_billing()
+            await billing.reconcile_by_amount(
+                amount=result.get("amount", 0),
+                currency=result.get("currency", "ZAR"),
+                payment_method="paystack",
+            )
+        except Exception:
+            pass  # non-critical — treasury already collected
+    return result
 
 
 @router.post("/payments/webhook/paypal")

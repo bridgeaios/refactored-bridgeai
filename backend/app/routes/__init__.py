@@ -6,13 +6,19 @@ Usage in main.py:
     for r in all_routers:
         app.include_router(r, prefix="/api")
 """
+from app.domains.billing.router import router as billing_router
+from app.domains.crm.router import router as crm_router
 from app.domains.economy.router import router as economy_router
 from app.domains.governance.router import router as governance_router
 from app.domains.infra.router import router as infra_router
 from app.domains.network.router import router as network_router
+from app.domains.outreach.router import router as outreach_router
 from app.domains.twins.router import router as twins_router
 
 all_routers = [
+    crm_router,
+    billing_router,
+    outreach_router,
     economy_router,
     infra_router,
     twins_router,

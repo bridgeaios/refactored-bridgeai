@@ -12,8 +12,9 @@ from datetime import datetime
 from db import db
 from osint import analyze_company
 
-# Internal CRM endpoint — configurable to support non-localhost deployments
-_UNIFIED_URL = os.environ.get("BRIDGE_CRM_URL", "http://localhost:3000")
+# Internal API base — same process as app/main.py on port 8000
+# Set BRIDGE_CRM_URL=http://localhost:8000 in .env (or override for external CRM)
+_UNIFIED_URL = os.environ.get("BRIDGE_CRM_URL", "http://localhost:8000")
 
 # Private/link-local CIDR blocks blocked for SSRF protection
 _BLOCKED_NETWORKS = [
@@ -25,17 +26,19 @@ _BLOCKED_NETWORKS = [
 
 
 def _is_safe_url(url: str) -> bool:
-    """Return True only if url uses https and resolves to a public IP range."""
+    """Return True for https public URLs. http://localhost is allowed for internal API calls."""
     try:
         parsed = urlparse(url)
+        host = parsed.hostname or ""
+        # Allow http only for localhost (internal API)
+        if parsed.scheme == "http":
+            return host in ("localhost", "127.0.0.1", "::1")
         if parsed.scheme != "https":
             return False
-        host = parsed.hostname or ""
         try:
             addr = ipaddress.ip_address(host)
             return not any(addr in net for net in _BLOCKED_NETWORKS)
         except ValueError:
-            # hostname — allow (DNS resolution happens at request time)
             return bool(host)
     except Exception:
         return False

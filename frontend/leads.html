@@ -1,0 +1,279 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>BridgeAI · Lead Generation</title>
+  <link rel="stylesheet" href="/public/bridge-tokens.css" />
+  <style>
+    *{box-sizing:border-box;margin:0;padding:0}
+    body{background:#0a0a0f;color:#e2e8f0;font-family:Inter,system-ui,sans-serif;min-height:100vh}
+    header{display:flex;align-items:center;justify-content:space-between;padding:1rem 2rem;border-bottom:1px solid #1e293b;background:#0f172a}
+    h1{font-size:1.25rem;font-weight:600;color:#f8fafc}
+    .main{display:grid;grid-template-columns:320px 1fr;min-height:calc(100vh - 65px)}
+    .sidebar{background:#0f172a;border-right:1px solid #1e293b;padding:1.5rem}
+    .sidebar h2{font-size:.85rem;font-weight:600;text-transform:uppercase;letter-spacing:.06em;color:#94a3b8;margin-bottom:1rem}
+    .field{margin-bottom:.85rem}
+    .field label{display:block;font-size:.75rem;color:#64748b;margin-bottom:.3rem}
+    .field input,.field select{width:100%;background:#1e293b;border:1px solid #334155;border-radius:6px;padding:.5rem .75rem;color:#f1f5f9;font-size:.85rem}
+    .btn{padding:.6rem 1.25rem;border-radius:6px;border:none;cursor:pointer;font-size:.85rem;font-weight:600;width:100%;margin-top:.5rem}
+    .btn-primary{background:#0284c7;color:#fff}
+    .btn-secondary{background:#1e293b;color:#94a3b8}
+    .status-dot{width:8px;height:8px;border-radius:50%;display:inline-block;margin-right:6px}
+    .dot-idle{background:#475569}.dot-running{background:#22d3ee;animation:pulse 1s infinite}.dot-done{background:#34d399}
+    @keyframes pulse{0%,100%{opacity:1}50%{opacity:.4}}
+    .content{padding:1.5rem;overflow-y:auto}
+    .feed-card{background:#0f172a;border:1px solid #1e293b;border-radius:8px;padding:1rem;margin-bottom:.75rem}
+    .feed-email{font-size:.85rem;font-weight:600;color:#f1f5f9}
+    .feed-company{font-size:.75rem;color:#94a3b8;margin-top:2px}
+    .feed-meta{display:flex;gap:.5rem;flex-wrap:wrap;margin-top:.5rem}
+    .tag{font-size:.65rem;padding:2px 7px;border-radius:4px;background:#1e293b;color:#94a3b8}
+    .tag-score-high{background:#064e3b;color:#34d399}
+    .tag-score-mid{background:#451a03;color:#fb923c}
+    .tag-industry{background:#0c4a6e;color:#7dd3fc}
+    .table-wrap{overflow-x:auto;margin-top:1rem}
+    table{width:100%;border-collapse:collapse;font-size:.8rem}
+    th{background:#0f172a;padding:.6rem .75rem;text-align:left;color:#64748b;font-weight:500;border-bottom:1px solid #1e293b}
+    td{padding:.55rem .75rem;border-bottom:1px solid #1e293b;color:#cbd5e1}
+    tr:hover td{background:#0f172a}
+    .stage-badge{padding:2px 8px;border-radius:4px;font-size:.7rem;font-weight:600}
+  </style>
+</head>
+<body>
+<header>
+  <h1>Lead Generation</h1>
+  <div style="display:flex;gap:.75rem">
+    <a href="/crm.html" style="color:#38bdf8;text-decoration:none;font-size:.85rem;align-self:center">CRM →</a>
+  </div>
+</header>
+
+<div class="main">
+  <div class="sidebar">
+    <h2>New Campaign</h2>
+    <div class="field">
+      <label>Search Keywords</label>
+      <input type="text" id="f-keywords" placeholder="e.g. digital marketing cape town" />
+    </div>
+    <div class="field">
+      <label>Industry Filter</label>
+      <select id="f-industry">
+        <option value="">Any industry</option>
+        <option value="tech">Tech</option>
+        <option value="marketing">Marketing</option>
+        <option value="finance">Finance</option>
+        <option value="consulting">Consulting</option>
+        <option value="ecommerce">E-commerce</option>
+        <option value="real_estate">Real Estate</option>
+        <option value="legal">Legal</option>
+        <option value="healthcare">Healthcare</option>
+      </select>
+    </div>
+    <div class="field">
+      <label>Lead Quota</label>
+      <input type="number" id="f-quota" value="20" min="1" max="200" />
+    </div>
+    <button class="btn btn-primary" onclick="launchCampaign()">▶ Launch Campaign</button>
+    <button class="btn btn-secondary" onclick="loadLeads()">↺ Refresh Leads</button>
+
+    <div style="margin-top:1.5rem;padding-top:1rem;border-top:1px solid #1e293b">
+      <div style="font-size:.75rem;color:#64748b;margin-bottom:.5rem">Active Agents</div>
+      <div id="agent-list" style="font-size:.78rem;color:#94a3b8">Loading…</div>
+    </div>
+
+    <div style="margin-top:1.5rem;padding-top:1rem;border-top:1px solid #1e293b">
+      <div style="font-size:.75rem;color:#64748b;margin-bottom:.5rem">Outreach Queue</div>
+      <div id="outreach-stats" style="font-size:.78rem;color:#94a3b8">Loading…</div>
+    </div>
+  </div>
+
+  <div class="content">
+    <div id="run-status" style="display:none;margin-bottom:1rem;padding:.75rem 1rem;background:#0f172a;border:1px solid #334155;border-radius:8px;font-size:.82rem">
+      <span class="status-dot dot-idle" id="status-dot"></span>
+      <span id="status-text">Idle</span>
+    </div>
+
+    <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:1rem">
+      <div style="font-size:.85rem;color:#94a3b8"><span id="lead-count">0</span> leads found</div>
+      <button class="btn btn-secondary" style="width:auto" onclick="exportCsv()">⬇ Export CSV</button>
+    </div>
+
+    <div class="table-wrap">
+      <table id="leads-table">
+        <thead>
+          <tr>
+            <th>Email</th><th>Company</th><th>Industry</th><th>Score</th><th>Stage</th><th>Source</th><th>Date</th>
+          </tr>
+        </thead>
+        <tbody id="leads-tbody"></tbody>
+      </table>
+    </div>
+  </div>
+</div>
+
+<script>
+const API = '';
+let _leads = [];
+
+function getToken() { return localStorage.getItem('bridge_token') || ''; }
+
+async function apiFetch(path, opts = {}) {
+  const res = await fetch(API + '/api' + path, {
+    headers: { 'Content-Type': 'application/json', Authorization: 'Bearer ' + getToken() },
+    ...opts,
+  });
+  if (!res.ok) throw new Error(await res.text());
+  return res.json();
+}
+
+async function loadAgents() {
+  try {
+    const r = await apiFetch('/agents');
+    const el = document.getElementById('agent-list');
+    el.textContent = '';
+    const agents = r.agents || [];
+    if (!agents.length) { el.textContent = 'No agents yet'; return; }
+    agents.slice(0, 5).forEach(a => {
+      const row = document.createElement('div');
+      row.style.cssText = 'display:flex;justify-content:space-between;padding:2px 0';
+      const name = document.createElement('span');
+      name.textContent = a.name || a.id.slice(0, 8);
+      const status = document.createElement('span');
+      status.textContent = a.status || 'active';
+      status.style.color = a.status === 'active' ? '#34d399' : '#64748b';
+      row.appendChild(name); row.appendChild(status);
+      el.appendChild(row);
+    });
+  } catch(e) { document.getElementById('agent-list').textContent = 'Unavailable'; }
+}
+
+async function loadOutreachStats() {
+  try {
+    const r = await apiFetch('/outreach/stats');
+    const el = document.getElementById('outreach-stats');
+    el.textContent = '';
+    const stats = r.by_status || {};
+    const items = [
+      { label: 'Pending', val: stats.pending || 0, color: '#fb923c' },
+      { label: 'Sent',    val: stats.sent    || 0, color: '#34d399' },
+      { label: 'Failed',  val: stats.failed  || 0, color: '#f87171' },
+    ];
+    items.forEach(({ label, val, color }) => {
+      const row = document.createElement('div');
+      row.style.cssText = 'display:flex;justify-content:space-between;padding:2px 0';
+      const l = document.createElement('span');
+      l.textContent = label;
+      const v = document.createElement('span');
+      v.textContent = val;
+      v.style.color = color;
+      row.appendChild(l); row.appendChild(v);
+      el.appendChild(row);
+    });
+  } catch(e) { document.getElementById('outreach-stats').textContent = 'Unavailable'; }
+}
+
+async function loadLeads() {
+  try {
+    const r = await apiFetch('/crm/leads?limit=200');
+    _leads = r.leads || [];
+    document.getElementById('lead-count').textContent = _leads.length;
+    renderTable(_leads);
+  } catch(e) { console.warn('leads', e); }
+}
+
+function scoreClass(s) {
+  if (s >= .7) return 'tag tag-score-high';
+  if (s >= .45) return 'tag tag-score-mid';
+  return 'tag';
+}
+
+const STAGE_COLORS = {
+  new:'#475569',qualified:'#0369a1',proposal:'#6d28d9',
+  negotiation:'#92400e',won:'#064e3b',lost:'#7f1d1d'
+};
+
+function renderTable(leads) {
+  const tbody = document.getElementById('leads-tbody');
+  tbody.textContent = '';
+  leads.forEach(l => {
+    const tr = document.createElement('tr');
+    const cells = [
+      l.email,
+      l.company || '—',
+      l.industry || '—',
+      ((l.score ?? 0) * 100).toFixed(0) + '%',
+      l.stage || 'new',
+      l.source || '—',
+      (l.created_at || '').slice(0, 10),
+    ];
+    cells.forEach((val, i) => {
+      const td = document.createElement('td');
+      if (i === 4) {
+        const badge = document.createElement('span');
+        badge.className = 'stage-badge';
+        badge.style.background = STAGE_COLORS[val] || '#1e293b';
+        badge.style.color = '#f1f5f9';
+        badge.textContent = val;
+        td.appendChild(badge);
+      } else if (i === 3) {
+        const s = (l.score ?? 0);
+        const badge = document.createElement('span');
+        badge.className = scoreClass(s);
+        badge.textContent = val;
+        td.appendChild(badge);
+      } else {
+        td.textContent = val;
+      }
+      tr.appendChild(td);
+    });
+    tbody.appendChild(tr);
+  });
+}
+
+async function launchCampaign() {
+  const keywords = document.getElementById('f-keywords').value.trim();
+  if (!keywords) { alert('Enter search keywords'); return; }
+  const quota = parseInt(document.getElementById('f-quota').value, 10) || 20;
+  const industry = document.getElementById('f-industry').value;
+
+  // Create agent
+  const agentRes = await apiFetch('/agents', {
+    method: 'POST',
+    body: JSON.stringify({ name: 'LeadForge-' + Date.now(), type: 'leadgen' }),
+  });
+  const agentId = agentRes.id;
+
+  // Queue task
+  await apiFetch('/agents/' + encodeURIComponent(agentId) + '/tasks', {
+    method: 'POST',
+    body: JSON.stringify({
+      payload: { query: keywords, quota, industry_filter: industry, notify: true }
+    }),
+  });
+
+  const statusEl = document.getElementById('run-status');
+  statusEl.style.display = 'block';
+  document.getElementById('status-dot').className = 'status-dot dot-running';
+  document.getElementById('status-text').textContent = 'Campaign queued — worker will process shortly';
+
+  await loadAgents();
+}
+
+function exportCsv() {
+  if (!_leads.length) { alert('No leads to export'); return; }
+  const cols = ['email', 'company', 'industry', 'score', 'stage', 'source', 'created_at'];
+  const rows = [cols.join(',')];
+  _leads.forEach(l => {
+    rows.push(cols.map(c => JSON.stringify(l[c] ?? '')).join(','));
+  });
+  const blob = new Blob([rows.join('\n')], { type: 'text/csv' });
+  const a = document.createElement('a');
+  a.href = URL.createObjectURL(blob);
+  a.download = 'leads-' + new Date().toISOString().slice(0, 10) + '.csv';
+  a.click();
+}
+
+Promise.all([loadLeads(), loadAgents(), loadOutreachStats()]);
+setInterval(() => Promise.all([loadLeads(), loadAgents(), loadOutreachStats()]), 15000);
+</script>
+</body>
+</html>
