@@ -76,7 +76,7 @@ async def ingest_lead(request: Request) -> dict[str, Any]:
     try:
         from app.domains.crm.deps import get_crm
         crm = get_crm()
-        lead = await crm.create_lead({
+        lead = await crm.ingest_lead({
             "email": email,
             "company": company,
             "industry": industry,
@@ -94,11 +94,11 @@ async def ingest_lead(request: Request) -> dict[str, Any]:
     try:
         from app.domains.outreach.deps import get_outreach
         outreach = get_outreach()
-        await outreach.queue_email(
-            email=email,
-            company=company,
-            template_type=industry,
-        )
+        await outreach.enqueue({
+            "email": email,
+            "company": company,
+            "template_type": industry,
+        })
     except Exception:
         pass  # outreach is best-effort
 
@@ -124,7 +124,7 @@ async def ingest_lead(request: Request) -> dict[str, Any]:
 # GET /api/status  — bridge_real.py: @app.get("/status")
 # ──────────────────────────────────────────────────────────────────────
 
-@router.get("/status")
+@router.get("/system-status")
 async def system_status(_: dict = Depends(require_jwt)) -> dict[str, Any]:
     """Real-time system snapshot: treasury, leads, pipeline, trades.
 
