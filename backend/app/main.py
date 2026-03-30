@@ -142,9 +142,28 @@ async def lifespan(app: FastAPI) -> AsyncIterator[None]:
     heartbeat_task = asyncio.create_task(manager.heartbeat())
     from app.services.contract_listener import run_listener
     listener_task = asyncio.create_task(run_listener(memory))
+    # Autonomous lead-gen worker loop — polls task queue and executes scrape jobs
+    try:
+        import sys as _sys
+        from pathlib import Path as _p
+        _backend_root = str(_p(__file__).resolve().parents[2])
+        if _backend_root not in _sys.path:
+            _sys.path.insert(0, _backend_root)
+        from workers import worker_loop as _worker_loop
+        worker_task = asyncio.create_task(_worker_loop())
+    except Exception as _we:
+        import logging as _log
+        _log.getLogger(__name__).warning("worker_loop not started: %s", _we)
+        worker_task = None
     automation.start()
     yield
     await automation.stop()
+    if worker_task:
+        worker_task.cancel()
+        try:
+            await worker_task
+        except asyncio.CancelledError:
+            pass
     listener_task.cancel()
     try:
         await listener_task

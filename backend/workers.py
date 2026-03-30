@@ -13,8 +13,16 @@ from db import db
 from osint import analyze_company
 
 # Internal API base — same process as app/main.py on port 8000
-# Set BRIDGE_CRM_URL=http://localhost:8000 in .env (or override for external CRM)
 _UNIFIED_URL = os.environ.get("BRIDGE_CRM_URL", "http://localhost:8000")
+# Internal service token — must match BRIDGE_INTERNAL_TOKEN in backend .env
+_INTERNAL_TOKEN = os.environ.get("BRIDGE_INTERNAL_TOKEN", "")
+
+
+def _auth_headers() -> dict:
+    """Return Authorization header for internal API calls."""
+    if _INTERNAL_TOKEN:
+        return {"Authorization": f"Bearer {_INTERNAL_TOKEN}"}
+    return {}
 
 # Private/link-local CIDR blocks blocked for SSRF protection
 _BLOCKED_NETWORKS = [
@@ -241,7 +249,7 @@ async def execute_task(task):
             # Unified API — single server handles CRM + outreach + OSINT
             if company_emails:
                 try:
-                    async with httpx.AsyncClient(timeout=10) as client:
+                    async with httpx.AsyncClient(timeout=10, headers=_auth_headers()) as client:
                         # 1. Create CRM lead
                         crm_resp = await client.post(f"{_UNIFIED_URL}/api/crm/leads", json={
                             "email": company_emails[0],

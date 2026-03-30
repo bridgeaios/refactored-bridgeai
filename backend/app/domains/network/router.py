@@ -167,3 +167,47 @@ async def get_task(task_id: str, svc: NetworkDep) -> dict[str, Any]:
 async def osint_ledger(svc: NetworkDep, limit: int = 100) -> dict[str, Any]:
     entries = await svc.ledger_entries(limit=limit)
     return {"ok": True, "entries": entries, "count": len(entries)}
+
+
+@router.post("/osint/register")
+async def osint_register(payload: dict[str, Any], svc: NetworkDep) -> dict[str, Any]:
+    """Register an OSINT-enriched lead profile. Called internally by workers.py."""
+    from app.core.deps import get_memory
+    mem = get_memory()
+    from uuid import uuid4
+    from datetime import datetime
+
+    profile_id = str(uuid4())
+    profile = {
+        "id": profile_id,
+        "task_id": payload.get("task_id"),
+        "url": payload.get("url"),
+        "title": payload.get("title"),
+        "emails": payload.get("emails", []),
+        "company_name": payload.get("company_name"),
+        "industry": payload.get("industry"),
+        "size_estimate": payload.get("size_estimate"),
+        "template_type": payload.get("template_type"),
+        "profile_confidence": payload.get("profile_confidence", 0),
+        "full_profile": payload.get("full_profile", {}),
+        "registered_at": datetime.utcnow().isoformat(),
+    }
+    await mem.set(f"osint:profile:{profile_id}", profile)
+    # Append to index
+    ids: list = await mem.get("osint:profiles:index") or []
+    ids.append(profile_id)
+    await mem.set("osint:profiles:index", ids)
+    return {"ok": True, "id": profile_id}
+
+
+@router.get("/osint/profiles")
+async def list_osint_profiles(
+    _: dict = Depends(require_jwt), limit: int = 50
+) -> dict[str, Any]:
+    """List registered OSINT profiles."""
+    from app.core.deps import get_memory
+    mem = get_memory()
+    ids: list = await mem.get("osint:profiles:index") or []
+    profiles = [await mem.get(f"osint:profile:{i}") for i in ids[-limit:]]
+    profiles = [p for p in profiles if p]
+    return {"ok": True, "profiles": profiles, "count": len(profiles)}

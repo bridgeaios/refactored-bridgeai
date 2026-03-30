@@ -67,6 +67,11 @@
   <div class="stat"><div class="stat-value" id="s-score">—</div><div class="stat-label">Avg Score</div></div>
 </div>
 
+<div style="padding:.75rem 2rem;background:#0a0a0f;border-bottom:1px solid #1e293b;display:flex;gap:1rem;flex-wrap:wrap">
+  <img id="chart-funnel" src="" alt="" style="border-radius:8px;flex:1;min-width:280px;max-width:500px" />
+  <img id="chart-lead-scores" src="" alt="" style="border-radius:8px;flex:1;min-width:260px;max-width:420px" />
+</div>
+
 <div class="pipeline" id="pipeline"></div>
 
 <div class="modal-overlay" id="modal">
@@ -295,7 +300,23 @@ document.getElementById('modal').addEventListener('click', e => {
   if (e.target === document.getElementById('modal')) closeModal();
 });
 
-async function loadAll() { await Promise.all([loadStats(), loadPipeline()]); }
+function loadCharts() {
+  const t = Date.now();
+  const tok = getToken();
+  [['pipeline', 'chart-funnel'], ['lead-scores', 'chart-lead-scores']].forEach(([endpoint, imgId]) => {
+    fetch('/api/charts/' + endpoint + '?t=' + t, {
+      headers: { Authorization: 'Bearer ' + tok },
+    }).then(r => r.ok ? r.blob() : null).then(blob => {
+      if (!blob) return;
+      const img = document.getElementById(imgId);
+      const old = img.src;
+      img.src = URL.createObjectURL(blob);
+      if (old.startsWith('blob:')) URL.revokeObjectURL(old);
+    }).catch(() => {});
+  });
+}
+
+async function loadAll() { await Promise.all([loadStats(), loadPipeline()]); loadCharts(); }
 loadAll();
 setInterval(loadAll, 30000);
 </script>

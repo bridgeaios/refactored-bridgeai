@@ -92,6 +92,11 @@
       <span id="status-text">Idle</span>
     </div>
 
+    <div style="display:flex;gap:1rem;margin-bottom:1rem;flex-wrap:wrap">
+      <img id="chart-scores" src="" alt="" style="border-radius:8px;flex:1;min-width:280px;max-width:420px" />
+      <img id="chart-activity" src="" alt="" style="border-radius:8px;flex:1;min-width:280px;max-width:500px" />
+    </div>
+
     <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:1rem">
       <div style="font-size:.85rem;color:#94a3b8"><span id="lead-count">0</span> leads found</div>
       <button class="btn btn-secondary" style="width:auto" onclick="exportCsv()">⬇ Export CSV</button>
@@ -272,8 +277,26 @@ function exportCsv() {
   a.click();
 }
 
-Promise.all([loadLeads(), loadAgents(), loadOutreachStats()]);
-setInterval(() => Promise.all([loadLeads(), loadAgents(), loadOutreachStats()]), 15000);
+function loadCharts() {
+  const t = Date.now();
+  const tok = getToken();
+  // SVG charts served with auth — use fetch + blob URL so the Authorization header is sent
+  ['lead-scores', 'agent-activity'].forEach((endpoint, i) => {
+    const imgId = i === 0 ? 'chart-scores' : 'chart-activity';
+    fetch('/api/charts/' + endpoint + '?t=' + t, {
+      headers: { Authorization: 'Bearer ' + tok },
+    }).then(r => r.ok ? r.blob() : null).then(blob => {
+      if (!blob) return;
+      const img = document.getElementById(imgId);
+      const old = img.src;
+      img.src = URL.createObjectURL(blob);
+      if (old.startsWith('blob:')) URL.revokeObjectURL(old);
+    }).catch(() => {});
+  });
+}
+
+Promise.all([loadLeads(), loadAgents(), loadOutreachStats(), loadCharts()]);
+setInterval(() => Promise.all([loadLeads(), loadAgents(), loadOutreachStats(), loadCharts()]), 15000);
 </script>
 </body>
 </html>

@@ -129,6 +129,11 @@
     </div>
   </div>
 
+  <!-- Revenue chart panel -->
+  <div style="grid-column:1/-1;padding:.75rem 1.5rem;border-bottom:1px solid #1e293b">
+    <img id="revenue-chart" src="" alt="Revenue chart" style="max-width:100%;border-radius:8px;display:block" />
+  </div>
+
   <!-- Invoice list panel -->
   <div class="invoice-list">
     <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:1rem">
@@ -325,6 +330,11 @@ async function loadInvoices() {
         paidBtn.onclick = () => markPaid(inv.id);
         actions.appendChild(paidBtn);
       }
+      const pdfBtn = document.createElement('button');
+      pdfBtn.className = 'btn btn-secondary btn-sm';
+      pdfBtn.textContent = '⬇ PDF';
+      pdfBtn.onclick = () => downloadPdf(inv.id, inv.invoice_number);
+      actions.appendChild(pdfBtn);
       left.appendChild(actions);
       card.appendChild(left);
 
@@ -362,6 +372,24 @@ async function markPaid(id) {
   } catch(e) { alert('Error: ' + e.message); }
 }
 
+async function downloadPdf(id, invoiceNumber) {
+  try {
+    const res = await fetch('/api/invoices/' + encodeURIComponent(id) + '/pdf', {
+      headers: { Authorization: 'Bearer ' + getToken() },
+    });
+    if (!res.ok) { alert('PDF generation failed: ' + res.status); return; }
+    const blob = await res.blob();
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = url;
+    a.download = (invoiceNumber || id) + '.pdf';
+    document.body.appendChild(a);
+    a.click();
+    a.remove();
+    URL.revokeObjectURL(url);
+  } catch(e) { alert('PDF error: ' + e.message); }
+}
+
 async function loadStats() {
   try {
     const s = await apiFetch('/invoices/stats');
@@ -372,10 +400,16 @@ async function loadStats() {
   } catch(e) { console.warn('stats', e); }
 }
 
+function loadRevenueChart() {
+  const img = document.getElementById('revenue-chart');
+  // Append timestamp to bust browser cache on each refresh
+  img.src = '/api/charts/revenue?t=' + Date.now();
+}
+
 // Init
 addItem('Professional Services', 1, 0);
-Promise.all([loadInvoices(), loadStats()]);
-setInterval(() => Promise.all([loadInvoices(), loadStats()]), 30000);
+Promise.all([loadInvoices(), loadStats(), loadRevenueChart()]);
+setInterval(() => Promise.all([loadInvoices(), loadStats(), loadRevenueChart()]), 30000);
 </script>
 </body>
 </html>

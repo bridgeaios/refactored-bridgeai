@@ -14,6 +14,7 @@ from app.domains.infra.router import router as infra_router
 from app.domains.network.router import router as network_router
 from app.domains.outreach.router import router as outreach_router
 from app.domains.twins.router import router as twins_router
+from app.routes.charts import router as charts_router
 
 all_routers = [
     crm_router,
@@ -24,4 +25,5 @@ all_routers = [
     twins_router,
     governance_router,
     network_router,
+    charts_router,
 ]

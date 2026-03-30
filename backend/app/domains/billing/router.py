@@ -4,6 +4,7 @@ from __future__ import annotations
 from typing import Annotated, Any
 
 from fastapi import APIRouter, Depends, HTTPException
+from fastapi.responses import Response
 
 from app.domains.billing.deps import get_billing
 from app.domains.billing.models import InvoiceCreate, MarkPaidRequest
@@ -77,6 +78,31 @@ async def mark_paid(
 async def flag_overdue(svc: BillingDep, _: dict = Depends(require_jwt)) -> dict[str, Any]:
     count = await svc.flag_overdue()
     return {"ok": True, "updated": count}
+
+
+@router.get("/invoices/{invoice_id}/pdf")
+async def download_invoice_pdf(
+    invoice_id: str,
+    svc: BillingDep,
+    _: dict = Depends(require_jwt),
+) -> Response:
+    """Stream invoice as a branded PDF."""
+    invoice = await svc.get_invoice(invoice_id)
+    if not invoice:
+        raise HTTPException(404, detail="Invoice not found")
+    try:
+        from app.services.pdf_generator import generate_invoice_pdf
+        pdf_bytes = generate_invoice_pdf(invoice)
+    except Exception as exc:
+        import logging
+        logging.getLogger(__name__).exception("PDF generation failed for %s", invoice_id)
+        raise HTTPException(500, detail="PDF generation failed") from exc
+    filename = f"{invoice.get('invoice_number', invoice_id)}.pdf"
+    return Response(
+        content=pdf_bytes,
+        media_type="application/pdf",
+        headers={"Content-Disposition": f'attachment; filename="{filename}"'},
+    )
 
 
 @router.post("/invoices/reconcile")
