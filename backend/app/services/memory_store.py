@@ -95,32 +95,37 @@ class MemoryStore:
                 return []
             return arr[-n:]
 
-    async def get(self, key: str) -> str | None:
+    async def get(self, key: str) -> Any:
+        """Return the deserialized Python value stored at key, or None if absent."""
         if self._r:
-            val: str | None = await self._r.get(key)
-            return val
+            raw: str | None = await self._r.get(key)
+            if raw is None:
+                return None
+            try:
+                return json.loads(raw)
+            except (json.JSONDecodeError, TypeError):
+                return raw
         async with self._lock:
             state = await self._read_file_state()
             val = state.get(key)
             if val is None:
                 return None
-            # Maintain parity with Redis: store values as strings.
+            # File backend already stores parsed objects; return as-is.
             if isinstance(val, str):
-                return val
-            return json.dumps(val)
+                try:
+                    return json.loads(val)
+                except (json.JSONDecodeError, ValueError):
+                    return val
+            return val
 
-    async def set(self, key: str, value: str) -> bool:
+    async def set(self, key: str, value: Any) -> bool:
+        """Persist value at key. Accepts any JSON-serialisable Python object."""
         if self._r:
-            await self._r.set(key, value)
+            await self._r.set(key, json.dumps(value, ensure_ascii=False))
             return True
         async with self._lock:
             state = await self._read_file_state()
-            # Try to store JSON values as objects; otherwise store as string.
-            try:
-                parsed = json.loads(value)
-                state[key] = parsed
-            except Exception:
-                state[key] = value
+            state[key] = value
             await self._write_file_state(state)
             return True
 

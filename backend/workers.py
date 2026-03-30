@@ -221,19 +221,15 @@ async def execute_task(task):
                 leads.append(data)
 
         # STEP 3: store leads in registry AND queue for outreach
+        from app.core.deps import get_memory as _get_mem
+        _mem = _get_mem()
+
         for lead in leads:
             lead_id = str(uuid4())
-            await db.execute("""
-                INSERT INTO registry (id, name, entity_type, metadata, registered_at, status)
-                VALUES ($1,$2,$3,$4,$5,$6)
-            """,
-            lead_id,
-            lead["url"],
-            "lead",
-            str(lead),
-            datetime.utcnow(),
-            "active"
-            )
+            await _mem.set(f"registry:lead:{lead_id}", {
+                "id": lead_id, "url": lead["url"], "entity_type": "lead",
+                "metadata": lead, "registered_at": datetime.utcnow().isoformat(), "status": "active",
+            })
 
             # STEP 3B: OSINT Analysis
             company_url = lead.get("url", "")
@@ -292,98 +288,98 @@ async def execute_task(task):
         # STEP 4: assign value ($ per lead)
         value = len(leads) * 5.0   # $5 per lead
 
-        # STEP 5: write to ledger
-        await db.execute("""
-            INSERT INTO ledger (id, account, amount, transaction_type, timestamp)
-            VALUES ($1,$2,$3,$4,$5)
-        """,
-        str(uuid4()),
-        agent_id,
-        value,
-        "leadgen_revenue",
-        datetime.utcnow()
-        )
+        # STEP 5: write to ledger (MemoryStore append)
+        ledger: list = await _mem.get("osint:ledger") or []
+        ledger.append({
+            "id": str(uuid4()), "account": agent_id, "amount": value,
+            "transaction_type": "leadgen_revenue", "timestamp": datetime.utcnow().isoformat(),
+        })
+        await _mem.set("osint:ledger", ledger)
 
-        # STEP 6: telemetry
-        await db.execute("""
-            INSERT INTO telemetry (id, event_type, source, data, timestamp)
-            VALUES ($1,$2,$3,$4,$5)
-        """,
-        str(uuid4()),
-        "leadgen_complete",
-        "agent",
-        str({"query": query, "leads": len(leads), "value": value}),
-        datetime.utcnow()
-        )
-
-        # STEP 7: mark task done
-        await db.execute("""
-            UPDATE tasks SET status=$1, result=$2 WHERE id=$3
-        """,
-        "done",
-        str({"leads_found": len(leads), "value_generated": value}),
-        task_id
-        )
+        # STEP 6: telemetry — update hourly bucket for agent-activity chart
+        buckets: list = await _mem.get("telemetry:hourly:tasks") or [0] * 24
+        labels: list = await _mem.get("telemetry:hourly:labels") or []
+        hour_label = datetime.utcnow().strftime("%H:00")
+        buckets.append(len(leads))
+        labels.append(hour_label)
+        # Keep last 24 data points
+        await _mem.set("telemetry:hourly:tasks", buckets[-24:])
+        await _mem.set("telemetry:hourly:labels", labels[-24:])
 
         return {
             "leads_found": len(leads),
             "value_generated": value
         }
     except Exception as e:
-        task_id = task.get("id", "unknown") if 'task' in locals() else "unknown"
         print(f"[TASK] [FAIL] EXECUTION FAILED: {type(e).__name__}: {str(e)}")
         import traceback
         traceback.print_exc()
-
-        # Mark task as failed
-        try:
-            await db.execute("""
-                UPDATE tasks SET status=$1, result=$2 WHERE id=$3
-            """,
-            "failed",
-            str({"error": str(e), "type": type(e).__name__}),
-            task_id
-            )
-        except Exception as db_err:
-            print(f"[TASK] [FAIL] Failed to update task status: {db_err}")
-
         raise
+
+
+# -------- MEMORY STORE HELPERS ----------
+
+async def _mem_get_pending_tasks(mem, limit: int = 5) -> list[dict]:
+    """Scan all agent task indexes for pending tasks."""
+    agent_ids: list = await mem.get("agent:index") or []
+    pending = []
+    for agent_id in agent_ids:
+        task_ids: list = await mem.get(f"agent:{agent_id}:tasks") or []
+        for tid in task_ids:
+            if len(pending) >= limit:
+                break
+            task = await mem.get(f"task:{tid}")
+            if task and task.get("status") == "pending":
+                pending.append(task)
+        if len(pending) >= limit:
+            break
+    return pending
+
+
+async def _mem_update_task(mem, task_id: str, status: str, result: dict) -> None:
+    task = await mem.get(f"task:{task_id}")
+    if task:
+        task["status"] = status
+        task["result"] = result
+        await mem.set(f"task:{task_id}", task)
 
 
 # -------- WORKER LOOP ----------
 async def worker_loop():
-    """Main worker loop - polls for tasks and executes them"""
+    """Main worker loop - polls MemoryStore for tasks and executes them."""
     print("[WORKER] Starting worker loop...")
     loop_count = 0
+
+    # Import MemoryStore inside the loop so it resolves after app startup
+    from app.core.deps import get_memory
 
     while True:
         loop_count += 1
         try:
-            # Get pending tasks
-            tasks = await db.fetch("""
-                SELECT * FROM tasks WHERE status='pending' LIMIT 5
-            """)
+            mem = get_memory()
+            tasks = await _mem_get_pending_tasks(mem)
 
             if tasks:
                 print(f"[WORKER] Cycle {loop_count}: Found {len(tasks)} pending task(s)")
 
-                for task_row in tasks:
+                for task in tasks:
+                    task_id = task.get("id", "unknown")
                     try:
-                        # Convert asyncpg Record to dict
-                        task = {key: task_row[key] for key in task_row.keys()}
-                        task_id = task.get("id", "unknown")
+                        # Mark in-progress immediately to prevent double-processing
+                        await _mem_update_task(mem, task_id, "running", {})
                         print(f"[WORKER] Processing task {task_id}...")
 
-                        await execute_task(task)
+                        result = await execute_task(task)
+                        await _mem_update_task(mem, task_id, "done", result or {})
                         print(f"[WORKER] [OK] Task {task_id} completed")
 
                     except Exception as e:
-                        task_id = task.get("id", "unknown") if 'task' in locals() else "unknown"
                         print(f"[WORKER] [FAIL] Task {task_id} failed: {type(e).__name__}: {e}")
                         import traceback
                         traceback.print_exc()
+                        await _mem_update_task(mem, task_id, "failed", {"error": type(e).__name__})
             else:
-                if loop_count % 10 == 0:  # Log every 10 cycles to avoid spam
+                if loop_count % 10 == 0:
                     print(f"[WORKER] Cycle {loop_count}: No pending tasks")
 
             await asyncio.sleep(2)
