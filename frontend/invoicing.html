@@ -335,6 +335,17 @@ async function loadInvoices() {
       pdfBtn.textContent = '⬇ PDF';
       pdfBtn.onclick = () => downloadPdf(inv.id, inv.invoice_number);
       actions.appendChild(pdfBtn);
+
+      if (inv.payment_link) {
+        const payBtn = document.createElement('a');
+        payBtn.className = 'btn btn-primary btn-sm';
+        payBtn.textContent = '💳 Pay';
+        payBtn.href = inv.payment_link;
+        payBtn.target = '_blank';
+        payBtn.rel = 'noopener noreferrer';
+        actions.appendChild(payBtn);
+      }
+
       left.appendChild(actions);
       card.appendChild(left);
 

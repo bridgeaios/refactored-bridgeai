@@ -80,6 +80,24 @@ async def flag_overdue(svc: BillingDep, _: dict = Depends(require_jwt)) -> dict[
     return {"ok": True, "updated": count}
 
 
+@router.get("/invoices/{invoice_id}/payment-link")
+async def get_payment_link(
+    invoice_id: str, svc: BillingDep, _: dict = Depends(require_jwt),
+) -> dict[str, Any]:
+    """Return cached Paystack payment link; regenerates if absent (e.g. key added post-creation)."""
+    invoice = await svc.get_invoice(invoice_id)
+    if not invoice:
+        raise HTTPException(404, detail="Invoice not found")
+    link = invoice.get("payment_link")
+    if not link:
+        link = await svc._paystack_link(invoice)
+        if link:
+            invoice["payment_link"] = link
+            from app.core.deps import get_memory
+            await get_memory().set(f"billing:invoice:{invoice_id}", invoice)
+    return {"ok": True, "payment_link": link, "invoice_number": invoice.get("invoice_number")}
+
+
 @router.get("/invoices/{invoice_id}/pdf")
 async def download_invoice_pdf(
     invoice_id: str,

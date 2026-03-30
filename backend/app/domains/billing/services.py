@@ -2,6 +2,7 @@
 from __future__ import annotations
 
 import logging
+import os
 from datetime import datetime, timedelta
 from typing import TYPE_CHECKING, Any
 from uuid import uuid4
@@ -77,7 +78,6 @@ class BillingService:
             "payment_method": None,
         }
 
-        await self._mem.set(f"billing:invoice:{invoice_id}", invoice)
         await self._mem.set(f"billing:number:{invoice_number}", invoice_id)
 
         # Append to index
@@ -85,8 +85,45 @@ class BillingService:
         ids.append(invoice_id)
         await self._mem.set("billing:invoices:index", ids)
 
+        # Generate Paystack payment link if secret key is configured, then persist
+        invoice["payment_link"] = await self._paystack_link(invoice)
+        await self._mem.set(f"billing:invoice:{invoice_id}", invoice)
+
         log.info("Invoice created %s total=%.2f %s", invoice_number, total, invoice["currency"])
         return invoice
+
+    async def _paystack_link(self, invoice: dict[str, Any]) -> str | None:
+        """Call Paystack /transaction/initialize to get a one-time checkout URL.
+        Returns the authorization_url or None if PAYSTACK_SECRET_KEY is not set.
+        """
+        secret = os.environ.get("PAYSTACK_SECRET_KEY", "")
+        if not secret:
+            return None
+        import httpx
+        amount_kobo = int(invoice["total"] * 100)  # Paystack uses smallest currency unit
+        try:
+            async with httpx.AsyncClient(timeout=10) as client:
+                r = await client.post(
+                    "https://api.paystack.co/transaction/initialize",
+                    headers={"Authorization": f"Bearer {secret}", "Content-Type": "application/json"},
+                    json={
+                        "email": invoice.get("client_email", "client@bridgeai.co.za"),
+                        "amount": amount_kobo,
+                        "currency": invoice.get("currency", "ZAR"),
+                        "reference": invoice["invoice_number"],
+                        "metadata": {
+                            "invoice_id": invoice["id"],
+                            "invoice_number": invoice["invoice_number"],
+                            "client_name": invoice.get("client_name", ""),
+                        },
+                    },
+                )
+                if r.status_code == 200:
+                    data = r.json()
+                    return data.get("data", {}).get("authorization_url")
+        except Exception:
+            log.exception("Paystack link generation failed for %s", invoice.get("invoice_number"))
+        return None
 
     # ------------------------------------------------------------------
     # Read

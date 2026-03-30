@@ -271,6 +271,42 @@ async function launchCampaign() {
   document.getElementById('status-text').textContent = 'Campaign queued — worker will process shortly';
 
   await loadAgents();
+  _pollCampaign(agentId);
+}
+
+let _pollTimer = null;
+function _pollCampaign(agentId) {
+  if (_pollTimer) clearInterval(_pollTimer);
+  let ticks = 0;
+  _pollTimer = setInterval(async () => {
+    ticks++;
+    try {
+      const r = await apiFetch('/agents/' + encodeURIComponent(agentId) + '/tasks');
+      const tasks = r.tasks || [];
+      const latest = tasks[tasks.length - 1];
+      if (!latest) return;
+      const status = latest.status || 'pending';
+      const dot = document.getElementById('status-dot');
+      const txt = document.getElementById('status-text');
+      if (status === 'running') {
+        dot.className = 'status-dot dot-running';
+        txt.textContent = 'Scraping businesses & enriching leads…';
+      } else if (status === 'done') {
+        dot.className = 'status-dot dot-done';
+        const found = latest.result?.leads_found ?? '?';
+        txt.textContent = `Campaign complete — ${found} lead(s) found`;
+        clearInterval(_pollTimer);
+        await loadLeads();
+        loadCharts();
+      } else if (status === 'failed') {
+        dot.className = 'status-dot dot-idle';
+        txt.textContent = 'Campaign failed: ' + (latest.result?.error || 'unknown error');
+        clearInterval(_pollTimer);
+      }
+    } catch (_) {}
+    // Stop polling after 10 min regardless
+    if (ticks > 120) clearInterval(_pollTimer);
+  }, 5000);
 }
 
 function exportCsv() {

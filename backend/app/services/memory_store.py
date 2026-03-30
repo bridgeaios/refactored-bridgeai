@@ -159,3 +159,20 @@ class MemoryStore:
             await self._write_file_state(state)
             return True
 
+    async def setnx(self, key: str, value: Any) -> bool:
+        """Set key to value only if key does not already exist.
+        Returns True if the key was set, False if it already existed (claim failed).
+        On Redis this is atomic; on the file backend it is protected by the async lock.
+        """
+        if self._r:
+            serialized = json.dumps(value, ensure_ascii=False)
+            result = await self._r.setnx(key, serialized)
+            return bool(result)
+        async with self._lock:
+            state = await self._read_file_state()
+            if key in state:
+                return False
+            state[key] = value
+            await self._write_file_state(state)
+            return True
+

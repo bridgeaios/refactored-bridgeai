@@ -344,13 +344,21 @@ async def _mem_update_task(mem, task_id: str, status: str, result: dict) -> None
         await mem.set(f"task:{task_id}", task)
 
 
+async def _mem_claim_task(mem, task_id: str) -> bool:
+    """Atomically claim a task to prevent double-processing across worker instances.
+    Uses setnx (set-if-not-exists) on a claim key. Returns True if this worker
+    won the claim, False if another worker already claimed it.
+    """
+    return await mem.setnx(f"task:{task_id}:claimed", 1)
+
+
 # -------- WORKER LOOP ----------
 async def worker_loop():
     """Main worker loop - polls MemoryStore for tasks and executes them."""
     print("[WORKER] Starting worker loop...")
     loop_count = 0
+    _overdue_check_every = 30  # flag_overdue every 30 cycles (~60 s at 2 s/cycle)
 
-    # Import MemoryStore inside the loop so it resolves after app startup
     from app.core.deps import get_memory
 
     while True:
@@ -365,7 +373,12 @@ async def worker_loop():
                 for task in tasks:
                     task_id = task.get("id", "unknown")
                     try:
-                        # Mark in-progress immediately to prevent double-processing
+                        # Atomically claim task — prevents double-processing across workers
+                        claimed = await _mem_claim_task(mem, task_id)
+                        if not claimed:
+                            print(f"[WORKER] Task {task_id} already claimed, skipping")
+                            continue
+
                         await _mem_update_task(mem, task_id, "running", {})
                         print(f"[WORKER] Processing task {task_id}...")
 
@@ -386,11 +399,22 @@ async def worker_loop():
             try:
                 from app.domains.outreach.deps import get_outreach
                 outreach = get_outreach()
-                result = await outreach.dispatch_pending(limit=10)
-                if result.get("sent"):
-                    print(f"[OUTREACH] Dispatched {result['sent']} email(s)")
+                outreach_result = await outreach.dispatch_pending(limit=10)
+                if outreach_result.get("sent"):
+                    print(f"[OUTREACH] Dispatched {outreach_result['sent']} email(s)")
             except Exception as _oe:
                 print(f"[OUTREACH] dispatch error: {type(_oe).__name__}: {_oe}")
+
+            # Flag overdue invoices periodically
+            if loop_count % _overdue_check_every == 0:
+                try:
+                    from app.domains.billing.deps import get_billing
+                    billing = get_billing()
+                    overdue_count = await billing.flag_overdue()
+                    if overdue_count:
+                        print(f"[BILLING] Flagged {overdue_count} overdue invoice(s)")
+                except Exception as _be:
+                    print(f"[BILLING] overdue check error: {type(_be).__name__}: {_be}")
 
             await asyncio.sleep(2)
 
