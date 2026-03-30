@@ -471,26 +471,43 @@ async def _activation_loop(mem) -> None:
 
 
 async def _brain_process(mem) -> None:
-    """brain.process — refresh lead scores based on activity recency."""
+    """brain.process — refresh lead scores.
+
+    Two drift components (mirrors bridge_real.py score update logic):
+    1. Random drift: 0–0.09 per cycle for leads created in last 24 h
+       (bridge_real: ABS(RANDOM()) % 10 / 100.0)
+    2. Activity boost: +0.02 for leads with same-day activity
+    """
     try:
         ids: list = await mem.get("crm:leads:index") or []
         updated = 0
+        cutoff = datetime.utcnow().replace(hour=0, minute=0, second=0).isoformat()
         for lead_id in ids:
             lead = await mem.get(f"crm:lead:{lead_id}")
             if not lead or lead.get("stage") in ("won", "lost"):
                 continue
-            # Boost score slightly if there has been recent activity
+            old_score = float(lead.get("score", 0.5))
+            new_score = old_score
+
+            # Random drift for leads created in last 24 h
+            if (lead.get("created_at", "") >= cutoff):
+                drift = round(random.randint(0, 9) / 100.0, 2)  # 0.00–0.09
+                new_score = min(1.0, new_score + drift)
+
+            # Activity boost for same-day activity
             activities = lead.get("activities", [])
             if activities:
                 last_ts = (activities[-1].get("created_at") or "")[:10]
                 today = datetime.utcnow().strftime("%Y-%m-%d")
                 if last_ts == today:
-                    old_score = float(lead.get("score", 0.5))
-                    lead["score"] = min(1.0, round(old_score + 0.02, 4))
-                    await mem.set(f"crm:lead:{lead_id}", lead)
-                    updated += 1
+                    new_score = min(1.0, new_score + 0.02)
+
+            if new_score != old_score:
+                lead["score"] = round(new_score, 4)
+                await mem.set(f"crm:lead:{lead_id}", lead)
+                updated += 1
         if updated:
-            print(f"[BRAIN] Refreshed scores for {updated} active lead(s)")
+            print(f"[BRAIN] Score drift applied to {updated} lead(s)")
     except Exception as e:
         print(f"[BRAIN] error: {type(e).__name__}: {e}")
 
