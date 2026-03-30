@@ -60,6 +60,30 @@ async def siwe_logout() -> dict[str, Any]:
     return {"ok": True, "message": "logged out"}
 
 
+@router.get("/auth/me")
+async def auth_me(claims: dict = Depends(require_jwt)) -> dict[str, Any]:
+    """Return the authenticated identity from the JWT. Used by login.html to check existing sessions."""
+    return {"sub": claims.get("sub"), "address": claims.get("sub"), "authority": claims.get("authority")}
+
+
+@router.post("/auth/dev-login")
+async def dev_login(payload: dict[str, Any]) -> dict[str, Any]:
+    """Issue a JWT for a given address using BRIDGE_DEV_SECRET. Only available when ENV != production."""
+    import os, hmac as _hmac
+    if os.environ.get("ENV", "").lower() == "production":
+        raise HTTPException(status_code=403, detail="Dev login disabled in production")
+    dev_secret = os.environ.get("BRIDGE_DEV_SECRET", "")
+    if not dev_secret:
+        raise HTTPException(status_code=403, detail="BRIDGE_DEV_SECRET not configured")
+    supplied = str(payload.get("secret", ""))
+    if not _hmac.compare_digest(supplied, dev_secret):
+        raise HTTPException(status_code=401, detail="Invalid dev secret")
+    address = str(payload.get("address", "dev")).lower().strip()
+    from app.services.siwe_auth import create_jwt
+    token = create_jwt(address, authority="dev")
+    return {"ok": True, "token": token, "address": address}
+
+
 # ------------------------------------------------------------------
 # YouTube Skills (from routes/api.py)
 # ------------------------------------------------------------------

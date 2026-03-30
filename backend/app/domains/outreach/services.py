@@ -53,6 +53,49 @@ class OutreachService:
             jobs = [j for j in jobs if j.get("status") == status]
         return jobs
 
+    async def dispatch_pending(self, limit: int = 20) -> dict[str, Any]:
+        """Fetch pending jobs, render templates, send via configured provider.
+        Called by worker_loop every cycle. Returns summary dict."""
+        from app.services.email_sender import send_email, PROVIDER
+        from app.services.email_templates import render_template
+
+        if not PROVIDER:
+            return {"sent": 0, "failed": 0, "skipped": True, "reason": "no_provider"}
+
+        ids: list = await self._mem.get("outreach:queue") or []
+        sent = failed = 0
+        for job_id in ids:
+            if sent + failed >= limit:
+                break
+            job = await self._mem.get(f"outreach:job:{job_id}")
+            if not job or job.get("status") != "pending":
+                continue
+
+            email = job.get("email", "")
+            company = job.get("company", "")
+            template_type = job.get("template_type", "general")
+
+            # Use pre-rendered subject/body if set, otherwise render template
+            subject = job.get("subject") or ""
+            html_body = job.get("body") or ""
+            if not subject or not html_body:
+                subject, html_body, text_body = render_template(template_type, company, email)
+            else:
+                text_body = None
+
+            result = await send_email(to=email, subject=subject, html=html_body, text=text_body)
+            if result.get("ok"):
+                await self.mark_sent(job_id)
+                sent += 1
+            else:
+                error = result.get("error", "unknown")
+                if not result.get("skipped"):
+                    await self.mark_failed(job_id, error)
+                    failed += 1
+
+        log.info("[OUTREACH] dispatch: sent=%d failed=%d", sent, failed)
+        return {"sent": sent, "failed": failed}
+
     async def mark_sent(self, job_id: str) -> dict[str, Any] | None:
         job = await self._mem.get(f"outreach:job:{job_id}")
         if not job:

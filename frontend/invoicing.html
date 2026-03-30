@@ -400,6 +400,15 @@ async function loadStats() {
   } catch(e) { console.warn('stats', e); }
 }
 
+// Auth guard
+(function(){
+  var tok = localStorage.getItem('bridge_token');
+  if (!tok) { window.location.href = '/login.html?next=/invoicing.html'; return; }
+  fetch('/api/auth/me', { headers: { Authorization: 'Bearer ' + tok } })
+    .then(function(r){ if(!r.ok){ localStorage.removeItem('bridge_token'); window.location.href = '/login.html?next=/invoicing.html'; } })
+    .catch(function(){});
+})();
+
 function loadRevenueChart() {
   const img = document.getElementById('revenue-chart');
   // Append timestamp to bust browser cache on each refresh

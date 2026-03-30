@@ -1,652 +1,220 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-
-    <title>BRIDGE AI OS — Enter The System</title>
-    <link rel="icon" href="/favicon.svg" type="image/svg+xml">
-    <link href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;500&family=Outfit:wght@300;400;500;600;700;800&display=swap" rel="stylesheet">
-    <script src="https://cdn.babylonjs.com/babylon.js"></script>
-    <style>
-        /* ═══════════════════════════════════════════
-           BRIDGE AI OS — IMMERSIVE LOGIN
-           ═══════════════════════════════════════════ */
-        :root {
-            --bg-primary: #060810;
-            --bg-secondary: #0a0e17;
-            --bg-glass: rgba(10, 14, 23, 0.75);
-            --bg-glass-hover: rgba(15, 20, 30, 0.85);
-            --border-color: rgba(99, 255, 218, 0.12);
-            --border-glow: rgba(99, 255, 218, 0.3);
-            --text-primary: #e2e8f0;
-            --text-secondary: #94a3b8;
-            --text-muted: #64748b;
-            --accent-cyan: #63ffda;
-            --accent-blue: #38bdf8;
-            --accent-purple: #a78bfa;
-            --accent-pink: #f472b6;
-            --gradient-primary: linear-gradient(135deg, #63ffda 0%, #38bdf8 50%, #a78bfa 100%);
-            --shadow-glow: 0 0 30px rgba(99, 255, 218, 0.15);
-        }
-
-        * { box-sizing: border-box; margin: 0; padding: 0; }
-
-        html, body {
-            height: 100%;
-            overflow: hidden;
-            background: var(--bg-primary);
-            font-family: 'Outfit', -apple-system, sans-serif;
-            color: var(--text-primary);
-        }
-
-        /* ── 3D Canvas Background ── */
-        #renderCanvas {
-            position: fixed;
-            inset: 0;
-            width: 100%;
-            height: 100%;
-            z-index: 0;
-            outline: none;
-        }
-
-        /* ── Animated gradient overlay ── */
-        .bg-overlay {
-            position: fixed;
-            inset: 0;
-            z-index: 1;
-            pointer-events: none;
-            background:
-                radial-gradient(ellipse at 20% 80%, rgba(99, 255, 218, 0.06) 0%, transparent 50%),
-                radial-gradient(ellipse at 80% 20%, rgba(167, 139, 250, 0.05) 0%, transparent 50%),
-                radial-gradient(ellipse at 50% 50%, rgba(56, 189, 248, 0.03) 0%, transparent 70%);
-            animation: overlayPulse 8s ease-in-out infinite alternate;
-        }
-
-        @keyframes overlayPulse {
-            0% { opacity: 0.6; }
-            100% { opacity: 1; }
-        }
-
-        /* ── Floating particles (CSS) ── */
-        .particles {
-            position: fixed;
-            inset: 0;
-            z-index: 2;
-            pointer-events: none;
-            overflow: hidden;
-        }
-        .particle {
-            position: absolute;
-            width: 2px;
-            height: 2px;
-            background: var(--accent-cyan);
-            border-radius: 50%;
-            opacity: 0;
-            animation: particleFloat linear infinite;
-        }
-        @keyframes particleFloat {
-            0%   { transform: translateY(100vh) scale(0); opacity: 0; }
-            10%  { opacity: 0.8; }
-            90%  { opacity: 0.4; }
-            100% { transform: translateY(-10vh) scale(1.5); opacity: 0; }
-        }
-
-        /* ── Grid lines overlay ── */
-        .grid-overlay {
-            position: fixed;
-            inset: 0;
-            z-index: 2;
-            pointer-events: none;
-            background-image:
-                linear-gradient(rgba(99, 255, 218, 0.015) 1px, transparent 1px),
-                linear-gradient(90deg, rgba(99, 255, 218, 0.015) 1px, transparent 1px);
-            background-size: 60px 60px;
-            animation: gridScroll 20s linear infinite;
-        }
-        @keyframes gridScroll {
-            0%   { background-position: 0 0; }
-            100% { background-position: 60px 60px; }
-        }
-
-        /* ── Scan line ── */
-        .scanline {
-            position: fixed;
-            top: 0;
-            left: 0;
-            right: 0;
-            height: 2px;
-            z-index: 3;
-            pointer-events: none;
-            background: linear-gradient(90deg, transparent, var(--accent-cyan), transparent);
-            opacity: 0.15;
-            animation: scanMove 4s ease-in-out infinite;
-        }
-        @keyframes scanMove {
-            0%, 100% { top: -2px; }
-            50% { top: 100%; }
-        }
-
-        /* ── Main login container ── */
-        .login-container {
-            position: relative;
-            z-index: 10;
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            min-height: 100vh;
-            padding: 20px;
-            perspective: 1200px;
-        }
-
-        /* ── Login card ── */
-        .login-card {
-            position: relative;
-            width: 100%;
-            max-width: 440px;
-            padding: 48px 40px;
-            background: var(--bg-glass);
-            border: 1px solid var(--border-color);
-            border-radius: 24px;
-            backdrop-filter: blur(24px) saturate(1.4);
-            -webkit-backdrop-filter: blur(24px) saturate(1.4);
-            box-shadow:
-                0 0 60px rgba(99, 255, 218, 0.06),
-                0 25px 80px rgba(0, 0, 0, 0.5),
-                inset 0 1px 0 rgba(255, 255, 255, 0.05);
-            animation: cardEntrance 1.2s cubic-bezier(0.16, 1, 0.3, 1) forwards;
-            opacity: 0;
-            transform: translateY(40px) rotateX(8deg);
-            transform-style: preserve-3d;
-            transition: transform 0.3s ease, box-shadow 0.3s ease;
-        }
-        .login-card:hover {
-            box-shadow:
-                0 0 80px rgba(99, 255, 218, 0.1),
-                0 30px 100px rgba(0, 0, 0, 0.5),
-                inset 0 1px 0 rgba(255, 255, 255, 0.08);
-        }
-
-        @keyframes cardEntrance {
-            0%   { opacity: 0; transform: translateY(60px) rotateX(12deg) scale(0.9); }
-            100% { opacity: 1; transform: translateY(0) rotateX(0) scale(1); }
-        }
-
-        /* ── Glow ring around card ── */
-        .login-card::before {
-            content: '';
-            position: absolute;
-            inset: -2px;
-            border-radius: 25px;
-            background: linear-gradient(135deg,
-                rgba(99, 255, 218, 0.2),
-                rgba(56, 189, 248, 0.1),
-                rgba(167, 139, 250, 0.2),
-                rgba(99, 255, 218, 0.1));
-            background-size: 300% 300%;
-            z-index: -1;
-            animation: borderGlow 6s ease-in-out infinite;
-            opacity: 0.6;
-        }
-        @keyframes borderGlow {
-            0%, 100% { background-position: 0% 50%; }
-            50%      { background-position: 100% 50%; }
-        }
-
-        /* ── Animated corner accents ── */
-        .login-card::after {
-            content: '';
-            position: absolute;
-            top: 12px;
-            left: 12px;
-            right: 12px;
-            bottom: 12px;
-            border-radius: 16px;
-            border: 1px solid transparent;
-            background: linear-gradient(var(--bg-glass), var(--bg-glass)) padding-box,
-                        linear-gradient(135deg, rgba(99,255,218,0.08), transparent 40%, transparent 60%, rgba(167,139,250,0.08)) border-box;
-            pointer-events: none;
-        }
-
-        /* ── Logo / Brand ── */
-        .brand-section {
-            text-align: center;
-            margin-bottom: 36px;
-            animation: fadeInUp 0.8s 0.3s ease both;
-        }
-
-        .logo-ring {
-            position: relative;
-            width: 80px;
-            height: 80px;
-            margin: 0 auto 20px;
-        }
-        .logo-ring .ring {
-            position: absolute;
-            inset: 0;
-            border-radius: 50%;
-            border: 2px solid transparent;
-        }
-        .logo-ring .ring:nth-child(1) {
-            border-top-color: var(--accent-cyan);
-            border-right-color: var(--accent-cyan);
-            animation: spinRing 3s linear infinite;
-        }
-        .logo-ring .ring:nth-child(2) {
-            inset: 8px;
-            border-bottom-color: var(--accent-blue);
-            border-left-color: var(--accent-blue);
-            animation: spinRing 2s linear infinite reverse;
-        }
-        .logo-ring .ring:nth-child(3) {
-            inset: 16px;
-            border-top-color: var(--accent-purple);
-            animation: spinRing 4s linear infinite;
-        }
-        .logo-ring .core {
-            position: absolute;
-            inset: 22px;
-            background: radial-gradient(circle, var(--accent-cyan), transparent);
-            border-radius: 50%;
-            animation: corePulse 2s ease-in-out infinite;
-        }
-
-        @keyframes spinRing {
-            to { transform: rotate(360deg); }
-        }
-        @keyframes corePulse {
-            0%, 100% { opacity: 0.4; transform: scale(0.8); }
-            50%      { opacity: 1; transform: scale(1.1); }
-        }
-
-        .brand-title {
-            font-size: 28px;
-            font-weight: 800;
-            letter-spacing: 2px;
-            background: var(--gradient-primary);
-            -webkit-background-clip: text;
-            -webkit-text-fill-color: transparent;
-            background-clip: text;
-            text-transform: uppercase;
-        }
-        .brand-subtitle {
-            font-family: 'JetBrains Mono', monospace;
-            font-size: 11px;
-            color: var(--text-muted);
-            letter-spacing: 3px;
-            text-transform: uppercase;
-            margin-top: 6px;
-        }
-
-        /* ── Clerk mount target ── */
-        #clerk-auth {
-            animation: fadeInUp 0.8s 0.5s ease both;
-        }
-
-        /* ── Clerk styling overrides ── */
-        #clerk-auth .cl-rootBox {
-            width: 100%;
-        }
-        #clerk-auth .cl-card {
-            background: transparent !important;
-            border: none !important;
-            box-shadow: none !important;
-            padding: 0 !important;
-        }
-        #clerk-auth .cl-headerTitle,
-        #clerk-auth .cl-headerSubtitle {
-            display: none !important;
-        }
-        #clerk-auth .cl-formButtonPrimary {
-            background: var(--gradient-primary) !important;
-            border: none !important;
-            border-radius: 12px !important;
-            font-family: 'Outfit', sans-serif !important;
-            font-weight: 600 !important;
-            letter-spacing: 0.5px !important;
-            height: 48px !important;
-            font-size: 15px !important;
-            transition: all 0.3s ease !important;
-            box-shadow: 0 4px 20px rgba(99, 255, 218, 0.2) !important;
-        }
-        #clerk-auth .cl-formButtonPrimary:hover {
-            transform: translateY(-2px) !important;
-            box-shadow: 0 8px 30px rgba(99, 255, 218, 0.35) !important;
-        }
-        #clerk-auth .cl-formFieldInput {
-            background: rgba(255, 255, 255, 0.04) !important;
-            border: 1px solid var(--border-color) !important;
-            border-radius: 12px !important;
-            color: var(--text-primary) !important;
-            font-family: 'Outfit', sans-serif !important;
-            height: 48px !important;
-            padding: 0 16px !important;
-            transition: all 0.3s ease !important;
-        }
-        #clerk-auth .cl-formFieldInput:focus {
-            border-color: var(--accent-cyan) !important;
-            box-shadow: 0 0 20px rgba(99, 255, 218, 0.1) !important;
-            background: rgba(255, 255, 255, 0.06) !important;
-        }
-        #clerk-auth .cl-formFieldLabel {
-            color: var(--text-secondary) !important;
-            font-family: 'Outfit', sans-serif !important;
-            font-size: 13px !important;
-        }
-        #clerk-auth .cl-footerActionLink {
-            color: var(--accent-cyan) !important;
-        }
-        #clerk-auth .cl-socialButtonsBlockButton {
-            background: rgba(255, 255, 255, 0.04) !important;
-            border: 1px solid var(--border-color) !important;
-            border-radius: 12px !important;
-            color: var(--text-primary) !important;
-            font-family: 'Outfit', sans-serif !important;
-            height: 46px !important;
-            transition: all 0.3s ease !important;
-        }
-        #clerk-auth .cl-socialButtonsBlockButton:hover {
-            background: rgba(255, 255, 255, 0.08) !important;
-            border-color: var(--border-glow) !important;
-            transform: translateY(-1px) !important;
-        }
-        #clerk-auth .cl-dividerLine {
-            background: var(--border-color) !important;
-        }
-        #clerk-auth .cl-dividerText {
-            color: var(--text-muted) !important;
-            font-family: 'JetBrains Mono', monospace !important;
-            font-size: 11px !important;
-        }
-        #clerk-auth .cl-footer {
-            color: var(--text-muted) !important;
-        }
-        #clerk-auth .cl-internal {
-            color: var(--text-secondary) !important;
-        }
-
-        /* ── Fallback form (shown if Clerk fails) ── */
-        .fallback-form { display: none; }
-        .fallback-form.active { display: block; }
-
-        .form-group {
-            margin-bottom: 20px;
-        }
-        .form-group label {
-            display: block;
-            font-size: 13px;
-            color: var(--text-secondary);
-            margin-bottom: 8px;
-            letter-spacing: 0.3px;
-        }
-        .form-group input {
-            width: 100%;
-            height: 48px;
-            padding: 0 16px;
-            background: rgba(255, 255, 255, 0.04);
-            border: 1px solid var(--border-color);
-            border-radius: 12px;
-            color: var(--text-primary);
-            font-family: 'Outfit', sans-serif;
-            font-size: 15px;
-            outline: none;
-            transition: all 0.3s ease;
-        }
-        .form-group input:focus {
-            border-color: var(--accent-cyan);
-            box-shadow: 0 0 20px rgba(99, 255, 218, 0.1);
-            background: rgba(255, 255, 255, 0.06);
-        }
-        .form-group input::placeholder {
-            color: var(--text-muted);
-        }
-
-        .btn-login {
-            width: 100%;
-            height: 48px;
-            border: none;
-            border-radius: 12px;
-            background: var(--gradient-primary);
-            color: #060810;
-            font-family: 'Outfit', sans-serif;
-            font-size: 15px;
-            font-weight: 700;
-            letter-spacing: 1px;
-            text-transform: uppercase;
-            cursor: pointer;
-            position: relative;
-            overflow: hidden;
-            transition: all 0.3s ease;
-            box-shadow: 0 4px 20px rgba(99, 255, 218, 0.2);
-        }
-        .btn-login:hover {
-            transform: translateY(-2px);
-            box-shadow: 0 8px 40px rgba(99, 255, 218, 0.35);
-        }
-        .btn-login:active {
-            transform: translateY(0);
-        }
-        .btn-login::after {
-            content: '';
-            position: absolute;
-            inset: 0;
-            background: linear-gradient(90deg, transparent, rgba(255,255,255,0.3), transparent);
-            transform: translateX(-100%);
-            transition: transform 0.6s;
-        }
-        .btn-login:hover::after {
-            transform: translateX(100%);
-        }
-
-        /* ── Status line ── */
-        .status-bar {
-            position: fixed;
-            bottom: 0;
-            left: 0;
-            right: 0;
-            z-index: 20;
-            padding: 10px 24px;
-            background: rgba(6, 8, 16, 0.8);
-            border-top: 1px solid var(--border-color);
-            backdrop-filter: blur(12px);
-            display: flex;
-            align-items: center;
-            justify-content: space-between;
-            font-family: 'JetBrains Mono', monospace;
-            font-size: 11px;
-            color: var(--text-muted);
-            animation: fadeInUp 1s 1s ease both;
-        }
-        .status-bar .dot {
-            display: inline-block;
-            width: 6px;
-            height: 6px;
-            border-radius: 50%;
-            background: var(--accent-cyan);
-            margin-right: 8px;
-            animation: dotBlink 2s ease-in-out infinite;
-        }
-        @keyframes dotBlink {
-            0%, 100% { opacity: 1; }
-            50% { opacity: 0.3; }
-        }
-
-        /* ── Typing text ── */
-        .typing-text {
-            overflow: hidden;
-            white-space: nowrap;
-            border-right: 2px solid var(--accent-cyan);
-            animation: typing 2s steps(30) 1.5s both, blinkCaret 0.8s step-end infinite;
-            max-width: 0;
-        }
-        @keyframes typing {
-            to { max-width: 500px; }
-        }
-        @keyframes blinkCaret {
-            50% { border-color: transparent; }
-        }
-
-        /* ── Utility animations ── */
-        @keyframes fadeInUp {
-            from { opacity: 0; transform: translateY(20px); }
-            to   { opacity: 1; transform: translateY(0); }
-        }
-
-        /* ── Floating orbs ── */
-        .orb {
-            position: fixed;
-            border-radius: 50%;
-            pointer-events: none;
-            z-index: 1;
-            filter: blur(60px);
-        }
-        .orb-1 {
-            width: 300px; height: 300px;
-            background: rgba(99, 255, 218, 0.07);
-            top: 10%; left: 5%;
-            animation: orbFloat1 12s ease-in-out infinite;
-        }
-        .orb-2 {
-            width: 250px; height: 250px;
-            background: rgba(167, 139, 250, 0.06);
-            bottom: 15%; right: 10%;
-            animation: orbFloat2 15s ease-in-out infinite;
-        }
-        .orb-3 {
-            width: 200px; height: 200px;
-            background: rgba(56, 189, 248, 0.05);
-            top: 50%; left: 60%;
-            animation: orbFloat3 10s ease-in-out infinite;
-        }
-        @keyframes orbFloat1 {
-            0%, 100% { transform: translate(0, 0) scale(1); }
-            33%      { transform: translate(40px, -30px) scale(1.1); }
-            66%      { transform: translate(-20px, 20px) scale(0.9); }
-        }
-        @keyframes orbFloat2 {
-            0%, 100% { transform: translate(0, 0) scale(1); }
-            50%      { transform: translate(-50px, -40px) scale(1.15); }
-        }
-        @keyframes orbFloat3 {
-            0%, 100% { transform: translate(0, 0); }
-            50%      { transform: translate(30px, 30px); }
-        }
-
-        /* ── Loading state ── */
-        .loading-clerk {
-            text-align: center;
-            padding: 40px 0;
-        }
-        .loading-clerk .spinner {
-            width: 32px;
-            height: 32px;
-            border: 2px solid var(--border-color);
-            border-top-color: var(--accent-cyan);
-            border-radius: 50%;
-            margin: 0 auto 12px;
-            animation: spinRing 0.8s linear infinite;
-        }
-        .loading-clerk p {
-            font-family: 'JetBrains Mono', monospace;
-            font-size: 12px;
-            color: var(--text-muted);
-        }
-
-        /* ── Responsive ── */
-        @media (max-width: 480px) {
-            .login-card {
-                padding: 36px 24px;
-                border-radius: 20px;
-            }
-            .brand-title { font-size: 22px; }
-        }
-
-        /* ── Reduced motion: disable all animations ── */
-        @media (prefers-reduced-motion: reduce) {
-            *, *::before, *::after {
-                animation-duration: 0.01ms !important;
-                animation-iteration-count: 1 !important;
-                transition-duration: 0.01ms !important;
-            }
-            .particles, .scanline, .grid-overlay { display: none; }
-            .login-card { opacity: 1; transform: none; }
-            #renderCanvas { display: none; }
-            .orb { animation: none; }
-        }
-
-        /* ── Focus visible indicators ── */
-        input:focus-visible, button:focus-visible, a:focus-visible {
-            outline: 2px solid var(--accent-cyan);
-            outline-offset: 2px;
-        }
-    </style>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>BridgeAI · Sign In</title>
+  <style>
+    *{box-sizing:border-box;margin:0;padding:0}
+    body{background:#060810;color:#e2e8f0;font-family:Inter,system-ui,sans-serif;min-height:100vh;display:flex;flex-direction:column;align-items:center;justify-content:center;padding:1rem}
+    .card{background:#0f172a;border:1px solid #1e3a5f;border-radius:14px;padding:2.5rem 2rem;width:100%;max-width:420px;text-align:center}
+    .logo{font-size:1.1rem;font-weight:800;letter-spacing:.15em;color:#63ffda;margin-bottom:.4rem}
+    h1{font-size:1.5rem;font-weight:700;color:#f1f5f9;margin-bottom:.5rem}
+    .subtitle{font-size:.85rem;color:#64748b;margin-bottom:2rem;line-height:1.5}
+    .btn{width:100%;padding:.85rem 1.5rem;border-radius:8px;border:none;cursor:pointer;font-size:.9rem;font-weight:600;transition:all .2s;display:flex;align-items:center;justify-content:center;gap:.6rem;margin-bottom:.75rem}
+    .btn-wallet{background:#1e293b;color:#f1f5f9;border:1px solid #334155}
+    .btn-wallet:hover:not(:disabled){background:#1e3a5f;border-color:#3b82f6}
+    .btn-wallet:disabled{opacity:.5;cursor:not-allowed}
+    .btn-primary{background:#0f172a;color:#63ffda;border:1px solid #1e3a5f}
+    .btn-primary:hover:not(:disabled){background:#1e3a5f}
+    .status{margin:.75rem 0;padding:.7rem 1rem;border-radius:6px;font-size:.82rem;text-align:left;line-height:1.5}
+    .status:empty{display:none}
+    .status.info{background:#0c4a6e;border:1px solid #0369a1;color:#7dd3fc}
+    .status.error{background:#7f1d1d;border:1px solid #991b1b;color:#fca5a5}
+    .status.success{background:#064e3b;border:1px solid #065f46;color:#34d399}
+    .divider{display:flex;align-items:center;gap:.75rem;margin:1rem 0;color:#334155;font-size:.75rem}
+    .divider::before,.divider::after{content:'';flex:1;height:1px;background:#1e293b}
+    .address-display{background:#0f172a;border:1px solid #1e3a5f;border-radius:6px;padding:.5rem .75rem;font-size:.75rem;color:#63ffda;font-family:monospace;word-break:break-all;margin-bottom:.75rem}
+    .footer-note{font-size:.72rem;color:#475569;margin-top:1.25rem;line-height:1.5}
+    .footer-note a{color:#64748b}
+    .spinner{width:16px;height:16px;border:2px solid rgba(99,255,218,.3);border-top-color:#63ffda;border-radius:50%;animation:spin .7s linear infinite;flex-shrink:0;display:none}
+    .btn.loading .spinner{display:inline-block}
+    .btn.loading .btn-label{display:none}
+    input{width:100%;background:#1e293b;border:1px solid #334155;border-radius:6px;padding:.5rem .75rem;color:#f1f5f9;font-size:.82rem;margin-bottom:.5rem}
+    input:focus{outline:none;border-color:#3b82f6}
+    @keyframes spin{to{transform:rotate(360deg)}}
+  </style>
 </head>
 <body>
+<div class="card">
+  <div class="logo">BRIDGE AI</div>
+  <h1>Sign In</h1>
+  <p class="subtitle">Connect your Ethereum wallet to access the dashboard. No password required.</p>
 
-    <!-- 3D Background Canvas -->
-    <canvas id="renderCanvas"></canvas>
+  <div id="status" class="status" role="alert"></div>
+  <div id="address-display" class="address-display" style="display:none"></div>
 
-    <!-- Atmospheric layers -->
-    <div class="bg-overlay"></div>
-    <div class="grid-overlay"></div>
-    <div class="scanline"></div>
+  <button class="btn btn-wallet" id="btn-metamask" onclick="connectWallet()">
+    <div class="spinner"></div>
+    <span class="btn-label" style="display:flex;align-items:center;gap:.6rem">
+      <svg width="22" height="22" viewBox="0 0 35 33" fill="none" aria-hidden="true">
+        <path d="M32.96 1L19.4 10.68l2.52-5.98L32.96 1z" fill="#E17726" stroke="#E17726" stroke-width=".25"/>
+        <path d="M2.04 1l13.44 9.77-2.4-5.09L2.04 1z" fill="#E27625" stroke="#E27625" stroke-width=".25"/>
+        <path d="M28.24 23.53l-3.61 5.52 7.73 2.13 2.22-7.52-6.34-.13zM.45 23.66l2.2 7.52 7.72-2.13-3.6-5.52-6.32.13z" fill="#E27625" stroke="#E27625" stroke-width=".25"/>
+        <path d="M9.93 14.35l-2.16 3.27 7.7.35-.26-8.28-5.28 4.66zM25.07 14.35l-5.33-4.76-.17 8.38 7.67-.35-2.17-3.27z" fill="#E27625" stroke="#E27625" stroke-width=".25"/>
+        <path d="M10.37 29.05l4.63-2.24-4-3.12-.63 5.36zM20 26.81l4.62 2.24-.62-5.36-4 3.12z" fill="#E27625" stroke="#E27625" stroke-width=".25"/>
+      </svg>
+      Connect MetaMask / Browser Wallet
+    </span>
+  </button>
 
-    <!-- Floating orbs -->
-    <div class="orb orb-1"></div>
-    <div class="orb orb-2"></div>
-    <div class="orb orb-3"></div>
+  <div class="divider">or use dev credentials</div>
 
-    <!-- CSS Particles -->
-    <div class="particles" id="particles"></div>
+  <div id="dev-login">
+    <input id="dev-addr" type="text" placeholder="Wallet address (0x…) or username" autocomplete="username" />
+    <input id="dev-secret" type="password" placeholder="Dev secret (BRIDGE_DEV_SECRET)" autocomplete="current-password" />
+    <button class="btn btn-primary" id="btn-dev" onclick="devLogin()">
+      <div class="spinner"></div>
+      <span class="btn-label">Sign In (Dev / Test)</span>
+    </button>
+  </div>
 
-    <!-- Login Card -->
-    <div class="login-container">
-        <div class="login-card" id="loginCard">
-            <div class="brand-section">
-                <div class="logo-ring">
-                    <div class="ring"></div>
-                    <div class="ring"></div>
-                    <div class="ring"></div>
-                    <div class="core"></div>
-                </div>
-                <div class="brand-title">Bridge AI OS</div>
-                <div class="brand-subtitle">Digital Twin Interface</div>
-            </div>
+  <p class="footer-note">
+    Your wallet address is your identity — no email or password stored.<br/>
+    <a href="/public/landing.html">&#8592; Back to home</a>
+  </p>
+</div>
 
-            <!-- Clerk auth mounts here -->
-            <div id="clerk-auth">
-                <div class="loading-clerk" role="status" aria-live="polite">
-                    <div class="spinner" aria-hidden="true"></div>
-                    <p>Initializing secure auth...</p>
-                </div>
-            </div>
+<script>
+(function () {
+  'use strict';
 
-            <!-- Fallback if Clerk unavailable -->
-            <div class="fallback-form" id="fallbackForm" role="form" aria-label="Sign in">
-                <div class="form-group">
-                    <label for="email">Email</label>
-                    <input type="email" id="email" placeholder="operator@bridge.ai" autocomplete="email" required>
-                </div>
-                <div class="form-group">
-                    <label for="password">Password</label>
-                    <input type="password" id="password" placeholder="Enter passphrase" autocomplete="current-password" required>
-                </div>
-                <button class="btn-login" id="loginBtn">
-                    Enter The System
-                </button>
-            </div>
-        </div>
-    </div>
+  var API = '';
+  var REDIRECT = new URLSearchParams(location.search).get('next') || '/leads.html';
 
-    <!-- Status Bar -->
-    <div class="status-bar">
-        <div>
-            <span class="dot"></span>
-            <span class="typing-text">BRIDGE_SYSTEM::AUTH_GATEWAY v2.1.0 — AWAITING CREDENTIALS</span>
-        </div>
-        <div>SECURE CHANNEL</div>
-    </div>
+  // ── Helpers ──────────────────────────────────────────────────────────────
 
-    <script type="module" src="/src/login.js"></script>
+  function setStatus(msg, type) {
+    var el = document.getElementById('status');
+    el.textContent = msg;
+    el.className = 'status ' + (type || '');
+  }
+
+  function setBusy(btnId, busy) {
+    var btn = document.getElementById(btnId);
+    if (!btn) return;
+    btn.disabled = busy;
+    if (busy) btn.classList.add('loading');
+    else btn.classList.remove('loading');
+  }
+
+  function showAddress(addr) {
+    var el = document.getElementById('address-display');
+    el.textContent = 'Connected: ' + addr;
+    el.style.display = 'block';
+  }
+
+  // ── Auto-redirect if token is valid ──────────────────────────────────────
+
+  var stored = localStorage.getItem('bridge_token');
+  if (stored) {
+    fetch(API + '/api/auth/me', { headers: { Authorization: 'Bearer ' + stored } })
+      .then(function (r) { return r.ok ? r.json() : null; })
+      .then(function (d) { if (d && (d.sub || d.address)) window.location.href = REDIRECT; })
+      .catch(function () {});
+  }
+
+  // ── MetaMask / injected wallet ────────────────────────────────────────────
+
+  window.connectWallet = function () {
+    setBusy('btn-metamask', true);
+    setStatus('');
+
+    if (!window.ethereum) {
+      setStatus('No wallet detected. Install MetaMask at metamask.io or use a Web3 browser.', 'error');
+      setBusy('btn-metamask', false);
+      return;
+    }
+
+    window.ethereum.request({ method: 'eth_requestAccounts' })
+      .then(function (accounts) {
+        if (!accounts || !accounts.length) {
+          setStatus('No accounts returned from wallet.', 'error');
+          setBusy('btn-metamask', false);
+          return;
+        }
+        doSiweLogin(accounts[0].toLowerCase());
+      })
+      .catch(function (e) {
+        setStatus('Connection error: ' + (e.message || String(e)), 'error');
+        setBusy('btn-metamask', false);
+      });
+  };
+
+  function doSiweLogin(address) {
+    var domain = location.hostname + (location.port ? ':' + location.port : '');
+    var nonce = Date.now().toString();
+    var message = 'Bridge AI OS Login\nDomain: ' + domain + '\nAddress: ' + address + '\nNonce: ' + nonce;
+
+    setStatus('Waiting for wallet signature\u2026', 'info');
+
+    window.ethereum.request({ method: 'personal_sign', params: [message, address] })
+      .then(function (signature) {
+        setStatus('Verifying\u2026', 'info');
+        return fetch(API + '/api/auth/login', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ message: message, signature: signature }),
+        });
+      })
+      .then(function (res) {
+        return res.json().then(function (data) { return { ok: res.ok, data: data }; });
+      })
+      .then(function (r) {
+        if (!r.ok) {
+          setStatus('Login failed: ' + (r.data.detail || 'server error'), 'error');
+          setBusy('btn-metamask', false);
+          return;
+        }
+        var token = r.data.token || r.data.access_token;
+        if (!token) {
+          setStatus('Server returned no token. Check BRIDGE_SIWE_JWT_SECRET is configured.', 'error');
+          setBusy('btn-metamask', false);
+          return;
+        }
+        localStorage.setItem('bridge_token', token);
+        localStorage.setItem('bridge_address', address);
+        showAddress(address);
+        setStatus('Signed in! Redirecting\u2026', 'success');
+        setTimeout(function () { window.location.href = REDIRECT; }, 700);
+      })
+      .catch(function (e) {
+        if (e && e.code === 4001) {
+          setStatus('Signature cancelled. Approve the signing request in your wallet.', 'error');
+        } else {
+          setStatus('Error: ' + (e && e.message ? e.message : String(e)), 'error');
+        }
+        setBusy('btn-metamask', false);
+      });
+  }
+
+  // ── Dev / test login ──────────────────────────────────────────────────────
+
+  window.devLogin = function () {
+    var addr = document.getElementById('dev-addr').value.trim();
+    var secret = document.getElementById('dev-secret').value.trim();
+    if (!addr || !secret) { setStatus('Address and secret required', 'error'); return; }
+
+    setBusy('btn-dev', true);
+
+    fetch(API + '/api/auth/dev-login', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ address: addr, secret: secret }),
+    })
+      .then(function (res) { return res.json().then(function (d) { return { ok: res.ok, data: d }; }); })
+      .then(function (r) {
+        if (!r.ok) { setStatus('Dev login failed: ' + (r.data.detail || 'error'), 'error'); setBusy('btn-dev', false); return; }
+        var token = r.data.token || r.data.access_token;
+        if (!token) { setStatus('No token returned', 'error'); setBusy('btn-dev', false); return; }
+        localStorage.setItem('bridge_token', token);
+        localStorage.setItem('bridge_address', addr);
+        setStatus('Signed in! Redirecting\u2026', 'success');
+        setTimeout(function () { window.location.href = REDIRECT; }, 600);
+      })
+      .catch(function (e) { setStatus('Error: ' + (e.message || String(e)), 'error'); setBusy('btn-dev', false); });
+  };
+}());
+</script>
 </body>
 </html>

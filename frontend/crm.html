@@ -316,6 +316,15 @@ function loadCharts() {
   });
 }
 
+// Auth guard
+(function(){
+  var tok = localStorage.getItem('bridge_token');
+  if (!tok) { window.location.href = '/login.html?next=/crm.html'; return; }
+  fetch('/api/auth/me', { headers: { Authorization: 'Bearer ' + tok } })
+    .then(function(r){ if(!r.ok){ localStorage.removeItem('bridge_token'); window.location.href = '/login.html?next=/crm.html'; } })
+    .catch(function(){});
+})();
+
 async function loadAll() { await Promise.all([loadStats(), loadPipeline()]); loadCharts(); }
 loadAll();
 setInterval(loadAll, 30000);

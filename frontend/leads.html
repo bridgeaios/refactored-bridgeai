@@ -116,6 +116,16 @@
 </div>
 
 <script>
+// Auth guard — redirect to login if no token or token expired
+(function(){
+  var tok = localStorage.getItem('bridge_token');
+  if (!tok) { window.location.href = '/login.html?next=' + encodeURIComponent(location.pathname); return; }
+  fetch('/api/auth/me', { headers: { Authorization: 'Bearer ' + tok } })
+    .then(function(r){ if(!r.ok){ localStorage.removeItem('bridge_token'); window.location.href = '/login.html?next=' + encodeURIComponent(location.pathname); } })
+    .catch(function(){});
+})();
+</script>
+<script>
 const API = '';
 let _leads = [];
 

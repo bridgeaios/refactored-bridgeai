@@ -382,6 +382,16 @@ async def worker_loop():
                 if loop_count % 10 == 0:
                     print(f"[WORKER] Cycle {loop_count}: No pending tasks")
 
+            # Dispatch pending outreach emails every cycle
+            try:
+                from app.domains.outreach.deps import get_outreach
+                outreach = get_outreach()
+                result = await outreach.dispatch_pending(limit=10)
+                if result.get("sent"):
+                    print(f"[OUTREACH] Dispatched {result['sent']} email(s)")
+            except Exception as _oe:
+                print(f"[OUTREACH] dispatch error: {type(_oe).__name__}: {_oe}")
+
             await asyncio.sleep(2)
 
         except Exception as e:
