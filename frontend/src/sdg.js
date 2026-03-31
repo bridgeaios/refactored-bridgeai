@@ -1,6 +1,7 @@
 // frontend/src/sdg.js
 import { fetchJson } from './api.js';
 import { API_BASE } from './config.js';
+import { escapeHtml } from './bridgeUi.js';
 
 export function initSdg() {
   const container = document.getElementById('side-panel') || document.body;

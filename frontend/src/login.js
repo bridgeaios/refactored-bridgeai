@@ -287,6 +287,24 @@ async function initClerk() {
   }
 }
 
+// ─── CSRF Token Management ────────────────────────────────────────
+let currentCSRFToken = '';
+
+async function initCSRFToken() {
+  // Initialize CSRF token by making a safe OPTIONS request
+  // CSRFMiddleware generates and sends token in X-CSRF-Token header
+  try {
+    const res = await fetch('/api/auth/login', {
+      method: 'OPTIONS',
+      credentials: 'include',
+    });
+    // Extract token from response header
+    currentCSRFToken = res.headers.get('X-CSRF-Token') || '';
+  } catch (err) {
+    console.warn('CSRF token initialization failed:', err);
+  }
+}
+
 // ─── Fallback form (when Clerk key is missing / offline) ──────────
 function initFallbackForm() {
   const btn = document.getElementById('loginBtn');
@@ -294,6 +312,9 @@ function initFallbackForm() {
   const passInput = document.getElementById('password');
 
   if (!btn) return;
+
+  // Initialize CSRF token on form load
+  initCSRFToken();
 
   btn.addEventListener('click', async () => {
     const email = emailInput?.value?.trim();
@@ -304,22 +325,29 @@ function initFallbackForm() {
       return;
     }
 
+    // Ensure CSRF token is initialized
+    if (!currentCSRFToken) {
+      await initCSRFToken();
+    }
+
     btn.textContent = 'Authenticating...';
     btn.disabled = true;
 
     try {
       const res = await fetch('/api/auth/login', {
         method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
+        headers: {
+          'Content-Type': 'application/json',
+          'X-CSRF-Token': currentCSRFToken,
+        },
         body: JSON.stringify({ email, password }),
+        credentials: 'include',  // Send/receive cookies
       });
 
       if (!res.ok) throw new Error('Auth failed');
 
-      const data = await res.json();
-      if (data.token) {
-        localStorage.setItem('bridge_token', data.token);
-      }
+      // Server sets httpOnly secure cookie on response
+      // No need to manually store token — browser handles it automatically
       // Success animation
       const card = document.getElementById('loginCard');
       if (card) {

@@ -2,6 +2,7 @@
 import { fetchJson } from './api.js';
 import { API_BASE } from './config.js';
 import { signMessageEVM, signMessageSolana } from './wallet.js';
+import { escapeHtml } from './bridgeUi.js';
 
 const LOCAL_KEY = 'bridge.marketplace.tasks.v1';
 const PLEDGE_EVENTS_KEY = 'bridge.marketplace.pledges.v1';
@@ -377,30 +378,30 @@ export function initMarketplace() {
 
       list.innerHTML = filtered.map(t => {
         const meta = [
-          t.type === 'upliftment' ? 'Upliftment' : (t.type === 'bounty' ? 'Bounty' : t.type),
-          t.sdg ? t.sdg : null,
-          t.location ? t.location : null,
-          t.beneficiaries ? `${t.beneficiaries} beneficiaries` : null,
+          t.type === 'upliftment' ? 'Upliftment' : (t.type === 'bounty' ? 'Bounty' : escapeHtml(t.type)),
+          t.sdg ? escapeHtml(t.sdg) : null,
+          t.location ? escapeHtml(t.location) : null,
+          t.beneficiaries ? `${escapeHtml(t.beneficiaries)} beneficiaries` : null,
           t.local ? 'local' : null
         ].filter(Boolean).join(' · ');
 
         const pledgeLine = (t.type === 'upliftment')
           ? `<div style="font-size:11px;color:#7bd;margin-top:4px">
-               Pledged: <span data-pledged-amount-for="${t.id}">${t.pledged_total.toFixed(2)}</span> BRDG
+               Pledged: <span data-pledged-amount-for="${escapeHtml(t.id)}">${t.pledged_total.toFixed(2)}</span> BRDG
                ${t.proof_submitted ? '<span style="margin-left:6px;padding:2px 8px;border-radius:999px;background:#1f7a3a;color:#eafff2;border:1px solid rgba(120,255,170,0.35);font-size:10px;vertical-align:middle;">Verified</span>' : ''}
              </div>`
           : '';
 
         const actions = (t.type === 'upliftment')
-          ? `<button data-pledge-id="${t.id}" style="margin-left:6px">Pledge</button>`
-          : `<button data-accept-id="${t.id}" style="margin-left:6px">Accept</button>`;
+          ? `<button data-pledge-id="${escapeHtml(t.id)}" style="margin-left:6px">Pledge</button>`
+          : `<button data-accept-id="${escapeHtml(t.id)}" style="margin-left:6px">Accept</button>`;
 
         return `
           <li style="margin-bottom:8px">
-            <div style="color:#cfe">${t.desc || '(no description)'}</div>
+            <div style="color:#cfe">${escapeHtml(t.desc || '(no description)')}</div>
             <div style="font-size:11px;color:#8ab">${meta}</div>
             <div style="font-size:12px;color:#bdf;margin-top:4px">
-              Target: ${t.reward || '—'} BRDG
+              Target: ${escapeHtml(t.reward || '—')} BRDG
               ${actions}
             </div>
             ${pledgeLine}

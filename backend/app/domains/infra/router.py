@@ -9,7 +9,7 @@ from __future__ import annotations
 
 from typing import Annotated, Any
 
-from fastapi import APIRouter, Depends, HTTPException, Request
+from fastapi import APIRouter, Depends, HTTPException, Request, Response
 
 from app.domains.infra.deps import get_infra, require_jwt
 from app.domains.infra.models import HealthResponse, SiweLoginRequest
@@ -42,17 +42,60 @@ async def status() -> HealthResponse:
 async def siwe_login(
     payload: SiweLoginRequest,
     svc: InfraDep,
+    response: Response,
 ) -> dict[str, Any]:
-    return await svc.verify_siwe(message=payload.message, signature=payload.signature)
+    """SIWE login: verifies wallet signature and sets HttpOnly cookie.
+    Token is NOT returned in response body (XSS protection)."""
+    result = await svc.verify_siwe(message=payload.message, signature=payload.signature)
+
+    # Extract token and set as HttpOnly cookie
+    token = result.get("token", "")
+    if token:
+        response.set_cookie(
+            key="access_token",
+            value=token,
+            httponly=True,          # Inaccessible to JavaScript
+            secure=True,            # HTTPS only
+            samesite="strict",      # CSRF protection
+            path="/",
+            max_age=24 * 60 * 60,   # 24 hours
+        )
+
+    # Return success WITHOUT token in body
+    return {
+        "ok": True,
+        "address": result.get("address"),
+        "message": "Authenticated. Token set as HttpOnly cookie."
+    }
 
 
 @router.post("/auth/siwe")
 async def siwe_login_legacy(
     payload: SiweLoginRequest,
     svc: InfraDep,
+    response: Response,
 ) -> dict[str, Any]:
-    """Legacy path alias — identical to /auth/login."""
-    return await svc.verify_siwe(message=payload.message, signature=payload.signature)
+    """Legacy path alias — identical to /auth/login. Sets HttpOnly cookie."""
+    result = await svc.verify_siwe(message=payload.message, signature=payload.signature)
+
+    # Extract token and set as HttpOnly cookie
+    token = result.get("token", "")
+    if token:
+        response.set_cookie(
+            key="access_token",
+            value=token,
+            httponly=True,
+            secure=True,
+            samesite="strict",
+            path="/",
+            max_age=24 * 60 * 60,
+        )
+
+    return {
+        "ok": True,
+        "address": result.get("address"),
+        "message": "Authenticated. Token set as HttpOnly cookie."
+    }
 
 
 @router.post("/auth/logout")
@@ -67,8 +110,9 @@ async def auth_me(claims: dict = Depends(require_jwt)) -> dict[str, Any]:
 
 
 @router.post("/auth/dev-login")
-async def dev_login(payload: dict[str, Any]) -> dict[str, Any]:
-    """Issue a JWT for a given address using BRIDGE_DEV_SECRET. Only available when ENV != production."""
+async def dev_login(payload: dict[str, Any], response: Response) -> dict[str, Any]:
+    """Issue a JWT for a given address using BRIDGE_DEV_SECRET. Only available when ENV != production.
+    Sets HttpOnly cookie (token NOT returned in body)."""
     import os, hmac as _hmac
     if os.environ.get("ENV", "").lower() == "production":
         raise HTTPException(status_code=403, detail="Dev login disabled in production")
@@ -81,7 +125,19 @@ async def dev_login(payload: dict[str, Any]) -> dict[str, Any]:
     address = str(payload.get("address", "dev")).lower().strip()
     from app.services.siwe_auth import create_jwt
     token = create_jwt(address, authority="dev")
-    return {"ok": True, "token": token, "address": address}
+
+    # Set as HttpOnly cookie
+    response.set_cookie(
+        key="access_token",
+        value=token,
+        httponly=True,
+        secure=True,
+        samesite="strict",
+        path="/",
+        max_age=24 * 60 * 60,
+    )
+
+    return {"ok": True, "address": address, "message": "Dev login successful. Token set as HttpOnly cookie."}
 
 
 # ------------------------------------------------------------------

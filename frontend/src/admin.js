@@ -91,14 +91,21 @@ let currentKeys = {};
 
 async function loadKeys() {
   try {
-    const res = await fetch('/api/admin/keys');
-    if (!res.ok) throw new Error(`${res.status}`);
+    const res = await fetch('/admin/keys', {
+      credentials: 'include',  // Include HttpOnly cookie
+    });
+    if (!res.ok) {
+      const err = await res.json().catch(() => ({}));
+      if (res.status === 401 || res.status === 403) {
+        throw new Error('Not authenticated. Please log in first.');
+      }
+      throw new Error(err.detail || `HTTP ${res.status}`);
+    }
     const data = await res.json();
-    currentKeys = data.keys || {};
+    currentKeys = data.data?.keys || data.keys || {};
   } catch (e) {
-    // Fallback: try to read status-only endpoint
     currentKeys = {};
-    showBanner('error', 'Could not load keys from backend. Is the backend running?');
+    showBanner('error', 'Could not load keys: ' + e.message);
   }
   render();
 }
@@ -220,17 +227,24 @@ window.saveKeys = async function() {
   }
 
   try {
-    const res = await fetch('/api/admin/keys', {
+    const res = await fetch('/admin/keys', {
       method: 'PUT',
-      headers: { 'Content-Type': 'application/json' },
+      headers: {
+        'Content-Type': 'application/json',
+      },
+      credentials: 'include',  // Include HttpOnly cookie
       body: JSON.stringify({ keys: updates }),
     });
     if (!res.ok) {
       const err = await res.json().catch(() => ({}));
+      if (res.status === 401 || res.status === 403) {
+        throw new Error('Not authenticated. Please log in first.');
+      }
       throw new Error(err.detail || `HTTP ${res.status}`);
     }
     const data = await res.json();
-    showBanner('success', `Saved ${data.updated || Object.keys(updates).length} keys. Restart backend for changes to take effect.`);
+    const updated = data.data?.updated || data.updated || Object.keys(updates).length;
+    showBanner('success', `Saved ${updated} keys. Restart backend for changes to take effect.`);
     // Refresh
     Object.assign(currentKeys, updates);
     render();

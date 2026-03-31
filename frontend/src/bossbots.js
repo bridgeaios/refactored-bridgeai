@@ -1,6 +1,7 @@
 // frontend/src/bossbots.js
 import { fetchJson } from './api.js';
 import { API_BASE } from './config.js';
+import { escapeHtml } from './bridgeUi.js';
 
 const ASSETS = ['BTC', 'ETH', 'BRDG', 'SOL'];
 
@@ -65,7 +66,7 @@ export function initBossBots() {
   async function updateSignals() {
     try {
       const signals = await fetchJson(`${API_BASE}/api/bossbots/signals`);
-      document.getElementById('bot-signals').innerHTML = (Array.isArray(signals) ? signals : []).map(s => `<div>${s.asset}: ${s.signal}</div>`).join('');
+      document.getElementById('bot-signals').innerHTML = (Array.isArray(signals) ? signals : []).map(s => `<div>${escapeHtml(s.asset)}: ${escapeHtml(s.signal)}</div>`).join('');
     } catch (err) {
       if (!window._bossbotsErr) { window._bossbotsErr = true; console.warn('BossBots API unavailable'); }
     }

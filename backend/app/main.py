@@ -247,36 +247,51 @@ app.openapi = custom_openapi  # type: ignore[method-assign]
 
 import os as _os
 
-_extra_origins = [o.strip() for o in _os.environ.get("BRIDGE_CORS_ORIGINS", "").split(",") if o.strip()]
+# PHASE 1: STRICT CORS LOCKDOWN
+# Only explicit production domains + minimal dev origins.
+# NO WILDCARDS. NO REGEX. NO DYNAMIC ORIGIN REFLECTION.
+
+_prod_origins = [o.strip() for o in _os.environ.get("BRIDGE_CORS_ORIGINS", "").split(",") if o.strip()]
 origins = [
-    "http://localhost:3000", "http://localhost:3001", "http://localhost:3010",
-    "http://localhost:3020", "http://localhost:3021", "http://localhost:5173",
-    "http://localhost:8081",
-    "http://127.0.0.1:3000", "http://127.0.0.1:3001", "http://127.0.0.1:3010",
-    "http://127.0.0.1:3020", "http://127.0.0.1:3021", "http://127.0.0.1:5173",
-    "http://127.0.0.1:8081",
-    *_extra_origins,
+    # Production domains — explicit only
+    *_prod_origins,
+    # Dev/test — explicit ports only (no wildcard regex)
+    "http://localhost:3000",
+    "http://localhost:3020",
+    "http://127.0.0.1:3000",
+    "http://127.0.0.1:3020",
 ]
+
+# STRIP DUPLICATES
+origins = list(set(origins))
+
 app.add_middleware(
     CORSMiddleware,
     allow_origins=origins,
-    allow_origin_regex=r"^https?://(localhost|127\.0\.0\.1)(:\d+)?$",
+    # NO allow_origin_regex — removed for security
     allow_credentials=True,
-    allow_methods=["*"],
-    allow_headers=["*"],
-    expose_headers=["*"],
+    allow_methods=["GET", "POST", "PUT", "DELETE", "OPTIONS"],  # Explicit only
+    allow_headers=["Content-Type", "Authorization", "X-CSRF-Token"],  # CSRF header added
+    # NO expose_headers wildcard — removed for security
+    max_age=86400,  # 24 hours
 )
 
 # Security middleware — headers on every response, rate limiting per IP
 from app.middleware.security import (
+    CSRFMiddleware,
     EmitGateMiddleware,
     EmitGatewayMiddleware,
     RateLimitMiddleware,
+    AuthEndpointRateLimitMiddleware,
+    AdminEndpointRateLimitMiddleware,
     SecurityHeadersMiddleware,
     apply_emit_gate,
 )
 app.add_middleware(SecurityHeadersMiddleware)
-app.add_middleware(RateLimitMiddleware, requests_per_minute=120)
+app.add_middleware(CSRFMiddleware)  # CSRF token validation (before auth rate limiting)
+app.add_middleware(AuthEndpointRateLimitMiddleware)  # 5 req/min for /api/auth/*
+app.add_middleware(AdminEndpointRateLimitMiddleware)  # 10 req/min for /admin/*
+app.add_middleware(RateLimitMiddleware, requests_per_minute=120)  # 120 req/min global baseline
 app.add_middleware(EmitGatewayMiddleware)
 apply_emit_gate(app)  # outermost — seals every response at the boundary
 
@@ -715,42 +730,110 @@ def _write_env_updates(updates: dict[str, str]) -> int:
     return updated
 
 
-def _require_local_access(request: Request) -> None:
-    """Only allow admin endpoints from localhost."""
-    client = request.client
-    if client and client.host not in ("127.0.0.1", "::1", "localhost", "0.0.0.0"):
-        raise HTTPException(status_code=403, detail="Admin endpoints are local-only")
+async def _require_orchestrator_auth(request: Request) -> tuple[str, dict]:
+    """Extract and verify Cortex ORCHESTRATOR authority from request.
+    Returns (token, audit_context) or raises HTTPException.
+    """
+    from app.cortex import AuthorityClass, auth_class_from_token
+
+    # Get token from Authorization header
+    auth_header = request.headers.get("Authorization", "")
+    token = ""
+    if auth_header.startswith("Bearer "):
+        token = auth_header[7:]
+
+    # Verify authority using Cortex
+    auth = auth_class_from_token(token)
+    if auth != AuthorityClass.ORCHESTRATOR:
+        raise HTTPException(
+            status_code=403,
+            detail=f"Admin access requires ORCHESTRATOR authority, got {auth.value}",
+        )
+
+    # Build audit context
+    audit_ctx = {
+        "timestamp": time.time(),
+        "source_ip": request.client.host if request.client else "unknown",
+        "user_agent": request.headers.get("user-agent", ""),
+        "authority": auth.value,
+    }
+
+    return token, audit_ctx
 
 
 @app.get("/admin/keys")
 async def admin_get_keys(request: Request) -> dict[str, Any]:
-    """Return current key statuses (masked values for set keys)."""
-    _require_local_access(request)
+    """Return current key statuses (masked values for set keys).
+    Requires Cortex ORCHESTRATOR authority.
+    """
+    token, audit_ctx = await _require_orchestrator_auth(request)
     env_keys = _read_env_file()
+
     # Return masked values — never expose full secrets via API
     masked: dict[str, str] = {}
     for key in _ADMIN_ALLOWED_KEYS:
         val = env_keys.get(key, "")
-        masked[key] = val  # Frontend masks display; backend trusts localhost
-    return {"ok": True, "keys": masked}
+        if val:
+            # Mask: show first 4 chars + asterisks
+            masked[key] = val[:4] + "***" if len(val) > 4 else "***"
+        else:
+            masked[key] = ""
+
+    # Log to Cortex audit trail
+    from app.cortex import _CAP_AUDIT_LOG
+    _CAP_AUDIT_LOG.append({
+        "timestamp": audit_ctx["timestamp"],
+        "action": "admin_keys_read",
+        "source_ip": audit_ctx["source_ip"],
+        "keys_requested": list(masked.keys()),
+    })
+
+    return wrap_response(
+        {"keys": masked},
+        ok=True,
+        confidence=1.0,
+        state_version=await get_state_version(memory),
+    )
 
 
 @app.put("/admin/keys")
 async def admin_set_keys(request: Request, body: dict) -> dict[str, Any]:
-    """Update keys in .env file. Requires backend restart to take effect."""
-    _require_local_access(request)
+    """Update keys in .env file. Requires Cortex ORCHESTRATOR authority.
+    Note: Changes require backend restart to take effect in running process.
+    """
+    token, audit_ctx = await _require_orchestrator_auth(request)
     updates = body.get("keys", {})
     if not isinstance(updates, dict):
         raise HTTPException(status_code=400, detail="keys must be a dict")
+
     # Filter to allowed keys only
     safe_updates = {}
     for k, v in updates.items():
         if k in _ADMIN_ALLOWED_KEYS and isinstance(v, str) and v.strip():
             safe_updates[k] = v.strip()
+
     if not safe_updates:
         raise HTTPException(status_code=400, detail="No valid keys provided")
+
     count = _write_env_updates(safe_updates)
-    return {"ok": True, "updated": count}
+
+    # Log to Cortex audit trail
+    from app.cortex import _CAP_AUDIT_LOG
+    _CAP_AUDIT_LOG.append({
+        "timestamp": audit_ctx["timestamp"],
+        "action": "admin_keys_updated",
+        "source_ip": audit_ctx["source_ip"],
+        "keys_modified": list(safe_updates.keys()),
+        "count": count,
+    })
+
+    return wrap_response(
+        {"updated": count, "keys": list(safe_updates.keys())},
+        ok=True,
+        confidence=1.0,
+        state_delta=True,
+        state_version=await get_state_version(memory),
+    )
 
 
 @app.get("/health")

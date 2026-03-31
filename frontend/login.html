@@ -156,6 +156,7 @@
         return fetch(API + '/api/auth/login', {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
+          credentials: 'include',  // Send/receive cookies (HttpOnly token)
           body: JSON.stringify({ message: message, signature: signature }),
         });
       })
@@ -168,14 +169,8 @@
           setBusy('btn-metamask', false);
           return;
         }
-        var token = r.data.token || r.data.access_token;
-        if (!token) {
-          setStatus('Server returned no token. Check BRIDGE_SIWE_JWT_SECRET is configured.', 'error');
-          setBusy('btn-metamask', false);
-          return;
-        }
-        localStorage.setItem('bridge_token', token);
-        localStorage.setItem('bridge_address', address);
+        // Token is now in HttpOnly cookie — NOT in response body (XSS protection)
+        localStorage.setItem('bridge_address', address);  // Address only (not sensitive)
         showAddress(address);
         setStatus('Signed in! Redirecting\u2026', 'success');
         setTimeout(function () { window.location.href = REDIRECT; }, 700);
@@ -202,14 +197,13 @@
     fetch(API + '/api/auth/dev-login', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
+      credentials: 'include',  // Send/receive HttpOnly cookie
       body: JSON.stringify({ address: addr, secret: secret }),
     })
       .then(function (res) { return res.json().then(function (d) { return { ok: res.ok, data: d }; }); })
       .then(function (r) {
         if (!r.ok) { setStatus('Dev login failed: ' + (r.data.detail || 'error'), 'error'); setBusy('btn-dev', false); return; }
-        var token = r.data.token || r.data.access_token;
-        if (!token) { setStatus('No token returned', 'error'); setBusy('btn-dev', false); return; }
-        localStorage.setItem('bridge_token', token);
+        // Token is now in HttpOnly cookie — NOT in response body
         localStorage.setItem('bridge_address', addr);
         setStatus('Signed in! Redirecting\u2026', 'success');
         setTimeout(function () { window.location.href = REDIRECT; }, 600);

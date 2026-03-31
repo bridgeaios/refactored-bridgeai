@@ -4,6 +4,7 @@
  */
 import { fetchJson } from './api.js';
 import { API_BASE } from './config.js';
+import { escapeHtml } from './bridgeUi.js';
 
 export function initTwinCompetition() {
   const container = document.getElementById('side-panel') || document.body;

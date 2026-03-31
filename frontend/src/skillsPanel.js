@@ -1,4 +1,5 @@
 import { API_BASE } from './config.js';
+import { escapeHtml } from './bridgeUi.js';
 
 export function initSkillsPanel(){
     const panel = document.getElementById('skillsPanel');
@@ -17,7 +18,7 @@ export function initSkillsPanel(){
 
     async function loadSkills() {
         try {
-            const res = await fetch(`${API_BASE}/api/skills`);
+            const res = await fetch(`${API_BASE}/ingest/status`);
             if (res.ok) {
                 const data = await res.json();
                 skills = (data.skills || []).map(s => s.name || String(s));
@@ -33,7 +34,7 @@ export function initSkillsPanel(){
         updateList();
         input.value = '';
         try {
-            await fetch(`${API_BASE}/api/skills`, {
+            await fetch(`${API_BASE}/ingest/skills`, {
                 method: 'POST',
                 headers: {'Content-Type':'application/json'},
                 body: JSON.stringify({ name: skill, tags: [], description: '' })
@@ -44,7 +45,7 @@ export function initSkillsPanel(){
     input.addEventListener('keydown', (e) => { if (e.key === 'Enter') addButton.click(); });
 
     function updateList(){
-        list.innerHTML = skills.map(s => `<li style="margin-bottom:2px">${s}</li>`).join('');
+        list.innerHTML = skills.map(s => `<li style="margin-bottom:2px">${escapeHtml(s)}</li>`).join('');
     }
 
     loadSkills();
@@ -66,7 +67,7 @@ export class SkillsPanel {
     if(!name) return;
     const payload = {name, tags:[tag], description: ""};
     try{
-      const res = await fetch('/api/skills',{method:'POST',headers:{'content-type':'application/json'},body:JSON.stringify(payload)});
+      const res = await fetch('/ingest/skills',{method:'POST',headers:{'content-type':'application/json'},body:JSON.stringify(payload)});
       if(res.ok){ this._appendLocal(payload); this._increaseConfidence(); }
     }catch(e){ console.warn('save skill failed', e); }
   }

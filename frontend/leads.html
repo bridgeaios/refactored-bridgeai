@@ -117,24 +117,21 @@
 </div>
 
 <script>
-// Auth guard — redirect to login if no token or token expired
+// Auth guard — check authentication via /api/auth/me
 (function(){
-  var tok = localStorage.getItem('bridge_token');
-  if (!tok) { window.location.href = '/login.html?next=' + encodeURIComponent(location.pathname); return; }
-  fetch('/api/auth/me', { headers: { Authorization: 'Bearer ' + tok } })
-    .then(function(r){ if(!r.ok){ localStorage.removeItem('bridge_token'); window.location.href = '/login.html?next=' + encodeURIComponent(location.pathname); } })
-    .catch(function(){});
+  fetch('/api/auth/me', { credentials: 'include' })
+    .then(function(r){ if(!r.ok){ window.location.href = '/login.html?next=' + encodeURIComponent(location.pathname); } })
+    .catch(function(){ window.location.href = '/login.html?next=' + encodeURIComponent(location.pathname); });
 })();
 </script>
 <script>
 const API = '';
 let _leads = [];
 
-function getToken() { return localStorage.getItem('bridge_token') || ''; }
-
 async function apiFetch(path, opts = {}) {
   const res = await fetch(API + '/api' + path, {
-    headers: { 'Content-Type': 'application/json', Authorization: 'Bearer ' + getToken() },
+    headers: { 'Content-Type': 'application/json', ...opts.headers || {} },
+    credentials: 'include',  // Include HttpOnly cookie
     ...opts,
   });
   if (!res.ok) throw new Error(await res.text());

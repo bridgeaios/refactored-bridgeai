@@ -4,6 +4,7 @@
  */
 import { fetchTwinProfile, getTwinProfile, decide, simulate, evolve } from './cognitiveTwin.js';
 import { API_BASE } from './config.js';
+import { escapeHtml } from './bridgeUi.js';
 
 async function fetchTwinEnvKeys() {
   try {
@@ -21,7 +22,7 @@ function renderEnvKeysSection(keysData) {
   const lines = keysData.keys.map((k) => {
     const sym = k.status === 'configured' ? '✓' : (k.status === 'placeholder' ? '○' : '✗');
     const cls = k.status === 'configured' ? 'color:#8fc' : (k.critical ? 'color:#f88' : 'color:#888');
-    return `<div style="${cls}">${sym} ${k.label} (${k.key}) — ${k.status}</div>`;
+    return `<div style="${cls}">${sym} ${escapeHtml(k.label)} (${escapeHtml(k.key)}) — ${escapeHtml(k.status)}</div>`;
   });
   const sum = keysData.summary || {};
   return `
@@ -65,8 +66,8 @@ export function initTwinPanel() {
       <div class="twin-profile">
         <div class="twin-section">
           <strong>Identity</strong>
-          <div>Mode: ${id.cognitive_mode || '-'} · Horizon: ${id.time_horizon_bias || '-'}</div>
-          <div class="twin-values">${(id.core_values || []).slice(0, 3).join(', ')}</div>
+          <div>Mode: ${escapeHtml(id.cognitive_mode || '-')} · Horizon: ${escapeHtml(id.time_horizon_bias || '-')}</div>
+          <div class="twin-values">${(id.core_values || []).slice(0, 3).map(v => escapeHtml(v)).join(', ')}</div>
         </div>
         <div class="twin-section">
           <strong>Skills</strong>
@@ -75,11 +76,11 @@ export function initTwinPanel() {
         </div>
         <div class="twin-section">
           <strong>Decision</strong>
-          <div>Silence threshold: ${dm.silence_threshold ?? 0} · Weights: ${Object.keys(dm.weights || {}).join(', ')}</div>
+          <div>Silence threshold: ${dm.silence_threshold ?? 0} · Weights: ${Object.keys(dm.weights || {}).map(w => escapeHtml(w)).join(', ')}</div>
         </div>
         <div class="twin-section">
           <strong>Blind spots</strong>
-          <div class="twin-list">${(profile.blind_spots || []).slice(0, 2).join(' · ') || 'None'}</div>
+          <div class="twin-list">${(profile.blind_spots || []).slice(0, 2).map(b => escapeHtml(b)).join(' · ') || 'None'}</div>
         </div>
         ${envKeysHtml}
         <div class="twin-actions">

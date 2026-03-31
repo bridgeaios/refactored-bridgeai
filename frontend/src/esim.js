@@ -1,5 +1,6 @@
 import { fetchJson } from './api.js';
 import { API_BASE } from './config.js';
+import { escapeHtml } from './bridgeUi.js';
 
 export function initEsim(){
     fetchJson(`${API_BASE}/api/esim/status`)
