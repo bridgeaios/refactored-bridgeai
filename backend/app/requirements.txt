@@ -9,6 +9,7 @@ torch
 pytest
 requests
 httpx
+aiofiles
 PyJWT>=2.8.0
 eth-account>=0.10.0
 web3>=6.0.0
