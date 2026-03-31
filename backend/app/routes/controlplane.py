@@ -259,6 +259,8 @@ async def _sse_generator() -> AsyncGenerator[str, None]:
                 yield _sse_format(entry)
             except asyncio.TimeoutError:
                 yield ": heartbeat\n\n"
+    except (asyncio.CancelledError, GeneratorExit):
+        pass
     finally:
         try:
             _event_listeners.remove(q)

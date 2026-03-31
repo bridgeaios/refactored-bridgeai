@@ -3,7 +3,11 @@ from __future__ import annotations
 
 from typing import Annotated, Any
 
-from fastapi import APIRouter, Depends, HTTPException
+import hashlib
+import hmac
+import os
+
+from fastapi import APIRouter, Depends, HTTPException, Request
 from fastapi.responses import Response
 
 from app.domains.billing.deps import get_billing
@@ -174,13 +178,30 @@ async def download_invoice_pdf(
 
 @router.post("/invoices/reconcile")
 async def reconcile_webhook(
-    payload: dict[str, Any],
+    request: Request,
     svc: BillingDep,
-    _: dict = Depends(require_jwt),
 ) -> dict[str, Any]:
-    """Called by payment webhooks to auto-match and mark invoices paid."""
-    amount = float(payload.get("amount", 0))
-    currency = str(payload.get("currency", "ZAR"))
-    method = str(payload.get("method", "webhook"))
+    """Called by Paystack payment webhooks to auto-match and mark invoices paid.
+
+    Verifies the Paystack HMAC-SHA512 signature before processing.
+    No JWT required — this endpoint is called by Paystack, not by users.
+    """
+    secret = os.environ.get("PAYSTACK_SECRET_KEY", "")
+    if not secret:
+        raise HTTPException(500, detail="Payment webhook secret not configured")
+
+    signature = request.headers.get("x-paystack-signature", "")
+    body = await request.body()
+
+    expected = hmac.new(secret.encode(), body, hashlib.sha512).hexdigest()
+    if not hmac.compare_digest(expected, signature):
+        raise HTTPException(400, detail="Invalid webhook signature")
+
+    import json as _json
+    payload = _json.loads(body)
+    data = payload.get("data", payload)
+    amount = float(data.get("amount", 0)) / 100  # Paystack amounts are in kobo
+    currency = str(data.get("currency", "ZAR"))
+    method = "paystack"
     invoice = await svc.reconcile_by_amount(amount, currency, method)
     return {"ok": True, "matched": invoice is not None, "invoice": invoice}

@@ -124,6 +124,11 @@ async def agent_registry(mem, include_retired: bool = False) -> list[dict]:
                 record["retired_at"] = now
                 record["retire_reason"] = "heartbeat_timeout"
                 await mem.set(_PREFIX + agent_id, json.dumps(record))
+                # Decrement active counter so concurrency cap stays accurate
+                raw_count = await mem.get("agents:active:count")
+                if raw_count:
+                    new_count = max(0, int(raw_count) - 1)
+                    await mem.set("agents:active:count", str(new_count))
             elif age > HEARTBEAT_TTL:
                 record["status"] = "idle"
                 await mem.set(_PREFIX + agent_id, json.dumps(record))

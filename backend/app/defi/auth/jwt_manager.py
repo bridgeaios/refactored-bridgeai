@@ -11,7 +11,21 @@ from datetime import datetime, timedelta, timezone
 
 import jwt
 
-_SECRET = os.environ.get("DEFI_JWT_SECRET", secrets.token_hex(32))
+_SECRET = os.environ.get("DEFI_JWT_SECRET", "")
+if not _SECRET or len(_SECRET) < 32:
+    _env = os.environ.get("ENV", os.environ.get("BRIDGE_ENV", "")).lower()
+    if _env == "production":
+        raise RuntimeError(
+            "CRITICAL: DEFI_JWT_SECRET must be set to a strong secret (>=32 chars) in production. "
+            "Generate with: python -c \"import secrets; print(secrets.token_hex(32))\""
+        )
+    import warnings as _w
+    _w.warn(
+        "DEFI_JWT_SECRET is missing or too short — using ephemeral secret. "
+        "All DeFi sessions will be invalidated on restart. Set DEFI_JWT_SECRET in .env.",
+        stacklevel=1,
+    )
+    _SECRET = secrets.token_hex(32)
 _ALGORITHM = "HS256"
 _ACCESS_EXPIRE_MINUTES = 15
 _REFRESH_EXPIRE_DAYS = 7

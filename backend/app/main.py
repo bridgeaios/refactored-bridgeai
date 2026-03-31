@@ -17,18 +17,15 @@ from fastapi import (
 from fastapi.responses import JSONResponse
 
 
-# Load env API keys for Digital Twin: prefer explicit process env, but replace blank inherited values
-# with repo/unified env file values so the twin status panel reflects the active local configuration.
+# Load env: fill blank/unset variables from .env files relative to the repo root.
+# Extra developer-local paths (E:/AOE, D:/) are deliberately excluded — they are
+# machine-specific and must not override production/CI environment variables.
 def _load_twin_env():
     try:
         import os
-
         from dotenv import dotenv_values
         repo_root = Path(__file__).resolve().parents[2]
-        aoe = Path("E:/AOE/.env")
-        v1_env = Path("E:/AOE/v1/.env")
-        unified = Path(r"D:\\.env.unified")
-        for p in [repo_root / ".env", unified, aoe, v1_env]:
+        for p in [repo_root / ".env", repo_root / "backend" / ".env"]:
             if not p.exists() or p.suffix == ".json":
                 continue
             for key, value in dotenv_values(p).items():

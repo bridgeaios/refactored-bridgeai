@@ -26,7 +26,8 @@ if JWT_SECRET.lower().strip() in _INSECURE_PLACEHOLDERS or len(JWT_SECRET) < 32:
         stacklevel=1,
     )
     # In production, crash hard. In dev, warn but allow startup with a random ephemeral secret.
-    if os.environ.get("NODE_ENV") == "production" or os.environ.get("BRIDGE_ENV") == "production":
+    _env = os.environ.get("ENV", os.environ.get("BRIDGE_ENV", os.environ.get("NODE_ENV", ""))).lower()
+    if _env == "production":
         raise RuntimeError(
             "CRITICAL: BRIDGE_SIWE_JWT_SECRET must be set to a strong secret (>=32 chars) in production. "
             "Refusing to start with an insecure or missing secret."

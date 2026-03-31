@@ -249,7 +249,7 @@ async def execute_task(task):
 
             # Cost accounting for OSINT inference cycle
             try:
-                await record_cost(mem, channel="X", label="osint_analysis", amount=0.05,
+                await record_cost(_mem, channel="X", label="osint_analysis", amount=0.05,
                                   ref_id=company_url[:60])
             except Exception:
                 pass

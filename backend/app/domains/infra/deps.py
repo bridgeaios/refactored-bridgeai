@@ -11,10 +11,11 @@ from app.domains.infra.services import InfraServices
 _singleton: InfraServices | None = None
 _bearer = HTTPBearer(auto_error=False)
 
-# Internal service token — used by workers.py and background tasks to call
-# JWT-protected endpoints without a full SIWE login round-trip.
-# Set BRIDGE_INTERNAL_TOKEN in .env to a strong random secret.
-_INTERNAL_TOKEN: str = os.environ.get("BRIDGE_INTERNAL_TOKEN", "")
+# Internal service token — read lazily at request time so that env vars
+# populated by _load_twin_env() in main.py (which runs after module imports)
+# are visible. Set BRIDGE_INTERNAL_TOKEN in .env to a strong random secret.
+def _internal_token() -> str:
+    return os.environ.get("BRIDGE_INTERNAL_TOKEN", "")
 
 
 def get_infra() -> InfraServices:
@@ -40,7 +41,8 @@ def require_jwt(
         raise HTTPException(status_code=401, detail="Authentication required")
     # Fast-path: internal service token (constant-time compare)
     import hmac
-    if _INTERNAL_TOKEN and hmac.compare_digest(token, _INTERNAL_TOKEN):
+    _tok = _internal_token()
+    if _tok and hmac.compare_digest(token, _tok):
         return {"sub": "internal-service", "authority": "internal"}
     # Standard SIWE JWT path
     payload = verify_jwt(token)
