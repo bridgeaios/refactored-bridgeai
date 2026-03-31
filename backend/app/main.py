@@ -249,9 +249,17 @@ app.add_middleware(
 )
 
 # Security middleware — headers on every response, rate limiting per IP
-from app.middleware.security import RateLimitMiddleware, SecurityHeadersMiddleware
+from app.middleware.security import (
+    EmitGateMiddleware,
+    EmitGatewayMiddleware,
+    RateLimitMiddleware,
+    SecurityHeadersMiddleware,
+    apply_emit_gate,
+)
 app.add_middleware(SecurityHeadersMiddleware)
 app.add_middleware(RateLimitMiddleware, requests_per_minute=120)
+app.add_middleware(EmitGatewayMiddleware)
+apply_emit_gate(app)  # outermost — seals every response at the boundary
 
 
 @app.middleware("http")
@@ -317,7 +325,7 @@ def _require_auth(request: Request) -> dict:
     raise HTTPException(status_code=403, detail="Invalid or expired token")
 
 
-@app.post("/api/ingest/goassl")
+@app.post("/ingest/goassl")
 async def ingest_goassl(request: Request, body: dict) -> dict[str, Any]:
     """Ingest GOASSL protocol messages into Digital Twin cognition."""
     _require_auth(request)
@@ -330,7 +338,7 @@ async def ingest_goassl(request: Request, body: dict) -> dict[str, Any]:
     return await svc.ingest_goassl(msg)
 
 
-@app.post("/api/ingest/tasks")
+@app.post("/ingest/tasks")
 async def ingest_tasks(request: Request, body: dict) -> dict[str, Any]:
     """Auto-create tasks from external signals into mission board."""
     _require_auth(request)
@@ -352,7 +360,7 @@ async def ingest_tasks(request: Request, body: dict) -> dict[str, Any]:
     return await svc.ingest_task(task)
 
 
-@app.post("/api/ingest/skills")
+@app.post("/ingest/skills")
 async def ingest_skills(request: Request, body: dict) -> dict[str, Any]:
     """Add skills to Digital Twin's skill stack."""
     _require_auth(request)
@@ -365,7 +373,7 @@ async def ingest_skills(request: Request, body: dict) -> dict[str, Any]:
     return await svc.ingest_skill(skill)
 
 
-@app.get("/api/ingest/status")
+@app.get("/ingest/status")
 async def ingest_status(request: Request) -> dict[str, Any]:
     """Get ingestion pipeline status."""
     _require_auth(request)
@@ -373,7 +381,7 @@ async def ingest_status(request: Request) -> dict[str, Any]:
     return await svc.get_status()
 
 
-@app.post("/api/ingest/scan-all-skills")
+@app.post("/ingest/scan-all-skills")
 async def scan_all_skills(request: Request) -> dict[str, Any]:
     """Scan all drives (C, D, E) for skills and import to Digital Twin."""
     _require_auth(request)
@@ -381,7 +389,7 @@ async def scan_all_skills(request: Request) -> dict[str, Any]:
     return await svc.scan_and_import_all_skills()
 
 
-@app.post("/api/autonomous/deploy-50-apps")
+@app.post("/autonomous/deploy-50-apps")
 async def deploy_50_applications(request: Request) -> dict[str, Any]:
     """
     Autonomous Deployment: Build and run all 50 applications using skills.
@@ -515,7 +523,7 @@ async def deploy_50_applications(request: Request) -> dict[str, Any]:
     }
 
 
-@app.post("/api/state")
+@app.post("/state")
 async def state_mutation(body: dict) -> dict[str, Any]:
     """
     Mutate canonical state via sanctioned reducers.
@@ -549,7 +557,7 @@ async def state_mutation(body: dict) -> dict[str, Any]:
 # KeyForge — Deterministic Rotating Key System
 # =============================================================================
 
-@app.get("/api/keyforge/status")
+@app.get("/keyforge/status")
 async def keyforge_status(request: Request) -> dict[str, Any]:
     """KeyForge system status and diagnostics."""
     _require_local_access(request)
@@ -558,7 +566,7 @@ async def keyforge_status(request: Request) -> dict[str, Any]:
     return {"ok": True, **forge.status()}
 
 
-@app.post("/api/keyforge/issue")
+@app.post("/keyforge/issue")
 async def keyforge_issue(request: Request, body: dict) -> dict[str, Any]:
     """Issue a KeyForge token for a given scope."""
     _require_auth(request)  # Must be authenticated to issue tokens
@@ -573,7 +581,7 @@ async def keyforge_issue(request: Request, body: dict) -> dict[str, Any]:
         raise HTTPException(status_code=400, detail=str(e))
 
 
-@app.post("/api/keyforge/validate")
+@app.post("/keyforge/validate")
 async def keyforge_validate(body: dict) -> dict[str, Any]:
     """Validate a KeyForge token. Public endpoint — any node can validate."""
     from app.services.keyforge import get_keyforge
@@ -592,7 +600,7 @@ async def keyforge_validate(body: dict) -> dict[str, Any]:
     }
 
 
-@app.post("/api/keyforge/revoke")
+@app.post("/keyforge/revoke")
 async def keyforge_revoke(request: Request, body: dict) -> dict[str, Any]:
     """Revoke a key ID or scope. Requires auth."""
     _require_auth(request)
@@ -614,7 +622,7 @@ async def keyforge_revoke(request: Request, body: dict) -> dict[str, Any]:
     return {"ok": True, "revoked_key": key_id, "revoked_scope": scope}
 
 
-@app.get("/api/keyforge/audit")
+@app.get("/keyforge/audit")
 async def keyforge_audit(request: Request) -> dict[str, Any]:
     """KeyForge audit log. Localhost only."""
     _require_local_access(request)
@@ -694,7 +702,7 @@ def _require_local_access(request: Request) -> None:
         raise HTTPException(status_code=403, detail="Admin endpoints are local-only")
 
 
-@app.get("/api/admin/keys")
+@app.get("/admin/keys")
 async def admin_get_keys(request: Request) -> dict[str, Any]:
     """Return current key statuses (masked values for set keys)."""
     _require_local_access(request)
@@ -707,7 +715,7 @@ async def admin_get_keys(request: Request) -> dict[str, Any]:
     return {"ok": True, "keys": masked}
 
 
-@app.put("/api/admin/keys")
+@app.put("/admin/keys")
 async def admin_set_keys(request: Request, body: dict) -> dict[str, Any]:
     """Update keys in .env file. Requires backend restart to take effect."""
     _require_local_access(request)
@@ -754,15 +762,15 @@ async def root():
         "version": "1.0.0",
         "schema_version": SCHEMA_VERSION,
         "docs": "/docs",
-        "health": "/api/health",
-        "health_extended": "/api/health/extended",
-        "state": "/api/state",
-        "state_snapshot": "/api/state/snapshot",
+        "health": "/health",
+        "health_extended": "/health/extended",
+        "state": "/state",
+        "state_snapshot": "/state/snapshot",
         "gateway": "/gateway",
-        "auth_siwe": "/api/auth/siwe",
+        "auth_siwe": "/auth/siwe",
         "auth_service": "bridge-auth (Node :3030) for full ladder: session, refresh, ws/events",
-        "capabilities": "/api/capabilities",
-        "telemetry": "/api/telemetry",
+        "capabilities": "/capabilities",
+        "telemetry": "/telemetry",
         "spine": "Endpoint → Reducer → State → Scheduler → Expression",
         "loop": "Perception → Decision → Expression → Economic Effect → State Update → Evolution",
         "organism_mode": "reactive",  # Responds only to input. Agentic requires internal goal vector + background scheduler.
@@ -774,7 +782,7 @@ async def root():
     }
 
 
-@app.get("/api/capabilities")
+@app.get("/capabilities")
 async def get_capabilities():
     """Capability registry. Twins read flags before acting. Scale to 100 variants."""
     from app.cortex import get_capability_audit_log
@@ -786,13 +794,13 @@ async def get_capabilities():
     }
 
 
-@app.get("/api/state/reducers")
+@app.get("/state/reducers")
 async def list_sanctioned_reducers():
     """Immutable snapshot. Ties allowed mutation to system identity. SPINE: no rogue mutation."""
     return get_registry_snapshot()
 
 
-@app.get("/api/state/snapshot")
+@app.get("/state/snapshot")
 async def state_snapshot():
     """
     Full state snapshot. Version without snapshot is memory without recall.
@@ -830,7 +838,7 @@ async def state_snapshot():
     }
 
 
-@app.get("/api/telemetry")
+@app.get("/telemetry")
 async def get_telemetry():
     """Observability: decision_latency, speech_latency, silence_rate, state_mutation_frequency, economic_conversion_rate."""
     return wrap_response(telemetry.to_dict(), state_delta=False)

@@ -1,0 +1,508 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>BridgeAI · Control Plane</title>
+  <style>
+    *{box-sizing:border-box;margin:0;padding:0}
+    body{background:#050508;color:#e2e8f0;font-family:Inter,system-ui,sans-serif;min-height:100vh}
+    header{display:flex;align-items:center;justify-content:space-between;padding:.9rem 2rem;border-bottom:1px solid #1e293b;background:#0a0a0f;position:sticky;top:0;z-index:100}
+    header h1{font-size:1.1rem;font-weight:700;color:#f8fafc;letter-spacing:.01em}
+    .nav{display:flex;gap:.6rem;align-items:center}
+    .nav a{color:#94a3b8;text-decoration:none;font-size:.78rem;padding:.3rem .65rem;border-radius:5px;border:1px solid #1e293b;transition:all .15s}
+    .nav a:hover{color:#38bdf8;border-color:#38bdf8}
+    .status-dot{width:8px;height:8px;border-radius:50%;display:inline-block;margin-right:5px;vertical-align:middle}
+    .dot-live{background:#34d399;animation:pulse 1.5s infinite}
+    .dot-off{background:#475569}
+    @keyframes pulse{0%,100%{opacity:1}50%{opacity:.3}}
+    .page{padding:1.5rem 2rem;max-width:1600px;margin:0 auto}
+
+    /* ── Metrics strip ── */
+    .metrics{display:grid;grid-template-columns:repeat(auto-fit,minmax(140px,1fr));gap:.75rem;margin-bottom:1.5rem}
+    .metric{background:#0d0d17;border:1px solid #1e293b;border-radius:8px;padding:1rem 1.1rem}
+    .metric-val{font-size:1.6rem;font-weight:700;line-height:1;font-variant-numeric:tabular-nums}
+    .metric-lbl{font-size:.67rem;color:#64748b;text-transform:uppercase;letter-spacing:.07em;margin-top:.35rem}
+
+    /* ── Layout ── */
+    .grid-main{display:grid;grid-template-columns:1fr 1fr;gap:1.25rem;margin-bottom:1.25rem}
+    .grid-bottom{display:grid;grid-template-columns:2fr 1fr;gap:1.25rem}
+    @media(max-width:1100px){.grid-main,.grid-bottom{grid-template-columns:1fr}}
+    .panel{background:#0d0d17;border:1px solid #1e293b;border-radius:10px;overflow:hidden}
+    .panel-head{padding:.75rem 1rem;border-bottom:1px solid #1e293b;display:flex;align-items:center;justify-content:space-between}
+    .panel-title{font-size:.72rem;font-weight:600;text-transform:uppercase;letter-spacing:.07em;color:#94a3b8}
+    .panel-body{padding:1rem}
+
+    /* ── Topology ── */
+    #topology-svg{width:100%;height:300px}
+    .topo-canvas{width:100%;height:300px;position:relative;overflow:hidden}
+
+    /* ── Node cards ── */
+    .nodes{display:grid;grid-template-columns:repeat(auto-fill,minmax(160px,1fr));gap:.6rem;padding:1rem}
+    .node-card{background:#111827;border:1px solid #1e293b;border-radius:8px;padding:.8rem .9rem;position:relative}
+    .node-name{font-size:.8rem;font-weight:600;color:#e2e8f0;margin-bottom:.3rem}
+    .node-status{font-size:.67rem;text-transform:uppercase;letter-spacing:.06em;font-weight:700}
+    .s-ok{color:#34d399}.s-degraded{color:#fb923c}.s-error{color:#f87171}.s-unknown,.s-idle{color:#64748b}
+    .node-meta{font-size:.67rem;color:#475569;margin-top:.35rem;line-height:1.5}
+    .node-indicator{position:absolute;top:.8rem;right:.8rem;width:7px;height:7px;border-radius:50%}
+    .i-ok{background:#34d399}.i-degraded{background:#fb923c}.i-error{background:#f87171}.i-unknown,.i-idle{background:#334155}
+
+    /* ── Event stream ── */
+    #event-list{height:280px;overflow-y:auto;padding:.5rem 1rem;font-size:.72rem;font-family:monospace}
+    .ev{display:flex;gap:.6rem;padding:.3rem 0;border-bottom:1px solid #0d0d17;align-items:baseline}
+    .ev-ts{color:#334155;flex-shrink:0;font-size:.64rem;width:72px}
+    .ev-type{flex-shrink:0;padding:1px 6px;border-radius:3px;font-size:.63rem;font-weight:700;text-transform:uppercase;letter-spacing:.04em;width:130px;text-align:center}
+    .ev-data{color:#64748b;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+    /* event type colours */
+    .et-loop_tick{background:#1e3a5f;color:#60a5fa}
+    .et-marketing_convert{background:#1a3a2a;color:#4ade80}
+    .et-payment_received{background:#1e3a2a;color:#34d399}
+    .et-ubi_distribute{background:#2a1e3a;color:#a78bfa}
+    .et-trade_executed{background:#3a2a1e;color:#fb923c}
+    .et-admin_override{background:#3a1e1e;color:#f87171}
+    .et-security_check{background:#1e2a3a;color:#38bdf8}
+    .et-other{background:#1e293b;color:#64748b}
+
+    /* ── Pipeline funnel ── */
+    .funnel{padding:.75rem 1rem}
+    .funnel-row{display:flex;align-items:center;gap:.6rem;margin-bottom:.5rem}
+    .funnel-lbl{font-size:.7rem;color:#94a3b8;width:88px;flex-shrink:0;text-transform:capitalize}
+    .funnel-bar-wrap{flex:1;background:#1e293b;border-radius:3px;height:8px;overflow:hidden}
+    .funnel-bar{height:8px;border-radius:3px;transition:width .5s}
+    .funnel-cnt{font-size:.7rem;color:#475569;width:24px;text-align:right;flex-shrink:0}
+
+    /* ── Hourly chart ── */
+    #hourly-chart{height:80px;padding:.5rem 1rem 0}
+
+    /* ── Admin actions ── */
+    .actions{padding:1rem;display:flex;flex-direction:column;gap:.5rem}
+    .action-btn{background:#111827;border:1px solid #1e293b;color:#94a3b8;padding:.6rem 1rem;border-radius:6px;font-size:.78rem;cursor:pointer;text-align:left;transition:all .15s;display:flex;align-items:center;gap:.5rem}
+    .action-btn:hover{border-color:#38bdf8;color:#38bdf8}
+    .action-btn.running{border-color:#fb923c;color:#fb923c}
+    .action-btn.done{border-color:#34d399;color:#34d399}
+    .action-icon{font-size:.9rem;width:1.2rem;text-align:center}
+
+    /* ── Activity numbers in node card ── */
+    .node-kv{display:flex;justify-content:space-between;font-size:.65rem;color:#334155;margin-top:.15rem}
+    .node-kv span:last-child{color:#475569}
+
+    /* ── System state strip (clock, costs, constraints) ── */
+    .sysstrip{display:grid;grid-template-columns:repeat(auto-fit,minmax(120px,1fr));gap:.5rem;margin-bottom:1.25rem;padding:.6rem 1rem;background:#0a0a0f;border:1px solid #1e293b;border-radius:8px}
+    .ss-item{display:flex;flex-direction:column;gap:.15rem}
+    .ss-val{font-size:.85rem;font-weight:700;font-variant-numeric:tabular-nums;color:#e2e8f0}
+    .ss-lbl{font-size:.6rem;color:#475569;text-transform:uppercase;letter-spacing:.07em}
+    .ss-settling{color:#f59e0b!important}
+    .ss-ok{color:#34d399!important}
+    .ss-warn{color:#fb923c!important}
+    .ss-crit{color:#f87171!important}
+  </style>
+</head>
+<body>
+
+<header>
+  <h1><span class="status-dot dot-live" id="sse-dot"></span>Control Plane</h1>
+  <div class="nav">
+    <span style="font-size:.7rem;color:#475569" id="last-tick">—</span>
+    <a href="/dashboard.html">Dashboard</a>
+    <a href="/leads.html">Leads</a>
+    <a href="/crm.html">CRM</a>
+    <a href="/invoicing.html">Invoicing</a>
+    <a href="#" id="nav-observe" title="Open /api/observe/summary in new tab">Observe</a>
+  </div>
+</header>
+
+<div class="page">
+
+  <!-- System state strip: clock + costs + constraints -->
+  <div class="sysstrip" id="sys-strip">
+    <div class="ss-item"><span class="ss-val" id="ss-cycle">—</span><span class="ss-lbl">Cycle</span></div>
+    <div class="ss-item"><span class="ss-val" id="ss-window">—</span><span class="ss-lbl">Window</span></div>
+    <div class="ss-item"><span class="ss-val" id="ss-settling">—</span><span class="ss-lbl">Settlement</span></div>
+    <div class="ss-item"><span class="ss-val" id="ss-cost-j">—</span><span class="ss-lbl">Cost J (Job)</span></div>
+    <div class="ss-item"><span class="ss-val" id="ss-cost-x">—</span><span class="ss-lbl">Cost X (Agent)</span></div>
+    <div class="ss-item"><span class="ss-val" id="ss-cost-f">—</span><span class="ss-lbl">Cost F (Finance)</span></div>
+    <div class="ss-item"><span class="ss-val" id="ss-queue">—</span><span class="ss-lbl">Queue Depth</span></div>
+    <div class="ss-item"><span class="ss-val" id="ss-agents">—</span><span class="ss-lbl">Active Agents</span></div>
+  </div>
+
+  <!-- Metrics strip -->
+  <div class="metrics" id="metrics-strip">
+    <div class="metric"><div class="metric-val" id="m-treasury">—</div><div class="metric-lbl">Treasury BRDG</div></div>
+    <div class="metric"><div class="metric-val" id="m-leads">—</div><div class="metric-lbl">Active Leads</div></div>
+    <div class="metric"><div class="metric-val" id="m-trades">—</div><div class="metric-lbl">Trade Cycles</div></div>
+    <div class="metric"><div class="metric-val" id="m-outreach">—</div><div class="metric-lbl">Outreach Queue</div></div>
+    <div class="metric"><div class="metric-val" id="m-events">—</div><div class="metric-lbl">Events (session)</div></div>
+  </div>
+
+  <!-- Main grid -->
+  <div class="grid-main">
+
+    <!-- Topology nodes -->
+    <div class="panel">
+      <div class="panel-head">
+        <span class="panel-title">System Topology</span>
+        <span style="font-size:.67rem;color:#334155" id="topo-ts">—</span>
+      </div>
+      <div class="nodes" id="topology-nodes">
+        <!-- injected by JS -->
+      </div>
+    </div>
+
+    <!-- Event stream -->
+    <div class="panel">
+      <div class="panel-head">
+        <span class="panel-title">Event Stream</span>
+        <span style="font-size:.67rem;color:#334155" id="ev-count">0 events</span>
+      </div>
+      <div id="event-list"></div>
+    </div>
+
+  </div>
+
+  <!-- Bottom grid -->
+  <div class="grid-bottom">
+
+    <!-- Pipeline funnel + hourly activity -->
+    <div class="panel">
+      <div class="panel-head"><span class="panel-title">Pipeline</span></div>
+      <div class="funnel" id="funnel-rows"></div>
+      <div class="panel-head" style="margin-top:.25rem"><span class="panel-title">Hourly Task Activity</span></div>
+      <div id="hourly-chart"></div>
+    </div>
+
+    <!-- Admin actions -->
+    <div class="panel">
+      <div class="panel-head"><span class="panel-title">Admin Overrides</span></div>
+      <div class="actions" id="action-list">
+        <button class="action-btn" data-action="activation_loop"><span class="action-icon">⚡</span>Run Activation Loop</button>
+        <button class="action-btn" data-action="score_refresh"><span class="action-icon">🧠</span>Refresh Lead Scores</button>
+        <button class="action-btn" data-action="flag_overdue"><span class="action-icon">🔔</span>Flag Overdue Invoices</button>
+        <button class="action-btn" data-action="clear_outreach_queue"><span class="action-icon">📭</span>Clear Outreach Queue</button>
+        <button class="action-btn" data-action="security_check"><span class="action-icon">🛡</span>Run Security Check</button>
+      </div>
+    </div>
+
+  </div>
+
+</div>
+
+<script>
+// ── Auth guard ──────────────────────────────────────────────
+(function(){
+  const tok = localStorage.getItem('bridge_token');
+  if(!tok) { window.location.href='/login.html'; }
+})();
+
+const API = '';
+const TOKEN = localStorage.getItem('bridge_token') || '';
+const HEADERS = { 'Content-Type':'application/json', 'Authorization': `Bearer ${TOKEN}` };
+
+let sessionEventCount = 0;
+let eventSource = null;
+let sseLive = false;
+
+// ── Helpers ─────────────────────────────────────────────────
+function fmtTime(ts) {
+  if(!ts) return '—';
+  const d = new Date(ts * 1000);
+  return d.toLocaleTimeString('en-ZA', {hour12:false,hour:'2-digit',minute:'2-digit',second:'2-digit'});
+}
+
+function colorForStatus(s) {
+  if(s==='ok') return '#34d399';
+  if(s==='degraded') return '#fb923c';
+  if(s==='error') return '#f87171';
+  return '#475569';
+}
+
+function stageColor(stage) {
+  const map = {new:'#475569',qualified:'#38bdf8',proposal:'#a78bfa',negotiation:'#fb923c',won:'#34d399',lost:'#f87171'};
+  return map[stage] || '#475569';
+}
+
+// ── Metrics ──────────────────────────────────────────────────
+async function loadMetrics() {
+  try {
+    const r = await fetch(`${API}/api/control/metrics`, {headers: HEADERS});
+    if(!r.ok) return;
+    const d = await r.json();
+    document.getElementById('m-treasury').textContent = d.treasury_brdg.toFixed(4);
+    document.getElementById('m-leads').textContent = d.leads;
+    document.getElementById('m-trades').textContent = d.trades;
+    document.getElementById('m-outreach').textContent = d.outreach_pending;
+    document.getElementById('m-events').textContent = sessionEventCount;
+    renderFunnel(d.pipeline);
+    renderHourlyChart(d.task_buckets, d.task_labels);
+
+    // System state strip: clock
+    const clk = d.clock || {};
+    const el = (id) => document.getElementById(id);
+    el('ss-cycle').textContent = clk.cycle != null ? '#' + clk.cycle : '—';
+    el('ss-window').textContent = clk.window || '—';
+    const settEl = el('ss-settling');
+    settEl.textContent = clk.settling ? 'SETTLING' : 'RUNNING';
+    settEl.className = 'ss-val ' + (clk.settling ? 'ss-settling' : 'ss-ok');
+
+    // Costs
+    const costs = (d.costs || {});
+    const totals = costs.totals || {};
+    const caps = costs.caps || {J:100,X:50,F:500};
+    const pctJ = totals.J != null ? Math.round(totals.J / caps.J * 100) : null;
+    const pctX = totals.X != null ? Math.round(totals.X / caps.X * 100) : null;
+    const pctF = totals.F != null ? Math.round(totals.F / caps.F * 100) : null;
+    function costClass(pct) { return pct == null ? '' : pct > 85 ? 'ss-crit' : pct > 60 ? 'ss-warn' : 'ss-ok'; }
+    function costText(v, pct) { return v != null ? v.toFixed(2) + (pct!=null ? ' ('+pct+'%)' : '') : '—'; }
+    el('ss-cost-j').textContent = costText(totals.J, pctJ);
+    el('ss-cost-j').className = 'ss-val ' + costClass(pctJ);
+    el('ss-cost-x').textContent = costText(totals.X, pctX);
+    el('ss-cost-x').className = 'ss-val ' + costClass(pctX);
+    el('ss-cost-f').textContent = costText(totals.F, pctF);
+    el('ss-cost-f').className = 'ss-val ' + costClass(pctF);
+
+    // Constraints
+    const con = d.constraints || {};
+    const qd = con.queue_depth != null ? con.queue_depth : '—';
+    const ag = con.active_agents != null ? con.active_agents : '—';
+    el('ss-queue').textContent = qd;
+    el('ss-queue').className = 'ss-val ' + (typeof qd === 'number' && qd > 400 ? 'ss-crit' : typeof qd === 'number' && qd > 200 ? 'ss-warn' : 'ss-ok');
+    el('ss-agents').textContent = ag;
+    el('ss-agents').className = 'ss-val ' + (typeof ag === 'number' && ag >= 10 ? 'ss-crit' : 'ss-ok');
+  } catch(e) {}
+}
+
+// ── Topology ─────────────────────────────────────────────────
+async function loadTopology() {
+  try {
+    const r = await fetch(`${API}/api/control/topology`, {headers: HEADERS});
+    if(!r.ok) return;
+    const d = await r.json();
+    document.getElementById('topo-ts').textContent = fmtTime(d.ts);
+    renderNodes(d.nodes);
+  } catch(e) {}
+}
+
+function renderNodes(nodes) {
+  const container = document.getElementById('topology-nodes');
+  container.textContent = '';
+  for(const n of nodes) {
+    const card = document.createElement('div');
+    card.className = 'node-card';
+
+    const indicator = document.createElement('div');
+    indicator.className = `node-indicator i-${n.status}`;
+    card.appendChild(indicator);
+
+    const name = document.createElement('div');
+    name.className = 'node-name';
+    name.textContent = n.label;
+    card.appendChild(name);
+
+    const status = document.createElement('div');
+    status.className = `node-status s-${n.status}`;
+    status.textContent = n.status.toUpperCase();
+    card.appendChild(status);
+
+    const meta = document.createElement('div');
+    meta.className = 'node-meta';
+    const m = n.meta || {};
+    for(const [k, v] of Object.entries(m).slice(0, 3)) {
+      const row = document.createElement('div');
+      row.className = 'node-kv';
+      const lbl = document.createElement('span');
+      lbl.textContent = k.replace(/_/g,' ');
+      const val = document.createElement('span');
+      val.textContent = typeof v === 'object' ? JSON.stringify(v).slice(0,20) : String(v).slice(0,20);
+      row.appendChild(lbl);
+      row.appendChild(val);
+      meta.appendChild(row);
+    }
+    card.appendChild(meta);
+    container.appendChild(card);
+  }
+}
+
+// ── Pipeline funnel ──────────────────────────────────────────
+function renderFunnel(pipeline) {
+  const container = document.getElementById('funnel-rows');
+  container.textContent = '';
+  const stages = ['new','qualified','proposal','negotiation','won','lost'];
+  const counts = stages.map(s => pipeline[s] || 0);
+  const max = Math.max(...counts, 1);
+  for(let i=0; i<stages.length; i++) {
+    const row = document.createElement('div');
+    row.className = 'funnel-row';
+
+    const lbl = document.createElement('div');
+    lbl.className = 'funnel-lbl';
+    lbl.textContent = stages[i];
+    row.appendChild(lbl);
+
+    const wrap = document.createElement('div');
+    wrap.className = 'funnel-bar-wrap';
+    const bar = document.createElement('div');
+    bar.className = 'funnel-bar';
+    bar.style.width = `${(counts[i]/max)*100}%`;
+    bar.style.background = stageColor(stages[i]);
+    wrap.appendChild(bar);
+    row.appendChild(wrap);
+
+    const cnt = document.createElement('div');
+    cnt.className = 'funnel-cnt';
+    cnt.textContent = counts[i];
+    row.appendChild(cnt);
+
+    container.appendChild(row);
+  }
+}
+
+// ── Hourly activity chart (mini bar chart) ───────────────────
+function renderHourlyChart(buckets, labels) {
+  const container = document.getElementById('hourly-chart');
+  container.textContent = '';
+  if(!buckets || !buckets.length) return;
+  const max = Math.max(...buckets, 1);
+  const svg = document.createElementNS('http://www.w3.org/2000/svg','svg');
+  svg.setAttribute('viewBox',`0 0 ${buckets.length*14} 60`);
+  svg.style.width = '100%';
+  svg.style.height = '70px';
+  for(let i=0; i<buckets.length; i++) {
+    const h = Math.max(2, (buckets[i]/max) * 52);
+    const rect = document.createElementNS('http://www.w3.org/2000/svg','rect');
+    rect.setAttribute('x', i*14+1);
+    rect.setAttribute('y', 54-h);
+    rect.setAttribute('width', 11);
+    rect.setAttribute('height', h);
+    rect.setAttribute('rx', 2);
+    rect.setAttribute('fill', '#38bdf8');
+    rect.setAttribute('opacity', '0.7');
+    svg.appendChild(rect);
+  }
+  container.appendChild(svg);
+}
+
+// ── Event stream (SSE) ───────────────────────────────────────
+function startEventStream() {
+  const url = `/api/control/events?token=${encodeURIComponent(TOKEN)}`;
+
+  // Use fetch-based SSE with Authorization header
+  // Falls back to polling if EventSource doesn't support headers
+  connectSSE();
+}
+
+function connectSSE() {
+  // EventSource doesn't support custom headers; use polling as fallback
+  // On same-origin with cookie auth this would work, but we use JWT
+  // So we poll /api/control/metrics for events
+  pollEvents();
+}
+
+let _lastEventCount = 0;
+
+async function pollEvents() {
+  try {
+    const r = await fetch(`${API}/api/control/metrics`, {headers: HEADERS});
+    if(!r.ok) { markSseOff(); return; }
+    const d = await r.json();
+    const events = d.recent_events || [];
+    if(events.length !== _lastEventCount) {
+      // render new events
+      const newEvs = events.slice(_lastEventCount > 0 ? Math.max(0, events.length - 20) : 0);
+      for(const ev of newEvs) appendEvent(ev);
+      _lastEventCount = events.length;
+      sessionEventCount = events.length;
+      document.getElementById('m-events').textContent = sessionEventCount;
+    }
+    markSseLive();
+  } catch(e) {
+    markSseOff();
+  }
+}
+
+function markSseLive() {
+  const dot = document.getElementById('sse-dot');
+  dot.className = 'status-dot dot-live';
+}
+function markSseOff() {
+  const dot = document.getElementById('sse-dot');
+  dot.className = 'status-dot dot-off';
+}
+
+function appendEvent(ev) {
+  const list = document.getElementById('event-list');
+  const row = document.createElement('div');
+  row.className = 'ev';
+
+  const ts = document.createElement('span');
+  ts.className = 'ev-ts';
+  ts.textContent = fmtTime(ev.ts);
+  row.appendChild(ts);
+
+  const type = document.createElement('span');
+  const typeKey = ev.type || 'other';
+  type.className = `ev-type et-${typeKey}`;
+  if(!type.className.includes('et-loop_tick') &&
+     !type.className.includes('et-marketing') &&
+     !type.className.includes('et-payment') &&
+     !type.className.includes('et-ubi') &&
+     !type.className.includes('et-trade') &&
+     !type.className.includes('et-admin') &&
+     !type.className.includes('et-security')) {
+    type.className = 'ev-type et-other';
+  }
+  type.textContent = typeKey.replace(/_/g,' ');
+  row.appendChild(type);
+
+  const data = document.createElement('span');
+  data.className = 'ev-data';
+  data.textContent = JSON.stringify(ev.data || {});
+  row.appendChild(data);
+
+  list.insertBefore(row, list.firstChild);
+  // keep only 80 rows
+  while(list.children.length > 80) list.removeChild(list.lastChild);
+
+  const cnt = document.getElementById('ev-count');
+  cnt.textContent = `${list.children.length} events`;
+
+  // update last tick
+  document.getElementById('last-tick').textContent = `Last: ${fmtTime(ev.ts)}`;
+}
+
+// ── Admin actions ────────────────────────────────────────────
+document.getElementById('action-list').addEventListener('click', async (e) => {
+  const btn = e.target.closest('[data-action]');
+  if(!btn) return;
+  const action = btn.dataset.action;
+  btn.classList.add('running');
+  btn.disabled = true;
+  try {
+    const r = await fetch(`${API}/api/control/trigger/${action}`, {
+      method: 'POST', headers: HEADERS,
+    });
+    const d = await r.json();
+    btn.classList.remove('running');
+    btn.classList.add('done');
+    setTimeout(() => { btn.classList.remove('done'); btn.disabled = false; }, 2500);
+    appendEvent({type:'admin_override',data:{action,...d},ts:Date.now()/1000});
+  } catch(e) {
+    btn.classList.remove('running');
+    btn.disabled = false;
+  }
+});
+
+// ── Observe nav ──────────────────────────────────────────────
+document.getElementById('nav-observe').addEventListener('click', (e) => {
+  e.preventDefault();
+  window.open(`${API}/api/observe/summary`, '_blank');
+});
+
+// ── Bootstrap ────────────────────────────────────────────────
+async function refresh() {
+  await Promise.all([loadTopology(), loadMetrics(), pollEvents()]);
+}
+
+refresh();
+setInterval(refresh, 5000);
+</script>
+</body>
+</html>

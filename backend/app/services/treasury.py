@@ -14,6 +14,8 @@ import json
 import time
 from typing import TYPE_CHECKING, Any
 
+from app.core.emit import emit_finance
+
 if TYPE_CHECKING:
     from app.services.memory_store import MemoryStore
 
@@ -73,6 +75,10 @@ class TreasuryService:
         """
         if amount <= 0:
             return {"ok": False, "reason": "amount must be > 0"}
+
+        # Emit gate (Finance channel): enforce value-positive execution
+        if not emit_finance(values=[amount], cost=0.0):
+            return {"ok": False, "reason": "emit_gate: non-positive value"}
 
         currency = currency.upper()
         rate = CURRENCY_TO_BRDG.get(currency, 1.0)

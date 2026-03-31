@@ -8,9 +8,15 @@ import json
 from bs4 import BeautifulSoup
 from urllib.parse import urljoin, parse_qs, urlparse, unquote
 from uuid import uuid4
+import time
 from datetime import datetime
 from db import db
 from osint import analyze_company
+from app.core.emit import emit_job, emit_pipeline, emit_finance, emit_agent
+from app.core.clock import stamp as clock_stamp, cycle_info
+from app.core.cost import record_cost
+from app.core.constraints import check_constraints
+from app.core.lifecycle import register_agent, heartbeat as agent_heartbeat, retire_agent
 
 # Internal API base — same process as app/main.py on port 8000
 _UNIFIED_URL = os.environ.get("BRIDGE_CRM_URL", "http://localhost:8000")
@@ -236,6 +242,18 @@ async def execute_task(task):
             company_title = lead.get("title", "")
             company_emails = lead.get("emails", [])
 
+            # Emit gate (Agent channel): value = email count (signal quality), cost = 0.05/lead
+            if not emit_agent(values=[float(len(company_emails))], cost=0.05):
+                print(f"[OSINT] Skipping {company_url[:40]} — no emails found, zero signal value")
+                continue
+
+            # Cost accounting for OSINT inference cycle
+            try:
+                await record_cost(mem, channel="X", label="osint_analysis", amount=0.05,
+                                  ref_id=company_url[:60])
+            except Exception:
+                pass
+
             osint_profile = analyze_company(company_url, company_title, company_emails)
             print(f"[OSINT] Analyzed {osint_profile['company_name']}: {osint_profile['industry']} ({osint_profile['size_estimate']})")
 
@@ -361,10 +379,31 @@ async def worker_loop():
 
     from app.core.deps import get_memory
 
+    # Register this worker process as a lifecycle agent
+    _worker_agent_id = None
+    try:
+        _mem_init = get_memory()
+        _worker_agent_id = await register_agent(_mem_init, name="worker_loop", channel="J")
+        print(f"[WORKER] Registered as agent {_worker_agent_id}")
+    except Exception as _reg_err:
+        print(f"[WORKER] Lifecycle registration skipped: {_reg_err}")
+
     while True:
         loop_count += 1
         try:
             mem = get_memory()
+
+            # Lifecycle heartbeat + clock stamp
+            try:
+                ci = cycle_info()
+                await mem.set("worker:last_heartbeat", str(time.time()))
+                await mem.set("worker:cycle", str(ci["cycle"]))
+                await mem.set("worker:window", ci["window"])
+                if _worker_agent_id:
+                    await agent_heartbeat(mem, _worker_agent_id, meta={"cycle": loop_count, "clock": ci["window"]})
+            except Exception:
+                pass
+
             tasks = await _mem_get_pending_tasks(mem)
 
             if tasks:
@@ -378,6 +417,26 @@ async def worker_loop():
                         if not claimed:
                             print(f"[WORKER] Task {task_id} already claimed, skipping")
                             continue
+
+                        # Constraint check (budget + rate + queue depth)
+                        constraint = await check_constraints(mem, channel="J", action="task")
+                        if not constraint.ok:
+                            print(f"[WORKER] Task {task_id} blocked by constraint: {constraint.reason}")
+                            await _mem_update_task(mem, task_id, "void", {"reason": constraint.reason})
+                            continue
+
+                        # Emit gate: value = expected_leads (1.0 base), cost = 0.1 per task cycle
+                        task_value = float(task.get("meta", {}).get("expected_value", 1.0))
+                        if not emit_job(values=[task_value], cost=0.1):
+                            print(f"[WORKER] Task {task_id} silenced — non-positive value")
+                            await _mem_update_task(mem, task_id, "void", {"reason": "emit_gate"})
+                            continue
+
+                        # Record cost
+                        try:
+                            await record_cost(mem, channel="J", label="task_exec", amount=0.1, ref_id=task_id)
+                        except Exception:
+                            pass
 
                         await _mem_update_task(mem, task_id, "running", {})
                         print(f"[WORKER] Processing task {task_id}...")
@@ -445,6 +504,15 @@ async def worker_loop():
 import random
 import math
 
+def _emit(type_: str, data: dict) -> None:
+    """Push event to control plane bus (best-effort — never raises)."""
+    try:
+        from app.routes.controlplane import emit_event
+        emit_event(type_, data)
+    except Exception:
+        pass
+
+
 async def _activation_loop(mem) -> None:
     """One cycle of the BridgeOS activation loop (bridge.js translated to Python)."""
     try:
@@ -452,6 +520,8 @@ async def _activation_loop(mem) -> None:
         from app.services.treasury import TreasuryService
 
         treasury = TreasuryService(mem)
+        await mem.set("activation_loop:last_run", time.time())
+        _emit("loop_tick", {"phase": "start"})
 
         # --- brain.process: re-score stale leads ---
         await _brain_process(mem)
@@ -527,7 +597,10 @@ async def _marketing_process(mem) -> list[float]:
             score = float(lead.get("score", 0))
 
             # Qualified + high score → promote to proposal (70% chance, mirrors bridge.js)
-            if stage == "qualified" and score >= 0.7 and random.random() > 0.3:
+            # Emit gate: value = [score, normalised_deal_estimate], cost = stage advancement cost
+            est_value = score * 1000  # rough deal estimate before we know actual value
+            if stage == "qualified" and score >= 0.7 and random.random() > 0.3 and \
+               emit_pipeline(values=[score, est_value / 1000], cost=0.3):
                 lead["stage"] = "proposal"
                 lead.setdefault("activities", []).append({
                     "type": "stage_change",
@@ -538,6 +611,7 @@ async def _marketing_process(mem) -> list[float]:
                 deal_value = round(score * random.uniform(500, 5000), 2)
                 converted_values.append(deal_value)
                 print(f"[MARKETING] Lead {lead_id[:8]} promoted → proposal (est. R{deal_value})")
+                _emit("marketing_convert", {"lead_id": lead_id[:8], "score": score, "value": deal_value})
 
     except Exception as e:
         print(f"[MARKETING] error: {type(e).__name__}: {e}")
@@ -548,6 +622,17 @@ async def _payment_received(treasury, amount: float) -> None:
     """payment.received → treasury.collect (split: UBI 40%, treasury 30%, ops 20%, founder 10%)
     then trading.execute on 20% of the amount.
     """
+    # Emit gate: value = payment amount, cost = processing overhead (1% of amount)
+    if not emit_finance(values=[amount], cost=amount * 0.01):
+        print(f"[TREASURY] Payment R{amount:.2f} silenced by emit gate (non-positive value)")
+        return
+    # Cost accounting for finance operation
+    try:
+        from app.core.deps import get_memory as _get_mem
+        _m = _get_mem()
+        await record_cost(_m, channel="F", label="payment_collect", amount=amount * 0.01)
+    except Exception:
+        pass
     try:
         result = await treasury.collect(
             amount=amount,
@@ -560,9 +645,11 @@ async def _payment_received(treasury, amount: float) -> None:
         split = result.get("entry", {}).get("split", {})
         ubi_share = split.get("ubi", 0)
         print(f"[TREASURY] Collected R{amount} ({brdg:.4f} BRDG) | UBI share: {ubi_share:.4f}")
+        _emit("payment_received", {"amount_zar": amount, "brdg": round(brdg, 6), "ubi": round(ubi_share, 6)})
 
         # economy.distribute — UBI leg (logged; actual on-chain claim stays pull-based)
         print(f"[UBI] Pool credited {ubi_share:.4f} BRDG")
+        _emit("ubi_distribute", {"brdg": round(ubi_share, 6)})
 
         # trading.execute — deploy 20% of payment
         await _trading_execute(treasury, amount * 0.2)
@@ -578,7 +665,9 @@ async def _trading_execute(treasury, capital: float) -> None:
         pnl_pct = random.uniform(-0.05, 0.20)
         profit = round(capital * pnl_pct, 4)
         print(f"[TRADING] Deployed R{capital:.2f} → P&L: R{profit:+.2f} ({pnl_pct*100:+.1f}%)")
-        if profit != 0:
+        _emit("trade_executed", {"capital": round(capital, 2), "pnl": profit, "pnl_pct": round(pnl_pct * 100, 1)})
+        # Emit gate: only record profitable trades to treasury (losses are silenced)
+        if profit != 0 and emit_finance(values=[profit], cost=0.0):
             await treasury.collect(
                 amount=abs(profit),
                 currency="ZAR",
@@ -605,3 +694,9 @@ async def _security_check(mem) -> None:
         print(f"[SECURITY] Integrity OK | agents={len(agent_ids)} | pending_tasks={pending}")
     except Exception as e:
         print(f"[SECURITY] check error: {type(e).__name__}: {e}")
+
+
+if __name__ == "__main__":
+    import asyncio as _asyncio
+    print("[WORKERS] Starting worker loop...")
+    _asyncio.run(worker_loop())

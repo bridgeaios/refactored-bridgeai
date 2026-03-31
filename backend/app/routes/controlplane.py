@@ -153,7 +153,7 @@ async def metrics(_: dict = Depends(require_jwt)) -> dict[str, Any]:
         from app.services.treasury import TreasuryService
         ts = await TreasuryService(mem).get_status()
         treasury_brdg = round(ts.get("total_brdg", 0), 6)
-    except Exception:
+    except Exception:  # nosec B110 — metrics endpoint must never 500 on service degradation
         pass
 
     lead_count = 0
@@ -163,7 +163,7 @@ async def metrics(_: dict = Depends(require_jwt)) -> dict[str, Any]:
         stats = await get_crm().stats()
         lead_count = stats.get("total_leads", 0)
         pipeline = stats.get("by_stage", {})
-    except Exception:
+    except Exception:  # nosec B110
         pass
 
     outreach_pending = 0
@@ -171,7 +171,7 @@ async def metrics(_: dict = Depends(require_jwt)) -> dict[str, Any]:
         from app.domains.outreach.deps import get_outreach
         ostat = await get_outreach().stats()
         outreach_pending = ostat.get("by_status", {}).get("pending", 0)
-    except Exception:
+    except Exception:  # nosec B110
         pass
 
     trade_count = 0
@@ -179,7 +179,7 @@ async def metrics(_: dict = Depends(require_jwt)) -> dict[str, Any]:
         from app.services.treasury import TreasuryService
         ledger = await TreasuryService(mem).get_ledger(limit=500)
         trade_count = sum(1 for e in ledger if e.get("method") == "trade")
-    except Exception:
+    except Exception:  # nosec B110
         pass
 
     # Hourly task telemetry
@@ -188,6 +188,26 @@ async def metrics(_: dict = Depends(require_jwt)) -> dict[str, Any]:
 
     # Recent event log
     recent_events = _event_log[-50:]
+
+    # Clock, costs, constraints
+    clock: dict = {}
+    costs: dict = {}
+    constraints: dict = {}
+    try:
+        from app.core.clock import cycle_info as _ci
+        clock = _ci()
+    except Exception:  # nosec B110
+        pass
+    try:
+        from app.core.cost import cost_summary as _cs
+        costs = await _cs(mem)
+    except Exception:  # nosec B110
+        pass
+    try:
+        from app.core.constraints import constraint_status as _con
+        constraints = await _con(mem)
+    except Exception:  # nosec B110
+        pass
 
     return {
         "treasury_brdg": treasury_brdg,
@@ -199,6 +219,9 @@ async def metrics(_: dict = Depends(require_jwt)) -> dict[str, Any]:
         "task_labels": task_labels,
         "event_count": len(_event_log),
         "recent_events": recent_events,
+        "clock": clock,
+        "costs": costs,
+        "constraints": constraints,
         "ts": time.time(),
     }
 

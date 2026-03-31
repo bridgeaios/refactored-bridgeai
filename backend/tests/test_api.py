@@ -25,7 +25,7 @@ class TestRootEndpoint:
 @pytest.mark.unit
 class TestCapabilitiesEndpoint:
     async def test_capabilities(self, client: AsyncClient):
-        response = await client.get("/api/capabilities")
+        response = await client.get("/capabilities")
         assert response.status_code == 200
         data = response.json()
         assert "ok" in data
