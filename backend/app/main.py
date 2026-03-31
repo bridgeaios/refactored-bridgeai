@@ -293,9 +293,10 @@ def _require_auth(request: Request) -> dict:
     token = auth_header[7:]
 
     # Allow server-side internal secret for service-to-service calls
+    import hmac as _hmac
     import os as _auth_os
     internal_secret = _auth_os.environ.get("BRIDGE_INTERNAL_SECRET", "")
-    if internal_secret and len(internal_secret) >= 32 and token == internal_secret:
+    if internal_secret and len(internal_secret) >= 32 and _hmac.compare_digest(token, internal_secret):
         return {"sub": "internal-service", "auth": "internal"}
 
     # KeyForge token — deterministic rotating key

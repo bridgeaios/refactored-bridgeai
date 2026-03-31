@@ -283,10 +283,18 @@ _ALLOWED_ACTIONS = {
 
 
 @router.post("/trigger/{action}")
-async def trigger_action(action: str, _: dict = Depends(require_jwt)) -> dict[str, Any]:
-    """Admin override: trigger a system action immediately."""
+async def trigger_action(action: str, caller: dict = Depends(require_jwt)) -> dict[str, Any]:
+    """Admin override: trigger a system action immediately.
+
+    Restricted to internal service tokens (authority=internal) or users with
+    an admin role. Standard SIWE JWT holders are rejected.
+    """
+    from fastapi import HTTPException
+    authority = caller.get("authority") or caller.get("role") or ""
+    if authority not in ("internal", "admin"):
+        raise HTTPException(403, detail="Admin or internal authority required for trigger actions")
+
     if action not in _ALLOWED_ACTIONS:
-        from fastapi import HTTPException
         raise HTTPException(400, detail=f"Unknown action '{action}'. Allowed: {sorted(_ALLOWED_ACTIONS)}")
 
     from app.core.deps import get_memory

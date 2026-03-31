@@ -76,10 +76,26 @@ def extract_emails(text):
 
 
 # -------- SCRAPE WEBSITE ----------
+async def _ssrf_redirect_guard(response: httpx.Response) -> None:
+    """Event hook: re-validate every redirect destination against the SSRF blocklist."""
+    if response.is_redirect:
+        location = response.headers.get("location", "")
+        if location and not _is_safe_url(location):
+            raise ValueError(f"SSRF: redirect to blocked destination '{location[:80]}' refused")
+
+
 async def scrape_site(url):
     """Scrape website for emails and metadata"""
     try:
-        async with httpx.AsyncClient(timeout=10, follow_redirects=True) as client:
+        if not _is_safe_url(url):
+            print(f"[SCRAPE] Blocked unsafe URL: {url[:60]}")
+            return None
+
+        async with httpx.AsyncClient(
+            timeout=10,
+            follow_redirects=True,
+            event_hooks={"response": [_ssrf_redirect_guard]},
+        ) as client:
             try:
                 r = await client.get(url, headers=HEADERS)
                 print(f"[SCRAPE] Fetching {url[:50]}... status: {r.status_code}")
