@@ -755,18 +755,17 @@ async def health_root():
 
 @app.get("/")
 async def root(request: Request):
-    """Serve the control plane dashboard to browsers; return JSON for API clients."""
-    accept = request.headers.get("accept", "")
-    if "text/html" in accept:
-        # Browser request — serve the control plane dashboard
-        cp = _FRONTEND_HTML / "controlplane.html"
-        if cp.exists():
-            return FileResponse(str(cp), media_type="text/html")
-        # Fallback to React SPA index
-        idx = _FRONTEND_DIST / "index.html"
-        if idx.exists():
-            return FileResponse(str(idx), media_type="text/html")
-    # API client — return JSON metadata as before
+    """Serve the control plane dashboard. JSON for explicit API clients (?format=json)."""
+    # Always serve HTML to browsers; add ?format=json to get the API metadata
+    if request.query_params.get("format") != "json":
+        for candidate in [
+            _FRONTEND_HTML / "controlplane.html",
+            _FRONTEND_DIST / "index.html",
+            Path(__file__).resolve().parent.parent.parent / "frontend" / "controlplane.html",
+        ]:
+            if candidate.exists():
+                return FileResponse(str(candidate), media_type="text/html")
+    # API metadata (fallback or ?format=json)
     state_version = await get_state_version(memory)
     registry = get_registry_snapshot()
     twin = CognitiveTwinService()
