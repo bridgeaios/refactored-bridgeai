@@ -159,7 +159,7 @@ async function loadAgents() {
       row.appendChild(name); row.appendChild(status);
       el.appendChild(row);
     });
-  } catch(e) { document.getElementById('agent-list').textContent = 'Unavailable'; }
+  } catch(e) { console.warn('[leads] loadAgents failed:', e); document.getElementById('agent-list').textContent = 'Unavailable'; }
 }
 
 async function loadOutreachStats() {
@@ -184,7 +184,7 @@ async function loadOutreachStats() {
       row.appendChild(l); row.appendChild(v);
       el.appendChild(row);
     });
-  } catch(e) { document.getElementById('outreach-stats').textContent = 'Unavailable'; }
+  } catch(e) { console.warn('[leads] loadOutreachStats failed:', e); document.getElementById('outreach-stats').textContent = 'Unavailable'; }
 }
 
 async function loadLeads() {

@@ -143,7 +143,9 @@
 
   function doSiweLogin(address) {
     var domain = location.hostname + (location.port ? ':' + location.port : '');
-    var nonce = Date.now().toString();
+    var nonceBytes = new Uint8Array(16);
+    crypto.getRandomValues(nonceBytes);
+    var nonce = Array.from(nonceBytes).map(function(b) { return b.toString(16).padStart(2, '0'); }).join('');
     var message = 'Bridge AI OS Login\nDomain: ' + domain + '\nAddress: ' + address + '\nNonce: ' + nonce;
 
     setStatus('Waiting for wallet signature\u2026', 'info');

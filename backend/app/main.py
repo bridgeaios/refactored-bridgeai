@@ -187,6 +187,17 @@ _FRONTEND_HTML = _BACKEND_ROOT.parent / "frontend"
 if _FRONTEND_DIST.exists():
     app.mount("/app", StaticFiles(directory=str(_FRONTEND_DIST), html=True), name="frontend")
 
+# Serve frontend/public/ assets at root (bridge-tokens.css, bridge-theme.css, etc.)
+_FRONTEND_PUBLIC = _BACKEND_ROOT.parent / "frontend" / "public"
+if _FRONTEND_PUBLIC.exists():
+    app.mount("/public", StaticFiles(directory=str(_FRONTEND_PUBLIC)), name="frontend-public-prefixed")
+    app.mount("/assets", StaticFiles(directory=str(_FRONTEND_PUBLIC / "assets")), name="frontend-assets") if (_FRONTEND_PUBLIC / "assets").exists() else None
+
+# Serve frontend/src/ at /src for ES module imports (main.js, admin.js, etc.)
+_FRONTEND_SRC = _BACKEND_ROOT.parent / "frontend" / "src"
+if _FRONTEND_SRC.exists():
+    app.mount("/src", StaticFiles(directory=str(_FRONTEND_SRC)), name="frontend-src")
+
 # --- BridgeError global exception handler ---
 from app.core.errors import (
     AuthError,
