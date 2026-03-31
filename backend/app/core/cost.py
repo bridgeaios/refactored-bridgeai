@@ -31,6 +31,21 @@ _PREFIX      = "cost:entry:"
 _INDEX       = "cost:index"
 _DAILY_INDEX = "cost:daily:"   # cost:daily:<cycle>:<channel>
 
+
+def _as_list(val) -> list:
+    if val is None:
+        return []
+    if isinstance(val, list):
+        return val
+    if isinstance(val, (str, bytes, bytearray)):
+        try:
+            import json as _j
+            parsed = _j.loads(val)
+            return parsed if isinstance(parsed, list) else []
+        except Exception:
+            return []
+    return []
+
 # Daily budget caps per channel (in abstract cost units)
 # These act as circuit-breakers: if the day's spend exceeds the cap,
 # emit_agent / emit_job will be suppressed automatically.
@@ -66,7 +81,7 @@ async def record_cost(
 
     # Append to main index
     raw_index = await mem.get(_INDEX)
-    index: list[str] = json.loads(raw_index) if raw_index else []
+    index: list[str] = _as_list(raw_index)
     index.append(entry_id)
     # Keep last 10 000 entries
     if len(index) > 10_000:
@@ -115,7 +130,7 @@ async def cost_budget_ok(mem, channel: str, proposed: float) -> bool:
 async def cost_recent(mem, limit: int = 50) -> list[dict]:
     """Return the most recent cost entries."""
     raw_index = await mem.get(_INDEX)
-    index: list[str] = json.loads(raw_index) if raw_index else []
+    index: list[str] = _as_list(raw_index)
     entries = []
     for entry_id in reversed(index[-limit:]):
         raw = await mem.get(_PREFIX + entry_id)

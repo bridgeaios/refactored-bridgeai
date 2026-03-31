@@ -29,6 +29,20 @@ import time
 from dataclasses import dataclass
 
 
+def _as_list(val) -> list:
+    if val is None:
+        return []
+    if isinstance(val, list):
+        return val
+    if isinstance(val, (str, bytes, bytearray)):
+        try:
+            parsed = json.loads(val)
+            return parsed if isinstance(parsed, list) else []
+        except (json.JSONDecodeError, ValueError):
+            return []
+    return []
+
+
 @dataclass
 class ConstraintResult:
     ok: bool
@@ -55,7 +69,7 @@ async def _rate_ok(mem, bucket: str) -> bool:
     key  = f"ratelimit:{bucket}"
     now  = time.time()
     raw  = await mem.get(key)
-    calls: list[float] = json.loads(raw) if raw else []
+    calls: list[float] = _as_list(raw)
     # Prune calls older than 60 seconds
     calls = [t for t in calls if now - t < 60]
     if len(calls) >= limit:

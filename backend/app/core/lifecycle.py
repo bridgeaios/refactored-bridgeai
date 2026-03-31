@@ -33,6 +33,39 @@ HEARTBEAT_TTL = 30    # seconds — idle after this
 RETIRE_TTL    = 300   # seconds — auto-retired after this
 
 
+def _as_list(val) -> list:
+    """Normalize a mem.get() result to a list.
+    mem.get() already deserializes JSON, so val may be a list, a JSON string,
+    or None depending on the backing store. Handle all three.
+    """
+    if val is None:
+        return []
+    if isinstance(val, list):
+        return val
+    if isinstance(val, str):
+        try:
+            parsed = json.loads(val)
+            return parsed if isinstance(parsed, list) else []
+        except (json.JSONDecodeError, ValueError):
+            return []
+    return []
+
+
+def _as_dict(val) -> dict:
+    """Normalize a mem.get() result to a dict."""
+    if val is None:
+        return {}
+    if isinstance(val, dict):
+        return val
+    if isinstance(val, str):
+        try:
+            parsed = json.loads(val)
+            return parsed if isinstance(parsed, dict) else {}
+        except (json.JSONDecodeError, ValueError):
+            return {}
+    return {}
+
+
 # ── Registration ─────────────────────────────────────────────────────────────
 
 async def register_agent(mem, name: str, channel: str, meta: dict | None = None) -> str:
@@ -51,7 +84,7 @@ async def register_agent(mem, name: str, channel: str, meta: dict | None = None)
 
     # Add to index
     raw = await mem.get(_INDEX)
-    index: list[str] = json.loads(raw) if raw else []
+    index: list[str] = _as_list(raw)
     if agent_id not in index:
         index.append(agent_id)
     await mem.set(_INDEX, json.dumps(index))
@@ -69,7 +102,7 @@ async def heartbeat(mem, agent_id: str, meta: dict | None = None) -> bool:
     raw = await mem.get(_PREFIX + agent_id)
     if not raw:
         return False
-    record = json.loads(raw)
+    record = _as_dict(raw)
     record["last_hb"] = time.time()
     record["status"]  = "active"
     if meta:
@@ -83,7 +116,7 @@ async def retire_agent(mem, agent_id: str, reason: str = "manual") -> bool:
     raw = await mem.get(_PREFIX + agent_id)
     if not raw:
         return False
-    record = json.loads(raw)
+    record = _as_dict(raw)
     prev_status = record.get("status")
     record["status"]      = "retired"
     record["retired_at"]  = time.time()
@@ -105,7 +138,7 @@ async def agent_registry(mem, include_retired: bool = False) -> list[dict]:
     Agents with no heartbeat for > RETIRE_TTL are auto-retired.
     """
     raw = await mem.get(_INDEX)
-    index: list[str] = json.loads(raw) if raw else []
+    index: list[str] = _as_list(raw)
     agents = []
     now = time.time()
 
@@ -113,7 +146,7 @@ async def agent_registry(mem, include_retired: bool = False) -> list[dict]:
         raw_rec = await mem.get(_PREFIX + agent_id)
         if not raw_rec:
             continue
-        record = json.loads(raw_rec)
+        record = _as_dict(raw_rec)
 
         # Auto-retire stale agents
         last_hb = record.get("last_hb")

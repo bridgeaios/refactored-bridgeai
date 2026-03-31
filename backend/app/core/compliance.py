@@ -29,6 +29,20 @@ from enum import Enum
 
 _AUDIT_PREFIX   = "audit:entry:"
 _AUDIT_INDEX    = "audit:index"
+
+
+def _as_list(val) -> list:
+    if val is None:
+        return []
+    if isinstance(val, list):
+        return val
+    if isinstance(val, (str, bytes, bytearray)):
+        try:
+            parsed = json.loads(val)
+            return parsed if isinstance(parsed, list) else []
+        except (json.JSONDecodeError, ValueError):
+            return []
+    return []
 _CONSENT_PREFIX = "consent:"
 _PII_PREFIX     = "pii:tag:"
 _RETAIN_PREFIX  = "retain:"
@@ -99,7 +113,7 @@ async def audit_log(
 
     # Append to index (FIFO eviction)
     raw = await mem.get(_AUDIT_INDEX)
-    index: list[str] = json.loads(raw) if raw else []
+    index: list[str] = _as_list(raw)
     index.append(entry_id)
     if len(index) > _MAX_AUDIT_ENTRIES:
         # Evict oldest
@@ -115,7 +129,7 @@ async def audit_log(
 async def audit_recent(mem, limit: int = 100) -> list[dict]:
     """Return the most recent audit entries."""
     raw = await mem.get(_AUDIT_INDEX)
-    index: list[str] = json.loads(raw) if raw else []
+    index: list[str] = _as_list(raw)
     entries = []
     for eid in reversed(index[-limit:]):
         raw_entry = await mem.get(_AUDIT_PREFIX + eid)
@@ -216,7 +230,7 @@ async def retention_due(mem, record_id: str) -> bool:
 async def compliance_status(mem) -> dict:
     """Return a compliance health snapshot for the control plane."""
     raw = await mem.get(_AUDIT_INDEX)
-    index: list[str] = json.loads(raw) if raw else []
+    index: list[str] = _as_list(raw)
     return {
         "audit_entries": len(index),
         "pii_tag_count": 0,   # TODO: iterate _PII_PREFIX keys when mem supports scan
