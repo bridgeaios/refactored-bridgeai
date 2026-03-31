@@ -14,7 +14,8 @@ from fastapi import (
     WebSocket,
     WebSocketDisconnect,
 )
-from fastapi.responses import JSONResponse
+from fastapi.responses import FileResponse, JSONResponse
+from fastapi.staticfiles import StaticFiles
 
 
 # Load env: fill blank/unset variables from .env files relative to the repo root.
@@ -175,6 +176,16 @@ async def lifespan(app: FastAPI) -> AsyncIterator[None]:
 
 
 app = FastAPI(title="Bridge AI OS", lifespan=lifespan)
+
+# ── Static frontend ───────────────────────────────────────────────────────────
+# Serve the compiled React frontend from frontend/dist/ at /app/*
+# and the controlplane dashboard HTML files at the backend root.
+_BACKEND_ROOT = Path(__file__).resolve().parent.parent  # backend/
+_FRONTEND_DIST = _BACKEND_ROOT.parent / "frontend" / "dist"
+_FRONTEND_HTML = _BACKEND_ROOT.parent / "frontend"
+
+if _FRONTEND_DIST.exists():
+    app.mount("/app", StaticFiles(directory=str(_FRONTEND_DIST), html=True), name="frontend")
 
 # --- BridgeError global exception handler ---
 from app.core.errors import (
@@ -743,8 +754,19 @@ async def health_root():
 
 
 @app.get("/")
-async def root():
-    """API root — service metadata. SPINE: perception-aligned control surface."""
+async def root(request: Request):
+    """Serve the control plane dashboard to browsers; return JSON for API clients."""
+    accept = request.headers.get("accept", "")
+    if "text/html" in accept:
+        # Browser request — serve the control plane dashboard
+        cp = _FRONTEND_HTML / "controlplane.html"
+        if cp.exists():
+            return FileResponse(str(cp), media_type="text/html")
+        # Fallback to React SPA index
+        idx = _FRONTEND_DIST / "index.html"
+        if idx.exists():
+            return FileResponse(str(idx), media_type="text/html")
+    # API client — return JSON metadata as before
     state_version = await get_state_version(memory)
     registry = get_registry_snapshot()
     twin = CognitiveTwinService()
@@ -778,6 +800,33 @@ async def root():
         "reducer_identity_hash": registry.get("identity_hash"),
         "frontend": _canonical_frontend_url(),
     }
+
+
+@app.get("/dashboard")
+async def dashboard_html():
+    """Control plane dashboard."""
+    cp = _FRONTEND_HTML / "controlplane.html"
+    if cp.exists():
+        return FileResponse(str(cp), media_type="text/html")
+    raise HTTPException(404, detail="Dashboard not found")
+
+
+@app.get("/admin")
+async def admin_html():
+    """Admin panel."""
+    f = _FRONTEND_HTML / "admin.html"
+    if f.exists():
+        return FileResponse(str(f), media_type="text/html")
+    raise HTTPException(404, detail="Admin panel not found")
+
+
+@app.get("/login")
+async def login_html():
+    """Login page."""
+    f = _FRONTEND_HTML / "login.html"
+    if f.exists():
+        return FileResponse(str(f), media_type="text/html")
+    raise HTTPException(404, detail="Login page not found")
 
 
 @app.get("/capabilities")
