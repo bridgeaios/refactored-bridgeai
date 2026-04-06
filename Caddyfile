@@ -1,0 +1,88 @@
+# Bridge AI OS — Production Caddyfile
+# Caddy handles TLS automatically via Let's Encrypt.
+
+# ─── Primary Domain ─────────────────────────────────────────────────
+bridge-ai-os.com {
+	# Frontend static assets
+	@frontend_assets {
+		path /pages/* /assets/* /src/*
+	}
+	reverse_proxy @frontend_assets frontend:3000
+
+	# API routes
+	@api {
+		path /api/*
+	}
+	reverse_proxy @api backend:8000
+
+	# WebSocket routes
+	@ws {
+		path /ws/*
+	}
+	reverse_proxy @ws backend:8000
+
+	# Auth routes
+	@auth {
+		path /auth/*
+	}
+	reverse_proxy @auth auth:3030
+
+	# SVG Engine routes
+	@svg {
+		path /svg/*
+	}
+	reverse_proxy @svg svg_engine:7070
+
+	# Default: frontend
+	reverse_proxy frontend:3000
+}
+
+# ─── API Subdomain ──────────────────────────────────────────────────
+api.bridge-ai-os.com {
+	reverse_proxy backend:8000
+}
+
+# ─── Auth Subdomain ─────────────────────────────────────────────────
+auth.bridge-ai-os.com {
+	reverse_proxy auth:3030
+}
+
+# ─── Monitoring (Grafana) ───────────────────────────────────────────
+monitor.bridge-ai-os.com {
+	reverse_proxy grafana:3000
+}
+
+# ─── Treasury / God API ─────────────────────────────────────────────
+god.bridge-ai-os.com {
+	reverse_proxy backend:8000
+}
+
+# ─── Product Subdomains (all serve frontend SPA) ────────────────────
+ban.bridge-ai-os.com,
+ubi.bridge-ai-os.com,
+supac.bridge-ai-os.com,
+abaas.bridge-ai-os.com {
+	reverse_proxy frontend:3000
+}
+
+# ─── Gateway Subdomain (ai-os.co.za) ────────────────────────────────────────
+# gateway.ai-os.co.za/pricing.html — same frontend, own TLS cert
+gateway.ai-os.co.za {
+	@api {
+		path /api/*
+	}
+	reverse_proxy @api backend:8000
+
+	@ws {
+		path /ws/*
+	}
+	reverse_proxy @ws backend:8000
+
+	reverse_proxy frontend:3000
+}
+
+# ─── Legacy Domain Redirects ────────────────────────────────────────
+ai-os.co.za, www.ai-os.co.za,
+bridge-ai-os.co.za, www.bridge-ai-os.co.za {
+	redir https://bridge-ai-os.com{uri} permanent
+}

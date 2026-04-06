@@ -472,8 +472,9 @@ async def worker_loop():
 
             # Dispatch pending outreach emails every cycle
             try:
+                from app.core.deps import get_memory as _get_mem
                 from app.domains.outreach.deps import get_outreach
-                outreach = get_outreach()
+                outreach = get_outreach(_get_mem())
                 outreach_result = await outreach.dispatch_pending(limit=10)
                 if outreach_result.get("sent"):
                     print(f"[OUTREACH] Dispatched {outreach_result['sent']} email(s)")
@@ -483,8 +484,9 @@ async def worker_loop():
             # Flag overdue invoices periodically
             if loop_count % _overdue_check_every == 0:
                 try:
+                    from app.core.deps import get_memory as _get_mem
                     from app.domains.billing.deps import get_billing
-                    billing = get_billing()
+                    billing = get_billing(_get_mem())
                     overdue_count = await billing.flag_overdue()
                     if overdue_count:
                         print(f"[BILLING] Flagged {overdue_count} overdue invoice(s)")

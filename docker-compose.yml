@@ -7,8 +7,17 @@ services:
       - ./backend:/app
     environment:
       - REDIS_URL=redis://redis:6379/0
+      - BRIDGE_ENV=development
+      # L9 secrets guard — required for boot (local Docker only; use real secrets in prod / .env)
+      - BRIDGE_SIWE_JWT_SECRET=a772f9c3b4e84d2f1a90658c7d3e0b1f4c8d9e2a7f50639487acbdef01234567
+      - BRIDGE_INTERNAL_SECRET=b8830ad4c5f951e32b81769d4e1f2a305b9c0d8e7f615243968a7bcdef0123456
       - ELEVEN_API_KEY=
       - PROMETHEUS_ENABLED=true
+      # DB lives in the unified stack — uses service hostname on bridge-unified network
+      - DATABASE_URL=postgresql+asyncpg://bridge:bridge_dev_password@postgres:5432/bridge_ai
+    networks:
+      - default
+      - bridge-unified
     depends_on:
       - redis
     restart: unless-stopped
@@ -78,3 +87,8 @@ volumes:
   grafana_data:
   neo4j_data:
   neo4j_logs:
+
+networks:
+  bridge-unified:
+    external: true
+    name: bridgelivewall_bridge-unified
