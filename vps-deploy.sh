@@ -22,22 +22,22 @@ if [ -d "BridgeLiveWall" ]; then
   rm -rf BridgeLiveWall
 fi
 
-# Clone from specific commit hash for integrity verification
-# Replace COMMIT_HASH with the current validated commit
-EXPECTED_COMMIT_HASH="bb3bd0e"  # fix: backend crash loop, Caddy syntax, DB networking, L10 doctrine, founder-todo route
-git clone --depth 1 --branch win-for-twin https://github.com/bridgeaios/refactored-bridgeai.git BridgeLiveWall
+# Clone from signed release tag — tag is immutable, won't chase branch commits
+DEPLOY_TAG="v4.5"
+git clone --depth 1 --branch "$DEPLOY_TAG" https://github.com/bridgeaios/refactored-bridgeai.git BridgeLiveWall
 cd BridgeLiveWall
 
-# Verify commit integrity
+# Verify the tag resolves to the expected commit (tamper check)
+EXPECTED_COMMIT_HASH="bb3bd0e"
 ACTUAL_COMMIT=$(git rev-parse HEAD | cut -c1-7)
 if [ "$ACTUAL_COMMIT" != "$EXPECTED_COMMIT_HASH" ]; then
-  echo "ERROR: Commit hash mismatch!"
+  echo "ERROR: Tag ${DEPLOY_TAG} commit mismatch!"
   echo "Expected: $EXPECTED_COMMIT_HASH"
   echo "Got:      $ACTUAL_COMMIT"
-  echo "Aborting deployment to prevent code injection attack."
+  echo "Aborting deployment to prevent tampered tag attack."
   exit 1
 fi
-echo "✓ Commit verified: $ACTUAL_COMMIT"
+echo "✓ Tag ${DEPLOY_TAG} verified: $ACTUAL_COMMIT"
 
 # Step 3: Move to deployment directory
 echo "[3/7] Deploying to /opt/bridgeai..."
