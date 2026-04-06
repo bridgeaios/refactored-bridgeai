@@ -24,7 +24,7 @@ fi
 
 # Clone from specific commit hash for integrity verification
 # Replace COMMIT_HASH with the current validated commit
-EXPECTED_COMMIT_HASH="9f9576c"  # feat: add control plane router with topology, metrics, and event stream endpoints
+EXPECTED_COMMIT_HASH="bb3bd0e"  # fix: backend crash loop, Caddy syntax, DB networking, L10 doctrine, founder-todo route
 git clone --depth 1 --branch win-for-twin https://github.com/bridgeaios/refactored-bridgeai.git BridgeLiveWall
 cd BridgeLiveWall
 
@@ -179,6 +179,6 @@ echo "1. Edit environment variables: sudo nano /opt/bridgeai/backend/.env"
 echo "2. Start service: sudo systemctl start bridgeai"
 echo "3. Check status: sudo systemctl status bridgeai"
 echo "4. View logs: sudo journalctl -u bridgeai -f"
-echo "5. Test API: curl http://102.208.228.44:8000/docs"
+echo "5. Test API: curl http://<your-vps-ip>:8000/docs"
 echo ""
 echo "Service is currently set to auto-start on reboot."
