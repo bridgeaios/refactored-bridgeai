@@ -1,5 +1,7 @@
 # Env with secrets — never commit
 .env
+.env.unified
+.env.*.local
 !.env.example
 
 # Common
@@ -11,4 +13,8 @@ venv/
 dist/
 build/
 .bridge-state/
-.env
+
+# Claude Code — local settings may contain credentials or machine-specific config
+.claude/settings.local.json
+
+.vercel
