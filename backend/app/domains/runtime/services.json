@@ -1,0 +1,167 @@
+{
+  "_comment": "AOE-RUNTIME service definitions v2. depends_on = startup order.",
+  "services": {
+    "gateway": {
+      "name":           "gateway",
+      "description":    "AOE-RUNTIME Node.js HTTP/WS gateway (:80)",
+      "command":        "node gateway.js",
+      "cwd":            "C:\\BRIDGE_AI_OS",
+      "env":            {},
+      "ports":          [80],
+      "depends_on":     [],
+      "restart_policy": "always",
+      "health":         "http://localhost:80/health",
+      "tier":           0,
+      "drive":          "C"
+    },
+    "backend": {
+      "name":           "backend",
+      "description":    "Bridge AI OS FastAPI core",
+      "command":        "uvicorn app.main:app --host 0.0.0.0 --port 8000",
+      "cwd":            "C:\\BRIDGE_AI_OS\\core",
+      "env":            { "REDIS_URL": "redis://localhost:6379/0" },
+      "ports":          [8000],
+      "depends_on":     [],
+      "restart_policy": "always",
+      "health":         "http://localhost:8000/api/health",
+      "tier":           0,
+      "drive":          "C"
+    },
+    "state-loop": {
+      "name":           "state-loop",
+      "description":    "60 Hz state loop processor",
+      "command":        "python -m state_loop",
+      "cwd":            "C:\\BRIDGE_AI_OS\\core",
+      "env":            { "REDIS_URL": "redis://localhost:6379/0", "STATE_LOOP_HZ": "60" },
+      "ports":          [],
+      "depends_on":     ["backend"],
+      "restart_policy": "always",
+      "health":         null,
+      "tier":           0,
+      "drive":          "C"
+    },
+    "frontend": {
+      "name":           "frontend",
+      "description":    "Avatar / Bridge UI (static server)",
+      "command":        "node serve-no-cache.cjs",
+      "cwd":            "C:\\BRIDGE_AI_OS\\avatar",
+      "env":            { "PORT": "3000", "BACKEND_URL": "http://localhost:8000" },
+      "ports":          [3000],
+      "depends_on":     ["backend"],
+      "restart_policy": "always",
+      "health":         "http://localhost:3000",
+      "tier":           1,
+      "drive":          "C"
+    },
+    "executor": {
+      "name":           "executor",
+      "description":    "Task execution engine (D: drive)",
+      "command":        "node executor.js",
+      "cwd":            "D:\\bridge-ai-os",
+      "env":            {},
+      "ports":          [8100],
+      "depends_on":     ["dromedaries-db"],
+      "restart_policy": "on-failure",
+      "health":         "http://localhost:8100/v1/health",
+      "tier":           0,
+      "drive":          "D"
+    },
+    "ui": {
+      "name":           "ui",
+      "description":    "Primary UI — Vite dev (D: drive)",
+      "command":        "npm run dev",
+      "cwd":            "D:\\bridge-ai-os",
+      "env":            {},
+      "ports":          [5173],
+      "depends_on":     ["backend"],
+      "restart_policy": "on-failure",
+      "health":         "http://localhost:5173",
+      "tier":           1,
+      "drive":          "D"
+    },
+    "dromedaries-db": {
+      "name":           "dromedaries-db",
+      "description":    "Sovereign database (D: drive)",
+      "command":        "node dromedaries.js",
+      "cwd":            "D:\\bridge-ai-os",
+      "env":            {},
+      "ports":          [8300],
+      "depends_on":     [],
+      "restart_policy": "always",
+      "health":         "http://localhost:8300/health",
+      "tier":           0,
+      "drive":          "D"
+    },
+    "spine": {
+      "name":           "spine",
+      "description":    "AOE Core OS — auth, wallet, RAG (E: drive)",
+      "command":        "node spine.js",
+      "cwd":            "E:\\AOE",
+      "env":            {},
+      "ports":          [4000],
+      "depends_on":     ["backend"],
+      "restart_policy": "always",
+      "health":         "http://localhost:4000/health",
+      "tier":           0,
+      "drive":          "E"
+    },
+    "dashboard": {
+      "name":           "dashboard",
+      "description":    "AOE Admin dashboard (E: drive)",
+      "command":        "npm run dev",
+      "cwd":            "E:\\AOE\\dashboard",
+      "env":            {},
+      "ports":          [4201],
+      "depends_on":     ["spine"],
+      "restart_policy": "on-failure",
+      "health":         "http://localhost:4201",
+      "tier":           1,
+      "drive":          "E"
+    },
+    "abaas-core": {
+      "name":           "abaas-core",
+      "description":    "Audit / Assurance service (E: drive)",
+      "command":        "node abaas.js",
+      "cwd":            "E:\\ABAAS",
+      "env":            { "PORT": "3010" },
+      "ports":          [3010],
+      "depends_on":     ["backend"],
+      "restart_policy": "on-failure",
+      "health":         "http://localhost:3010/api/health",
+      "tier":           2,
+      "drive":          "E"
+    },
+    "telemetry": {
+      "name":           "telemetry",
+      "description":    "Observer / metrics endpoint (D: drive)",
+      "command":        "node telemetry.js",
+      "cwd":            "D:\\bridge-ai-os",
+      "env":            {},
+      "ports":          [8500],
+      "depends_on":     ["backend"],
+      "restart_policy": "on-failure",
+      "health":         "http://localhost:8500/health",
+      "tier":           2,
+      "drive":          "D"
+    }
+  },
+  "network": {
+    "name":         "aoe-local-net",
+    "gateway_port": 80,
+    "routes": {
+      "/api":     { "service": "backend",  "port": 8000 },
+      "/ws":      { "service": "backend",  "port": 8000 },
+      "/runtime": { "service": "backend",  "port": 8000 },
+      "/ui":      { "service": "ui",       "port": 5173 },
+      "/":        { "service": "frontend", "port": 3000 }
+    }
+  },
+  "consolidation_phases": [
+    { "phase": 1, "label": "Gateway",          "services": ["gateway"] },
+    { "phase": 2, "label": "Core Data",        "services": ["dromedaries-db"] },
+    { "phase": 3, "label": "Backend",          "services": ["backend", "state-loop"] },
+    { "phase": 4, "label": "Executor Cluster", "services": ["executor"] },
+    { "phase": 5, "label": "UI + Frontend",    "services": ["frontend", "ui"] },
+    { "phase": 6, "label": "Observability",    "services": ["telemetry", "abaas-core"] }
+  ]
+}
