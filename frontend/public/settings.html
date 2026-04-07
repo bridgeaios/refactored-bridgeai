@@ -4,6 +4,7 @@
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>Settings — Bridge AI OS</title>
+  <meta name="description" content="Configure theme, API base, notifications, and user preferences for Bridge AI OS.">
   <script src="/bridge-api-config.js"></script>
   <script>if(typeof window.__API_BASE==="undefined")window.__API_BASE="";</script>
   <script src="https://cdn.tailwindcss.com"></script>
@@ -35,7 +36,7 @@
     </div>
   </nav>
 
-  <main class="p-4 md:p-6 max-w-2xl mx-auto space-y-8">
+  <main id="main-content" class="p-4 md:p-6 max-w-2xl mx-auto space-y-8">
     <header>
       <h1 class="text-3xl font-bold text-slate-800">Settings</h1>
       <p class="text-slate-600 mt-1">Shared per user across all domains. Stored on the backend.</p>
@@ -47,7 +48,7 @@
       <h2 class="text-lg font-semibold text-slate-800 p-4 border-b border-slate-200">Preferences</h2>
       <form id="settings-form" class="p-4 space-y-5">
         <div>
-          <label class="block text-sm font-medium text-slate-700 mb-1">Theme</label>
+          <label for="theme" class="block text-sm font-medium text-slate-700 mb-1">Theme</label>
           <select id="theme" name="theme" class="w-full max-w-xs border border-slate-300 rounded-lg px-3 py-2 text-slate-800">
             <option value="light">Light</option>
             <option value="dark">Dark</option>
@@ -55,7 +56,7 @@
           </select>
         </div>
         <div>
-          <label class="block text-sm font-medium text-slate-700 mb-1">API base (optional)</label>
+          <label for="apiBase" class="block text-sm font-medium text-slate-700 mb-1">API base (optional)</label>
           <input type="text" id="apiBase" name="apiBase" placeholder="Leave empty for same origin" class="w-full border border-slate-300 rounded-lg px-3 py-2 text-slate-800">
           <p class="text-xs text-slate-500 mt-1">Override for backend URL. Shared across all apps when saved.</p>
         </div>
@@ -68,7 +69,7 @@
           <label for="liveRefresh" class="text-sm text-slate-700">Live refresh (dashboard / agents)</label>
         </div>
         <div>
-          <label class="block text-sm font-medium text-slate-700 mb-1">User ID (for cross-device sync)</label>
+          <label for="userId" class="block text-sm font-medium text-slate-700 mb-1">User ID (for cross-device sync)</label>
           <input type="text" id="userId" name="userId" placeholder="default" class="w-full max-w-xs border border-slate-300 rounded-lg px-3 py-2 text-slate-800">
           <p class="text-xs text-slate-500 mt-1">Set to share settings across devices; send as X-User-Id header.</p>
         </div>

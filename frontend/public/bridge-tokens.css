@@ -30,7 +30,7 @@
   /* Text hierarchy */
   --text-primary:       #FFFFFF;
   --text-secondary:     #94a3b8;
-  --text-muted:         #666666;
+  --text-muted:         #888888;
 
   /* Status */
   --alive:              #00FF88;
@@ -50,7 +50,7 @@
   --font-ui:            'Outfit', system-ui, -apple-system, sans-serif;
   --font-mono:          'JetBrains Mono', 'Fira Code', monospace;
 
-  --text-xs:            11px;
+  --text-xs:            12px;
   --text-sm:            13px;
   --text-base:          15px;
   --text-lg:            18px;

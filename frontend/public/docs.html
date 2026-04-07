@@ -4,6 +4,7 @@
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>Docs — Bridge AI OS</title>
+  <meta name="description" content="API reference, documentation, and developer resources for Bridge AI OS.">
   <script src="/bridge-api-config.js"></script>
   <script>if(typeof window.__API_BASE==="undefined")window.__API_BASE="";</script>
   <script src="https://cdn.tailwindcss.com"></script>
@@ -33,7 +34,7 @@
     </div>
   </nav>
 
-  <main class="p-4 md:p-6 max-w-4xl mx-auto space-y-8">
+  <main id="main-content" class="p-4 md:p-6 max-w-4xl mx-auto space-y-8">
     <header>
       <h1 class="text-3xl font-bold text-slate-800">Documentation</h1>
       <p class="text-slate-600 mt-1">Bridge AI OS — API, frontend routes, and references. Updated to match current app.</p>
@@ -45,16 +46,16 @@
       <div class="p-4 space-y-3 text-sm">
         <p class="text-slate-600">Interactive API docs (Swagger UI) and OpenAPI spec are served by the backend.</p>
         <ul class="list-disc pl-5 space-y-1">
-          <li><a id="api-docs-link" href="#" target="_blank" rel="noopener" class="text-blue-600 hover:underline font-medium">API Docs (Swagger)</a> — try endpoints interactively</li>
-          <li><a id="openapi-link" href="#" target="_blank" rel="noopener" class="text-blue-600 hover:underline font-medium">OpenAPI JSON</a> — curated 29-path canonical contract</li>
-          <li><a href="/contracts/openapi.v2.public.json" target="_blank" rel="noopener" class="text-blue-600 hover:underline font-medium">OpenAPI V2 Public</a> — promoted public contract split from runtime</li>
-          <li><a href="/contracts/openapi.internal.json" target="_blank" rel="noopener" class="text-blue-600 hover:underline font-medium">OpenAPI Internal</a> — internal and operational endpoints</li>
-          <li><a href="/contracts/API-CONTRACT-SPLIT-V2.md" target="_blank" rel="noopener" class="text-blue-600 hover:underline font-medium">Contract Split V2 Report</a> — promoted vs internal endpoint decision log</li>
-          <li><a href="/contracts/api-contract-split-v2.json" target="_blank" rel="noopener" class="text-blue-600 hover:underline font-medium">Contract Split V2 JSON</a> — machine-readable public/internal split</li>
-          <li><a href="/contracts/openapi.runtime-expanded.json" target="_blank" rel="noopener" class="text-blue-600 hover:underline font-medium">Runtime Expanded OpenAPI</a> — full runtime-derived contract</li>
-          <li><a href="/contracts/openapi.runtime-supplement.json" target="_blank" rel="noopener" class="text-blue-600 hover:underline font-medium">Runtime Supplement</a> — runtime-only endpoints outside the original canonical contract</li>
-          <li><a href="/contracts/API-DRIFT-REPORT.md" target="_blank" rel="noopener" class="text-blue-600 hover:underline font-medium">API Drift Report</a> — markdown summary of canonical vs runtime drift</li>
-          <li><a href="/contracts/api-drift-report.json" target="_blank" rel="noopener" class="text-blue-600 hover:underline font-medium">API Drift JSON</a> — machine-readable drift summary</li>
+          <li><a id="api-docs-link" href="#" target="_blank" rel="noopener noreferrer" class="text-blue-600 hover:underline font-medium">API Docs (Swagger)</a> — try endpoints interactively</li>
+          <li><a id="openapi-link" href="#" target="_blank" rel="noopener noreferrer" class="text-blue-600 hover:underline font-medium">OpenAPI JSON</a> — curated 29-path canonical contract</li>
+          <li><a href="/contracts/openapi.v2.public.json" target="_blank" rel="noopener noreferrer" class="text-blue-600 hover:underline font-medium">OpenAPI V2 Public</a> — promoted public contract split from runtime</li>
+          <li><a href="/contracts/openapi.internal.json" target="_blank" rel="noopener noreferrer" class="text-blue-600 hover:underline font-medium">OpenAPI Internal</a> — internal and operational endpoints</li>
+          <li><a href="/contracts/API-CONTRACT-SPLIT-V2.md" target="_blank" rel="noopener noreferrer" class="text-blue-600 hover:underline font-medium">Contract Split V2 Report</a> — promoted vs internal endpoint decision log</li>
+          <li><a href="/contracts/api-contract-split-v2.json" target="_blank" rel="noopener noreferrer" class="text-blue-600 hover:underline font-medium">Contract Split V2 JSON</a> — machine-readable public/internal split</li>
+          <li><a href="/contracts/openapi.runtime-expanded.json" target="_blank" rel="noopener noreferrer" class="text-blue-600 hover:underline font-medium">Runtime Expanded OpenAPI</a> — full runtime-derived contract</li>
+          <li><a href="/contracts/openapi.runtime-supplement.json" target="_blank" rel="noopener noreferrer" class="text-blue-600 hover:underline font-medium">Runtime Supplement</a> — runtime-only endpoints outside the original canonical contract</li>
+          <li><a href="/contracts/API-DRIFT-REPORT.md" target="_blank" rel="noopener noreferrer" class="text-blue-600 hover:underline font-medium">API Drift Report</a> — markdown summary of canonical vs runtime drift</li>
+          <li><a href="/contracts/api-drift-report.json" target="_blank" rel="noopener noreferrer" class="text-blue-600 hover:underline font-medium">API Drift JSON</a> — machine-readable drift summary</li>
         </ul>
         <p class="text-slate-500 mt-2">Base URL: <code id="api-base-display" class="bg-slate-100 px-1 rounded">—</code></p>
       </div>
@@ -82,8 +83,8 @@
             <tr class="border-b border-slate-100"><td class="py-2 pr-4"><a href="/gateway/" class="text-blue-600 hover:underline">/gateway/</a></td><td>Sovereign Gateway — QR scan to join; wallet, SIWE; Bridge · Supac · Taurus · Wiki</td></tr>
             <tr class="border-b border-slate-100"><td class="py-2 pr-4"><a href="/join.html" class="text-blue-600 hover:underline">/join.html</a></td><td>Join as Agent — QR + decentralized platform entry</td></tr>
             <tr class="border-b border-slate-100"><td class="py-2 pr-4"><a href="/docs.html" class="text-blue-600 hover:underline">/docs.html</a></td><td>This documentation page</td></tr>
-            <tr class="border-b border-slate-100"><td class="py-2 pr-4"><a href="http://localhost:4201/system-map.html" target="_blank" rel="noopener" class="text-blue-600 hover:underline">System Map (4201)</a></td><td>All systems linked — Bridge API, Frontend, Gateway, Join, Next.js (3032), Taurus, Console 3022, Production</td></tr>
-            <tr class="border-b border-slate-100"><td class="py-2 pr-4"><a href="http://localhost:3032/" target="_blank" rel="noopener" class="text-blue-600 hover:underline">Next.js App (3032)</a></td><td>Next.js root app — synced with system; linked from System Map</td></tr>
+            <tr class="border-b border-slate-100"><td class="py-2 pr-4"><a href="/sitemap.html" class="text-blue-600 hover:underline">Site Map</a></td><td>All systems linked — Bridge API, Frontend, Gateway, Join, Taurus, Console, Production</td></tr>
+            <tr class="border-b border-slate-100"><td class="py-2 pr-4"><span class="text-slate-400">Next.js App</span></td><td>Next.js root app — development only</td></tr>
           </tbody>
         </table>
       </div>
@@ -124,11 +125,11 @@
       <h2 class="font-semibold text-slate-800 mb-2">Ports (typical)</h2>
       <ul class="list-disc pl-5 space-y-1">
         <li><strong>3020</strong> — Frontend (Vite)</li>
-        <li><strong>3032</strong> — Next.js App (root) — <a href="http://localhost:3032/" target="_blank" rel="noopener" class="text-blue-600 hover:underline">open</a></li>
+        <li><strong>3032</strong> — Next.js App (root, dev only)</li>
         <li><strong>3000</strong> — Dashboard / frontend alt</li>
         <li><strong>8000</strong> — Backend API</li>
-        <li><strong>4201</strong> — Determinator Boot Agent, System Map — <a href="http://localhost:4201/system-map.html" target="_blank" rel="noopener" class="text-blue-600 hover:underline">System Map</a></li>
-        <li><strong>4202</strong> — Taurus Showcase</li>
+        <li><strong>4201</strong> — Determinator Boot Agent (dev only)</li>
+        <li><strong>8900</strong> — Taurus Showcase — <code>scripts/serve-taurus-showcase.ps1</code></li>
         <li><strong>3022</strong> — Console sync</li>
       </ul>
     </section>

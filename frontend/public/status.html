@@ -4,6 +4,7 @@
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>System Status — Bridge AI OS</title>
+  <meta name="description" content="Live API and service health dashboard for Bridge AI OS — real-time status of all platform services.">
   <script src="/bridge-api-config.js"></script>
   <script>if(typeof window.__API_BASE==="undefined")window.__API_BASE="";if(typeof window.__WS_BASE==="undefined")window.__WS_BASE="";</script>
   <script src="https://cdn.tailwindcss.com"></script>
@@ -11,15 +12,16 @@
   <link rel="stylesheet" href="/mobile-friendly.css">
   <style>
     .badge { display:inline-block; padding:2px 10px; border-radius:999px; font-size:.72rem; font-weight:800; }
-    .ok { background:#dcfce7; color:#166534; }
-    .warn { background:#fef3c7; color:#92400e; }
-    .bad { background:#fee2e2; color:#991b1b; }
+    .ok { background:rgba(0,255,136,0.15); color:#00FF88; border:1px solid rgba(0,255,136,0.3); }
+    .warn { background:rgba(255,170,0,0.15); color:#FFAA00; border:1px solid rgba(255,170,0,0.3); }
+    .bad { background:rgba(255,0,51,0.15); color:#FF4466; border:1px solid rgba(255,0,51,0.3); }
     .mono { font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, "Liberation Mono", "Courier New", monospace; }
   </style>
   <link rel="stylesheet" href="/bridge-theme.css">
   <script src="/bridge-shell.js"></script>
 </head>
 <body class="bg-slate-50 font-sans antialiased">
+  <a href="#main-content" class="skip-link">Skip to main content</a>
   <nav class="bridge-nav bg-slate-800 text-white p-4 flex flex-wrap justify-between items-center sticky top-0 z-50 shadow-lg">
     <a href="/" class="bridge-nav-brand text-xl font-bold hover:text-amber-300">Bridge AI OS</a>
     <button class="bridge-nav-toggle" aria-label="Toggle menu">☰</button>
@@ -35,13 +37,13 @@
         <li><a href="/ban-live-wall.html" class="hover:text-amber-300">Live Wall</a></li>
         <li><a href="/ban-ops-core.html" class="hover:text-amber-300">BAN Ops</a></li>
         <li><a href="/status.html" class="text-amber-300 font-semibold">Status</a></li>
-        <li><a href="http://localhost:4201/system-map.html" target="_blank" class="hover:text-amber-300">System Map</a></li>
+        <li><a href="/sitemap.html" class="hover:text-amber-300">Site Map</a></li>
       </ul>
     </div>
     <button id="refresh-btn" class="ml-2 md:ml-4 text-slate-400 hover:text-amber-300 text-lg min-w-[44px] min-h-[44px] flex items-center justify-center" title="Refresh">↻</button>
   </nav>
 
-  <main class="p-4 md:p-6 max-w-6xl mx-auto space-y-6">
+  <main id="main-content" class="p-4 md:p-6 max-w-6xl mx-auto space-y-6">
     <header class="flex flex-wrap items-end justify-between gap-3">
       <div>
         <h1 class="text-3xl font-extrabold text-slate-900">Localhost System Status</h1>

@@ -19,7 +19,7 @@
   /* Text */
   --text-primary:     #FFFFFF;
   --text-secondary:   #A0A0A0;
-  --text-muted:       #666666;
+  --text-muted:       #888888;
 
   /* State */
   --alive:            #00FF88;
@@ -45,6 +45,30 @@
 /* ─── 2. GLOBAL BASE ─────────────────────────────────────── */
 *, *::before, *::after {
   box-sizing: border-box;
+}
+
+/* ─── SKIP NAV ───────────────────────────────────────────── */
+.skip-link {
+  position: absolute;
+  top: -40px;
+  left: 0;
+  background: var(--signal-red);
+  color: #fff;
+  padding: 8px 16px;
+  text-decoration: none;
+  font-size: 14px;
+  font-weight: 600;
+  z-index: 9999;
+  border-radius: 0 0 4px 0;
+}
+.skip-link:focus {
+  top: 0;
+}
+
+/* ─── FOCUS RINGS ────────────────────────────────────────── */
+:focus-visible {
+  outline: 2px solid var(--signal-red);
+  outline-offset: 2px;
 }
 
 html {

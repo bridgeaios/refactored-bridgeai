@@ -23,7 +23,7 @@
     { key: 'finance', label: 'Finance', glyph: '◆' },
     { key: 'network', label: 'Network', glyph: '◉' },
     { key: 'system',  label: 'System',  glyph: '◫' },
-    { key: 'defi',    label: 'DeFi',    glyph: '◧' }
+    { key: 'defi',    label: 'DeFi',    glyph: '◧', hidden: true }
   ];
 
   var PAGES = [
@@ -51,12 +51,12 @@
     { path: '/settings.html',              label: 'Settings',        group: 'system',  desc: 'System configuration',                       icon: '◫' },
     { path: '/join.html',                  label: 'Join Network',    group: 'system',  desc: 'Join as agent — QR onboarding',              icon: '◎' },
     { path: '/50-applications.html',       label: '50 Applications', group: 'system',  desc: '50-app autonomous deployment suite',         icon: '▤' },
-    /* DeFi — external port */
-    { path: 'http://localhost:5173/',          label: 'DeFi Dashboard', group: 'defi', desc: 'DeFi platform home',                         icon: '◈', external: true },
-    { path: 'http://localhost:5173/lending',   label: 'Lending',        group: 'defi', desc: 'Borrow & lend assets',                       icon: '◆', external: true },
-    { path: 'http://localhost:5173/staking',   label: 'Staking',        group: 'defi', desc: 'Stake & earn rewards',                       icon: '◇', external: true },
-    { path: 'http://localhost:5173/dex',       label: 'DEX',            group: 'defi', desc: 'Decentralised exchange',                     icon: '⬡', external: true },
-    { path: 'http://localhost:5173/treasury',  label: 'DeFi Treasury',  group: 'defi', desc: 'Protocol treasury',                         icon: '▣', external: true }
+    /* DeFi — coming soon */
+    { path: '/defi/',         label: 'DeFi Dashboard', group: 'defi', desc: 'DeFi platform home',       icon: '◈', disabled: true },
+    { path: '/defi/lending',  label: 'Lending',        group: 'defi', desc: 'Borrow & lend assets',     icon: '◆', disabled: true },
+    { path: '/defi/staking',  label: 'Staking',        group: 'defi', desc: 'Stake & earn rewards',     icon: '◇', disabled: true },
+    { path: '/defi/dex',      label: 'DEX',            group: 'defi', desc: 'Decentralised exchange',   icon: '⬡', disabled: true },
+    { path: '/defi/treasury', label: 'DeFi Treasury',  group: 'defi', desc: 'Protocol treasury',       icon: '▣', disabled: true }
   ];
 
   /* ─── CSS (injected once) ───────────────────────────────────────────────────── */
@@ -202,7 +202,7 @@
 .bshell-dd-item:hover { color: #fff; background: rgba(255,255,255,0.06); }
 .bshell-dd-item.active { color: #FF1A4D; background: rgba(255,0,51,0.08); }
 .bshell-dd-item-icon { font-size: 11px; opacity: 0.6; flex-shrink: 0; }
-.bshell-dd-item-desc { font-size: 11px; color: #555; display: none; }
+.bshell-dd-item-desc { font-size: 11px; color: #999; display: none; }
 
 /* nav actions */
 .bshell-nav-actions {
@@ -534,7 +534,7 @@
       '<img src="/favicon.svg" alt="" width="24" height="24">' +
       '<span>Bridge AI OS</span>' +
       '</a>' +
-      '<button class="bshell-hamburger" id="bshell-hamburger" aria-label="Menu">' +
+      '<button class="bshell-hamburger" id="bshell-hamburger" aria-label="Menu" aria-expanded="false" aria-controls="bshell-nav-body">' +
       '<span></span><span></span><span></span>' +
       '</button>' +
       '<div class="bshell-nav-body" id="bshell-nav-body">' +
@@ -613,6 +613,7 @@
         e.stopPropagation();
         navBody.classList.toggle('open');
         hamburger.classList.toggle('open');
+        hamburger.setAttribute('aria-expanded', navBody.classList.contains('open').toString());
       });
     }
 
@@ -635,7 +636,7 @@
       nav.querySelectorAll('.bshell-dd-menu').forEach(function (m) { m.classList.remove('open'); });
       nav.querySelectorAll('.bshell-dd-btn').forEach(function (b)  { b.classList.remove('open'); });
       if (navBody) { navBody.classList.remove('open'); }
-      if (hamburger) { hamburger.classList.remove('open'); }
+      if (hamburger) { hamburger.classList.remove('open'); hamburger.setAttribute('aria-expanded', 'false'); }
     });
   }
 

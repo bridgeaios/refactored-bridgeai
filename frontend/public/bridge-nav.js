@@ -1,42 +1,39 @@
 (function() {
   'use strict';
 
-  // Auto-detect: use VPS domains when on ai-os.co.za, tunnel when on bridge-ai-os.com, relative when same origin
-  var h = window.location.hostname;
-  var isVPS = h.indexOf('ai-os.co.za') !== -1;
-  var isTunnel = h.indexOf('bridge-ai-os.com') !== -1;
-  var svcBase = isVPS ? 'https://go.ai-os.co.za' : (isTunnel ? 'https://abaas.bridge-ai-os.com' : '');
-  var godUrl = isVPS ? 'https://god.ai-os.co.za' : 'https://god.bridge-ai-os.com';
-  var svgUrl = isVPS ? 'https://svg.ai-os.co.za' : 'https://svg.bridge-ai-os.com';
-  var termUrl = isVPS ? 'https://terminal.ai-os.co.za' : 'https://terminal.bridge-ai-os.com';
-  var authUrl = isVPS ? 'https://auth.ai-os.co.za' : 'https://auth.bridge-ai-os.com';
-  var gwUrl = isVPS ? 'https://gateway.ai-os.co.za' : 'https://gateway.bridge-ai-os.com';
+  // Unified platform — all traffic on bridge-ai-os.com
+  var svcBase = 'https://bridge-ai-os.com';
+  var godUrl = 'https://god.bridge-ai-os.com';
+  var svgUrl = 'https://bridge-ai-os.com/svg';
+  var termUrl = 'https://bridge-ai-os.com';
+  var authUrl = 'https://auth.bridge-ai-os.com';
+  var gwUrl = 'https://bridge-ai-os.com/gateway';
   var sections = {
     'SERVICES': [
-      { name: 'CONTROL', subdomain: 'abaas', port: '3000', url: svcBase || '/' },
+      { name: 'CONTROL', subdomain: 'abaas', port: '3000', url: svcBase },
       { name: 'GOD MODE', subdomain: 'god', port: '3001', url: godUrl },
-      { name: 'LIVE WALL', subdomain: 'live', port: '8001', url: isVPS ? svcBase : 'https://live.bridge-ai-os.com' },
+      { name: 'LIVE WALL', subdomain: 'live', port: '8001', url: svcBase },
       { name: 'SVG ENGINE', subdomain: 'svg', port: '7070', url: svgUrl },
       { name: 'BRAIN', subdomain: 'brain', port: '8000', url: svcBase + '/api' },
       { name: 'TERMINAL', subdomain: 'terminal', port: '5002', url: termUrl },
-      { name: 'GRAFANA', subdomain: 'grafana', port: '3003', url: isVPS ? 'https://go.ai-os.co.za/status' : 'https://grafana.bridge-ai-os.com' }
+      { name: 'GRAFANA', subdomain: 'grafana', port: '3003', url: 'https://bridge-ai-os.com/status' }
     ],
     'PLATFORMS': [
-      { name: 'EHSA', url: svcBase+'/ehsa' }, { name: 'HOSPITAL', url: svcBase+'/hospital' },
-      { name: 'AID', url: svcBase+'/aid' }, { name: 'UBI', url: svcBase+'/ubi' },
-      { name: 'SUPAC', url: svcBase+'/supac' }, { name: 'BAN', url: svcBase+'/ban' },
-      { name: 'AURORA', url: svcBase+'/aurora' }, { name: 'ROOTED EARTH', url: svcBase+'/rootedearth' }
+      { name: 'EHSA', url: svcBase+'/ehsa', disabled: true }, { name: 'HOSPITAL', url: svcBase+'/hospital', disabled: true },
+      { name: 'AID', url: svcBase+'/aid', disabled: true }, { name: 'UBI', url: svcBase+'/ubi', disabled: true },
+      { name: 'SUPAC', url: svcBase+'/supac', disabled: true }, { name: 'BAN', url: svcBase+'/ban', disabled: true },
+      { name: 'AURORA', url: svcBase+'/aurora', disabled: true }, { name: 'ROOTED EARTH', url: svcBase+'/rootedearth', disabled: true }
     ],
     'BUSINESS': [
       { name: 'CRM', url: svcBase+'/crm' }, { name: 'INVOICING', url: svcBase+'/invoicing' },
-      { name: 'QUOTES', url: svcBase+'/quotes' }, { name: 'LEGAL', url: svcBase+'/legal' },
-      { name: 'MARKETING', url: svcBase+'/marketing' }, { name: 'TICKETS', url: svcBase+'/tickets' },
-      { name: 'VENDORS', url: svcBase+'/vendors' }, { name: 'CUSTOMERS', url: svcBase+'/customers' },
-      { name: 'WORKFORCE', url: svcBase+'/workforce' }
+      { name: 'QUOTES', url: svcBase+'/quotes', disabled: true }, { name: 'LEGAL', url: svcBase+'/legal', disabled: true },
+      { name: 'MARKETING', url: svcBase+'/marketing', disabled: true }, { name: 'TICKETS', url: svcBase+'/tickets', disabled: true },
+      { name: 'VENDORS', url: svcBase+'/vendors', disabled: true }, { name: 'CUSTOMERS', url: svcBase+'/customers', disabled: true },
+      { name: 'WORKFORCE', url: svcBase+'/workforce', disabled: true }
     ],
     'MORE': [
-      { name: 'APPS', url: svcBase+'/apps' }, { name: 'MARKETPLACE', url: svcBase+'/marketplace' },
-      { name: 'DEFI', url: svcBase+'/defi' }, { name: 'TRADING', url: svcBase+'/trading' },
+      { name: 'APPS', url: svcBase+'/apps', disabled: true }, { name: 'MARKETPLACE', url: svcBase+'/marketplace', disabled: true },
+      { name: 'DEFI', url: svcBase+'/defi', disabled: true }, { name: 'TRADING', url: svcBase+'/trading', disabled: true },
       { name: 'PRICING', url: svcBase+'/pricing' }, { name: 'DOCS', url: svcBase+'/docs' }
     ]
   };
@@ -64,6 +61,7 @@
     '.bn-link{display:block;color:var(--text-secondary,#94a3b8);text-decoration:none;font-size:10px;font-weight:500;letter-spacing:1px;text-transform:uppercase;padding:6px 10px;border-radius:3px;transition:all 0.15s;white-space:nowrap;}',
     '.bn-link:hover{color:#e2e8f0;background:rgba(99,255,218,0.06);}',
     '.bn-link.bn-active{color:var(--cyan,#63ffda);background:rgba(99,255,218,0.1);}',
+    '.bn-link-disabled{display:block;color:#444;font-size:10px;font-weight:500;letter-spacing:1px;text-transform:uppercase;padding:6px 10px;border-radius:3px;white-space:nowrap;cursor:not-allowed;}',
     '.bn-status{width:8px;height:8px;border-radius:50%;background:#4ade80;box-shadow:0 0 6px rgba(74,222,128,0.5);flex-shrink:0;}'
   ].join('\n');
 
@@ -77,7 +75,7 @@
   var logo = document.createElement('span');
   logo.className = 'bn-logo';
   logo.textContent = 'BRIDGE AI';
-  logo.onclick = function() { window.location.href = base + '/apps'; };
+  logo.onclick = function() { window.location.href = svcBase + '/apps'; };
   bar.appendChild(logo);
 
   var sectionsDiv = document.createElement('div');
@@ -99,11 +97,19 @@
     var dropdown = document.createElement('div');
     dropdown.className = 'bn-dropdown';
     sections[sectionName].forEach(function(item) {
-      var a = document.createElement('a');
-      a.className = 'bn-link' + (isActive(item) ? ' bn-active' : '');
-      a.href = item.url;
-      a.textContent = item.name;
-      dropdown.appendChild(a);
+      if (item.disabled) {
+        var span = document.createElement('span');
+        span.className = 'bn-link-disabled';
+        span.setAttribute('aria-disabled', 'true');
+        span.textContent = item.name;
+        dropdown.appendChild(span);
+      } else {
+        var a = document.createElement('a');
+        a.className = 'bn-link' + (isActive(item) ? ' bn-active' : '');
+        a.href = item.url;
+        a.textContent = item.name;
+        dropdown.appendChild(a);
+      }
     });
     group.appendChild(dropdown);
     sectionsDiv.appendChild(group);
