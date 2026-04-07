@@ -1,14 +1,12 @@
 """FastAPI Depends() factories for the governance domain."""
 from __future__ import annotations
 
+from fastapi import Depends
+
+from app.core.deps import get_memory
 from app.domains.governance.services import GovernanceServices
+from app.services.memory_store import MemoryStore
 
-_singleton: GovernanceServices | None = None
 
-
-def get_governance() -> GovernanceServices:
-    global _singleton
-    if _singleton is None:
-        from app.core.deps import get_memory
-        _singleton = GovernanceServices(memory=get_memory())
-    return _singleton
+def get_governance(mem: MemoryStore = Depends(get_memory)) -> GovernanceServices:
+    return GovernanceServices(memory=mem)

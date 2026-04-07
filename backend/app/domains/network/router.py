@@ -175,7 +175,7 @@ async def osint_register(payload: dict[str, Any], svc: NetworkDep) -> dict[str, 
     from app.core.deps import get_memory
     mem = get_memory()
     from uuid import uuid4
-    from datetime import datetime
+    from datetime import datetime, timezone
 
     profile_id = str(uuid4())
     profile = {
@@ -190,7 +190,7 @@ async def osint_register(payload: dict[str, Any], svc: NetworkDep) -> dict[str, 
         "template_type": payload.get("template_type"),
         "profile_confidence": payload.get("profile_confidence", 0),
         "full_profile": payload.get("full_profile", {}),
-        "registered_at": datetime.utcnow().isoformat(),
+        "registered_at": datetime.now(timezone.utc).isoformat(),
     }
     await mem.set(f"osint:profile:{profile_id}", profile)
     # Append to index

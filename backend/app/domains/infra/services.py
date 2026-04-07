@@ -45,7 +45,7 @@ class InfraServices:
     # ------------------------------------------------------------------
 
     def health(self) -> dict[str, Any]:
-        return {"ok": True, "status": "ok", "service": "bridge-api"}
+        return {"ok": True, "status": "ok", "service": "Bridge AI OS API"}
 
     # ------------------------------------------------------------------
     # SIWE Auth

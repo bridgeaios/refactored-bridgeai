@@ -11,24 +11,42 @@ from __future__ import annotations
 
 import hashlib
 import json
+import logging
 import time
 from typing import TYPE_CHECKING, Any
 
 from app.core.emit import emit_finance
+from app.core.control_plane import TREASURY_GATE
 
 if TYPE_CHECKING:
     from app.services.memory_store import MemoryStore
+
+_log = logging.getLogger("treasury")
 
 LEDGER_KEY = "treasury:ledger"
 STATUS_KEY = "treasury:status"
 MAX_LEDGER = 1000
 
-SPLIT: dict[str, float] = {
-    "ubi": 0.40,
-    "treasury": 0.30,
-    "ops": 0.20,
-    "founder": 0.10,
-}
+def _load_split() -> dict[str, float]:
+    """Read split ratios from env vars (.env.unified) with hard-coded fallbacks.
+
+    Env vars: UBI_SPLIT, OPS_SPLIT, RESERVE_SPLIT, EVOLUTION_SPLIT
+    Remaining after those four goes to 'treasury' (founder bucket).
+    Values are normalised so they always sum to exactly 1.0.
+    """
+    import os
+    ubi        = float(os.environ.get("UBI_SPLIT",        "0.40"))
+    ops        = float(os.environ.get("OPS_SPLIT",        "0.20"))
+    reserve    = float(os.environ.get("RESERVE_SPLIT",    "0.10"))
+    evolution  = float(os.environ.get("EVOLUTION_SPLIT",  "0.10"))
+    founder    = round(max(0.0, 1.0 - ubi - ops - reserve - evolution), 6)
+    raw = {"ubi": ubi, "ops": ops, "reserve": reserve, "evolution": evolution, "founder": founder}
+    total = sum(raw.values())
+    if total == 0:
+        return {"ubi": 0.40, "treasury": 0.30, "ops": 0.20, "founder": 0.10}
+    return {k: round(v / total, 6) for k, v in raw.items()}
+
+SPLIT: dict[str, float] = _load_split()
 
 # Supported payment methods / rails
 RAILS = {"internal", "paystack", "paypal", "crypto", "subscription", "sensor", "trade", "marketplace", "manual"}
@@ -67,14 +85,25 @@ class TreasuryService:
         method: str = "internal",
         type_: str = "revenue",
         meta: dict[str, Any] | None = None,
+        idem_key: str | None = None,
     ) -> dict[str, Any]:
         """
         Collect revenue from any project into the unified treasury.
         Converts to BRDG, applies split, appends to ledger.
+
+        idem_key: caller-supplied idempotency key (e.g. webhook event ID).
+                  If provided and seen within 24 h, the call is a no-op.
         Returns the ledger entry.
         """
         if amount <= 0:
             return {"ok": False, "reason": "amount must be > 0"}
+
+        # 𝓛₄ TREASURY GATE — block financial commits until all invariants pass
+        try:
+            TREASURY_GATE.check()
+        except RuntimeError as gate_err:
+            _log.warning("Treasury gate blocked collect(): %s", gate_err)
+            return {"ok": False, "reason": str(gate_err)}
 
         # Emit gate (Finance channel): enforce value-positive execution
         if not emit_finance(values=[amount], cost=0.0):
@@ -83,11 +112,21 @@ class TreasuryService:
         currency = currency.upper()
         rate = CURRENCY_TO_BRDG.get(currency, 1.0)
         brdg_amount = round(amount * rate, 6)
-
         split = {k: round(brdg_amount * v, 6) for k, v in SPLIT.items()}
 
+        # Deterministic tx_id: derived from content, not time — same inputs = same id.
+        tx_id = _tx_id(source_project, amount, currency, method, type_)
+
+        # 𝓛₂₇ EXTENDED — replay protection via StateEngine idempotency table.
+        effective_idem = idem_key or tx_id
+        if hasattr(self._memory, "_engine"):
+            already_seen = not await self._memory._engine.claim_idempotency(effective_idem, tx_id)
+            if already_seen:
+                _log.warning("Treasury duplicate skipped: idem_key=%s tx_id=%s", effective_idem, tx_id)
+                return {"ok": False, "reason": "duplicate", "idem_key": effective_idem}
+
         entry: dict[str, Any] = {
-            "id": _tx_id(source_project, amount, currency),
+            "id": tx_id,
             "ts": _now(),
             "ts_epoch": time.time(),
             "source_project": source_project,
@@ -102,6 +141,14 @@ class TreasuryService:
 
         await self._append_ledger(entry)
         await self._update_status(entry)
+        _log.info("Treasury collected: tx=%s project=%s amount=%s %s", tx_id, source_project, amount, currency)
+
+        # Write audit node to Neo4j knowledge graph (fire-and-forget, non-blocking)
+        import asyncio
+        from app.services.neo4j_connection import get_neo4j_connection
+        loop = asyncio.get_event_loop()
+        loop.run_in_executor(None, get_neo4j_connection().record_transaction, entry)
+
         return {"ok": True, "entry": entry}
 
     async def get_status(self) -> dict[str, Any]:
@@ -210,6 +257,8 @@ def _now() -> str:
     return time.strftime("%Y-%m-%dT%H:%M:%SZ", time.gmtime())
 
 
-def _tx_id(prefix: str, amount: float, suffix: str) -> str:
-    raw = f"{prefix}:{amount}:{suffix}:{time.time()}"
-    return "tx_" + hashlib.sha256(raw.encode()).hexdigest()[:16]
+def _tx_id(source: str, amount: float, currency: str, method: str = "", type_: str = "") -> str:
+    """Deterministic transaction ID: same inputs → same ID (content-addressed)."""
+    # Quantize amount to 6dp to prevent float drift producing different hashes.
+    raw = f"{source}:{round(amount, 6)}:{currency}:{method}:{type_}"
+    return "tx_" + hashlib.sha256(raw.encode()).hexdigest()[:24]

@@ -3,7 +3,7 @@ from __future__ import annotations
 
 import logging
 import os
-from datetime import datetime, timedelta
+from datetime import datetime, timezone, timedelta
 from typing import TYPE_CHECKING, Any
 from uuid import uuid4
 
@@ -28,7 +28,7 @@ class BillingService:
     # ------------------------------------------------------------------
 
     async def _next_invoice_number(self) -> str:
-        year = datetime.utcnow().year
+        year = datetime.now(timezone.utc).year
         seq_key = f"billing:seq:{year}"
         seq: int = await self._mem.get(seq_key) or 0
         seq += 1
@@ -40,7 +40,7 @@ class BillingService:
     # ------------------------------------------------------------------
 
     async def create_invoice(self, payload: dict[str, Any]) -> dict[str, Any]:
-        now = datetime.utcnow()
+        now = datetime.now(timezone.utc)
         due_days = int(payload.get("due_days", 30))
         due_date = (now + timedelta(days=due_days)).strftime("%Y-%m-%d")
 
@@ -90,7 +90,95 @@ class BillingService:
         await self._mem.set(f"billing:invoice:{invoice_id}", invoice)
 
         log.info("Invoice created %s total=%.2f %s", invoice_number, total, invoice["currency"])
+
+        # Auto-send invoice email if client_email present
+        if invoice.get("client_email"):
+            await self._send_invoice_email(invoice)
+
         return invoice
+
+    async def _send_invoice_email(self, invoice: dict[str, Any]) -> None:
+        """Send invoice notification via Resend (preferred) or SMTP fallback."""
+        to      = invoice.get("client_email", "")
+        name    = invoice.get("client_name") or "Valued Client"
+        number  = invoice["invoice_number"]
+        total   = invoice["total"]
+        currency= invoice.get("currency", "ZAR")
+        due     = invoice.get("due_date", "")
+        link    = invoice.get("payment_link") or "https://bridge-ai-os.com/dashboard"
+        items_html = "".join(
+            f"<tr><td>{i.get('description','')}</td>"
+            f"<td style='text-align:right'>{i.get('quantity',1)} × {i.get('unit_price',0):.2f}</td></tr>"
+            for i in invoice.get("items", [])
+        )
+        subject = f"Invoice {number} — {currency} {total:,.2f} due {due}"
+        html = f"""
+        <div style="font-family:sans-serif;max-width:600px;margin:auto">
+          <h2 style="color:#1a1a2e">Invoice {number}</h2>
+          <p>Hi {name},</p>
+          <p>Please find your invoice below.</p>
+          <table style="width:100%;border-collapse:collapse;margin:16px 0">
+            <tr style="background:#f4f4f8"><th style="text-align:left;padding:8px">Description</th>
+              <th style="text-align:right;padding:8px">Amount</th></tr>
+            {items_html}
+            <tr style="border-top:2px solid #1a1a2e;font-weight:bold">
+              <td style="padding:8px">Total</td>
+              <td style="text-align:right;padding:8px">{currency} {total:,.2f}</td>
+            </tr>
+          </table>
+          <p><strong>Due date:</strong> {due}</p>
+          <p><a href="{link}" style="background:#6c47ff;color:#fff;padding:12px 24px;
+             border-radius:6px;text-decoration:none;display:inline-block">Pay Now</a></p>
+          <p style="color:#888;font-size:12px">Bridge AI OS · bridge-ai-os.com</p>
+        </div>"""
+
+        # Try Resend first
+        resend_key = os.environ.get("RESEND_API_KEY", "")
+        if resend_key:
+            try:
+                import httpx
+                async with httpx.AsyncClient(timeout=10) as client:
+                    r = await client.post(
+                        "https://api.resend.com/emails",
+                        headers={"Authorization": f"Bearer {resend_key}",
+                                 "Content-Type": "application/json"},
+                        json={"from":    os.environ.get("SMTP_FROM", "admin@bridge-ai-os.com"),
+                              "to":      [to],
+                              "subject": subject,
+                              "html":    html},
+                    )
+                    if r.status_code in (200, 201):
+                        log.info("Invoice email sent via Resend: %s → %s", number, to)
+                        return
+                    log.warning("Resend returned %s for invoice %s", r.status_code, number)
+            except Exception as exc:
+                log.warning("Resend failed for invoice %s: %s — trying SMTP", number, exc)
+
+        # SMTP fallback (Brevo / any SMTP)
+        smtp_host = os.environ.get("SMTP_HOST", "")
+        smtp_user = os.environ.get("SMTP_USER", "")
+        smtp_pass = os.environ.get("SMTP_PASS", "")
+        if smtp_host and smtp_user:
+            try:
+                import aiosmtplib
+                from email.mime.multipart import MIMEMultipart
+                from email.mime.text import MIMEText
+                msg = MIMEMultipart("alternative")
+                msg["Subject"] = subject
+                msg["From"]    = os.environ.get("SMTP_FROM", smtp_user)
+                msg["To"]      = to
+                msg.attach(MIMEText(html, "html"))
+                await aiosmtplib.send(
+                    msg,
+                    hostname=smtp_host,
+                    port=int(os.environ.get("SMTP_PORT", "587")),
+                    username=smtp_user,
+                    password=smtp_pass,
+                    start_tls=True,
+                )
+                log.info("Invoice email sent via SMTP: %s → %s", number, to)
+            except Exception as exc:
+                log.error("SMTP send failed for invoice %s: %s", number, exc)
 
     async def _paystack_link(self, invoice: dict[str, Any]) -> str | None:
         """Call Paystack /transaction/initialize to get a one-time checkout URL.
@@ -169,7 +257,7 @@ class BillingService:
         if not inv:
             return None
         inv["status"] = "paid"
-        inv["paid_at"] = datetime.utcnow().isoformat()
+        inv["paid_at"] = datetime.now(timezone.utc).isoformat()
         inv["payment_method"] = payment_method
         if reference:
             inv["payment_reference"] = reference
@@ -218,7 +306,7 @@ class BillingService:
 
     async def flag_overdue(self) -> int:
         """Mark all sent invoices past due date as overdue. Returns count updated."""
-        today = datetime.utcnow().strftime("%Y-%m-%d")
+        today = datetime.now(timezone.utc).strftime("%Y-%m-%d")
         ids: list = await self._mem.get("billing:invoices:index") or []
         updated = 0
         for inv_id in ids:

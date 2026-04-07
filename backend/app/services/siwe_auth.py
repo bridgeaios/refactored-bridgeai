@@ -36,9 +36,18 @@ if JWT_SECRET.lower().strip() in _INSECURE_PLACEHOLDERS or len(JWT_SECRET) < 32:
     JWT_SECRET = _secrets.token_hex(64)  # Ephemeral — all tokens invalidated on restart
 
 JWT_EXPIRY_SEC = int(os.environ.get("BRIDGE_SIWE_JWT_EXPIRY", "86400"))  # 24h
+_default_siwe_domains = ",".join([
+    "localhost", "localhost:3020", "localhost:3021", "127.0.0.1",
+    # Production / Vercel — always allowed without env override
+    "go.ai-os.co.za",
+    "app.ai-os.co.za",
+    "ai-os.co.za",
+    "bridge-live-wall.vercel.app",
+    "bridge-ai-os.com",
+])
 ALLOWED_DOMAINS = [
     d.strip().lower()
-    for d in os.environ.get("BRIDGE_SIWE_ALLOWED_DOMAINS", "localhost,localhost:3020,localhost:3021,127.0.0.1").split(",")
+    for d in os.environ.get("BRIDGE_SIWE_ALLOWED_DOMAINS", _default_siwe_domains).split(",")
     if d.strip()
 ]
 REQUIRE_ONCHAIN_ROLE = os.environ.get("BRIDGE_SIWE_REQUIRE_ROLE", "0") == "1"
@@ -48,7 +57,7 @@ CHAIN_ID = int(os.environ.get("BRIDGE_SIWE_CHAIN_ID", "59144"))
 
 # Message format from gateway: "Bridge AI OS Login\nDomain: X\nAddress: 0x...\nNonce: 123"
 MSG_PATTERN = re.compile(
-    r"Bridge AI OS Login\s+Domain:\s*(.+?)\s+Address:\s*(0x[a-fA-F0-9]{40})\s+Nonce:\s*(\d+)",
+    r"Bridge AI OS Login\s+Domain:\s*(.+?)\s+Address:\s*(0x[a-fA-F0-9]{40})\s+Nonce:\s*([a-fA-F0-9]+)",
     re.DOTALL,
 )
 

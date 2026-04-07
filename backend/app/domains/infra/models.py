@@ -9,7 +9,7 @@ from pydantic import BaseModel, Field
 class HealthResponse(BaseModel):
     ok: bool = True
     status: str = "ok"
-    service: str = "bridge-api"
+    service: str = "Bridge AI OS API"
 
 
 class SiweLoginRequest(BaseModel):

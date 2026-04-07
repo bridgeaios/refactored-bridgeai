@@ -12,6 +12,7 @@ from httpx import ASGITransport, AsyncClient
 from app.domains.economy.deps import get_economy
 from app.domains.economy.router import router as economy_router
 from app.domains.economy.services import EconomyServices
+from app.domains.infra.deps import require_jwt
 
 
 def _make_mock_economy():
@@ -40,12 +41,14 @@ async def client(mock_economy):
     app = FastAPI()
     app.include_router(economy_router)
     app.dependency_overrides[get_economy] = lambda: mock_economy
+    app.dependency_overrides[require_jwt] = lambda: {"sub": "0xtest", "authority": "test"}
     async with AsyncClient(transport=ASGITransport(app=app), base_url="http://test") as ac:
         yield ac
 
 
 @pytest.mark.asyncio
-async def test_treasury_collect(client, mock_economy):
+async def test_treasury_collect(client, mock_economy, monkeypatch):
+    monkeypatch.setenv("BRIDGE_ALLOW_TREASURY_WRITES", "1")
     resp = await client.post("/treasury/collect", json={"amount": 100.0})
     assert resp.status_code == 200
     assert resp.json()["ok"] is True

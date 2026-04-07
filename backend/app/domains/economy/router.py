@@ -15,6 +15,7 @@ from typing import Annotated, Any
 from fastapi import APIRouter, Depends, HTTPException, Request
 
 from app.domains.economy.deps import get_economy
+from app.domains.infra.deps import require_jwt
 from app.domains.economy.models import (
     AcceptTaskRequest,
     CollectRequest,
@@ -31,8 +32,7 @@ EconomyDep = Annotated[EconomyServices, Depends(get_economy)]
 
 def _treasury_writes_allowed(request: Request | None = None) -> tuple[bool, str]:
     env = (os.getenv("ENV") or os.getenv("NODE_ENV") or "").strip().lower()
-    if env == "local":
-        return True, "env_local"
+    # BUG-004 fix: ENV=local bypass removed — always require explicit token or flag
     allow_flag = (os.getenv("BRIDGE_ALLOW_TREASURY_WRITES") or "").strip().lower()
     if allow_flag in ("1", "true", "yes", "on"):
         return True, "allow_flag"
@@ -54,8 +54,12 @@ def _treasury_writes_allowed(request: Request | None = None) -> tuple[bool, str]
 @router.post("/treasury/collect")
 async def treasury_collect(
     payload: CollectRequest,
+    request: Request,
     svc: EconomyDep,
 ) -> dict[str, Any]:
+    allowed, reason = _treasury_writes_allowed(request)
+    if not allowed:
+        raise HTTPException(403, detail=f"Treasury writes disabled ({reason})")
     return await svc.collect(
         amount=payload.amount,
         currency=payload.currency,
@@ -67,24 +71,37 @@ async def treasury_collect(
 
 
 @router.get("/treasury/status")
-async def treasury_status(svc: EconomyDep) -> dict[str, Any]:
+async def treasury_status(svc: EconomyDep, _: dict = Depends(require_jwt)) -> dict[str, Any]:
     return await svc.treasury_status()
 
 
 @router.get("/treasury/ledger")
 async def treasury_ledger(
     svc: EconomyDep,
+    _: dict = Depends(require_jwt),
     limit: int = 50,
 ) -> dict[str, Any]:
     ledger = await svc.treasury_ledger(limit=limit)
     return {"ok": True, "ledger": ledger, "count": len(ledger)}
 
 
+@router.get("/treasury/audit")
+async def treasury_audit(limit: int = 50, _: dict = Depends(require_jwt)) -> dict[str, Any]:
+    """Return recent Transaction nodes from Neo4j payment audit trail."""
+    from app.services.neo4j_connection import get_neo4j_connection
+    records = get_neo4j_connection().get_payment_audit(limit=limit)
+    return {"ok": True, "audit": records, "count": len(records)}
+
+
 @router.post("/treasury/disburse")
 async def treasury_disburse(
     payload: dict[str, Any],
+    request: Request,
     svc: EconomyDep,
 ) -> dict[str, Any]:
+    allowed, reason = _treasury_writes_allowed(request)
+    if not allowed:
+        raise HTTPException(403, detail=f"Treasury writes disabled ({reason})")
     bucket = payload.get("bucket", "")
     amount = float(payload.get("amount", 0))
     destination = payload.get("destination", "")
@@ -308,3 +325,41 @@ async def webhook_generic(rail: str, request: Request, svc: EconomyDep) -> dict[
     body = await request.body()
     source_project = request.headers.get("X-Source-Project") or None
     return await svc.webhook_generic(rail, body, source_project=source_project)
+
+
+# ------------------------------------------------------------------
+# Demand Pump — backfill marketplace with synthetic tasks to maintain
+# a minimum open-task backlog for agent activity.
+# ------------------------------------------------------------------
+
+@router.post("/demand/pump")
+async def demand_pump(
+    payload: dict[str, Any],
+    svc: EconomyDep,
+) -> dict[str, Any]:
+    """Ensure at least `target_backlog` open tasks exist; create up to `max_create`."""
+    target_backlog = int(payload.get("target_backlog", 5))
+    max_create = int(payload.get("max_create", 10))
+
+    open_tasks = svc.get_tasks(status="open")
+    open_count = len(open_tasks)
+    deficit = max(0, target_backlog - open_count)
+    to_create = min(deficit, max_create)
+
+    created = []
+    for i in range(to_create):
+        result = svc.post_task(
+            title=f"Auto-generated task #{open_count + i + 1}",
+            value=10.0,
+            twin_id="system",
+            tags=["auto", "demand-pump"],
+        )
+        created.append(result.get("task_id"))
+
+    return {
+        "ok": True,
+        "open_tasks": open_count,
+        "target_backlog": target_backlog,
+        "created": len(created),
+        "task_ids": created,
+    }

@@ -244,3 +244,27 @@ async def speech_reason(payload: dict[str, Any], svc: TwinsDep) -> dict[str, Any
     transcript = payload.get("transcript") or payload.get("text") or ""
     context = payload.get("context") or {}
     return await svc.speech_reason(prompt=transcript, context=context)
+
+
+# ------------------------------------------------------------------
+# State mutation (from BRIDGE_AI_OS main.py POST /api/state)
+# ------------------------------------------------------------------
+
+@router.post("/state")
+async def state_mutation(body: dict[str, Any]) -> dict[str, Any]:
+    """Request state change via reducer. Dispatches through the reducer registry."""
+    from app.reducers import SANCTIONED_NAMES, STRICT_MODE
+    reducer = body.get("reducer")
+    payload = body.get("payload") or {}
+    if not reducer or not isinstance(reducer, str):
+        raise HTTPException(400, detail="reducer required")
+    if STRICT_MODE and reducer not in SANCTIONED_NAMES:
+        raise HTTPException(403, detail=f"reducer '{reducer}' not sanctioned")
+    # In Site B the reducers are dispatched via the physics/cortex layer.
+    # Publish the reducer event for any listeners.
+    try:
+        from app.physics import emit as physics_emit
+        await physics_emit("reducer", {"reducer": reducer, "payload": payload})
+    except Exception:
+        pass
+    return {"ok": True, "reducer": reducer}

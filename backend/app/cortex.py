@@ -464,9 +464,9 @@ async def record_boot(memory: Any) -> dict:
     if not memory or not hasattr(memory, "get"):
         return {"boot_id": "", "at": ""}
     import uuid
-    from datetime import datetime
+    from datetime import datetime, timezone
     boot_id = str(uuid.uuid4())[:8]
-    at = datetime.utcnow().isoformat() + "Z"
+    at = datetime.now(timezone.utc).isoformat() + "Z"
     entry = {"boot_id": boot_id, "at": at}
     try:
         log = await memory.get(BOOTS_LOG_KEY)
@@ -486,9 +486,9 @@ async def record_run_start(memory: Any) -> dict:
     if not memory or not hasattr(memory, "get"):
         return {"run_id": "", "started_at": ""}
     import uuid
-    from datetime import datetime
+    from datetime import datetime, timezone
     run_id = str(uuid.uuid4())[:8]
-    started_at = datetime.utcnow().isoformat() + "Z"
+    started_at = datetime.now(timezone.utc).isoformat() + "Z"
     entry = {"run_id": run_id, "started_at": started_at}
     try:
         await memory.set(CURRENT_RUN_KEY, json.dumps(entry))

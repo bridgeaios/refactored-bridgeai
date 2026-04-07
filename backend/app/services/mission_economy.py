@@ -10,7 +10,7 @@ Streams:
 """
 import uuid
 from dataclasses import dataclass
-from datetime import datetime
+from datetime import datetime, timezone
 from decimal import Decimal
 from enum import Enum
 
@@ -102,8 +102,8 @@ class MissionEconomyService:
             price_usd=config["price_usd"],
             brdg_reward=config["brdg_reward"],
             required_skills=required_skills or [],
-            created_at=datetime.utcnow(),
-            updated_at=datetime.utcnow(),
+            created_at=datetime.now(timezone.utc),
+            updated_at=datetime.now(timezone.utc),
             creator_id=creator_id,
         )
         self._missions[mission.id] = mission
@@ -133,7 +133,7 @@ class MissionEconomyService:
             return False
         mission.assignee_id = agent_id
         mission.status = MissionStatus.IN_PROGRESS
-        mission.updated_at = datetime.utcnow()
+        mission.updated_at = datetime.now(timezone.utc)
         return True
 
     def complete_mission(
@@ -148,7 +148,7 @@ class MissionEconomyService:
 
         mission.status = MissionStatus.COMPLETED
         mission.rating = rating
-        mission.updated_at = datetime.utcnow()
+        mission.updated_at = datetime.now(timezone.utc)
 
         total = Decimal(str(mission.brdg_reward))
         agent_commission = total * AGENT_COMMISSION

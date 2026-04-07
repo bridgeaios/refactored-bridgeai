@@ -32,6 +32,11 @@ class MemStub:
             return True
         return False
 
+    async def incr(self, key):
+        val = int(self._store.get(key) or 0) + 1
+        self._store[key] = val
+        return val
+
 
 # ── Gap 13: Clock ──────────────────────────────────────────────────────────
 

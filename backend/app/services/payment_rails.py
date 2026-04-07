@@ -10,8 +10,13 @@ from __future__ import annotations
 
 import hashlib
 import hmac
+import logging
 import os
 from typing import Any
+
+import httpx
+
+_log = logging.getLogger("payment_rails")
 
 
 class PaymentRails:
@@ -112,21 +117,108 @@ class PaymentRails:
     # ------------------------------------------------------------------
 
     @staticmethod
-    def verify_paypal(body_bytes: bytes, headers: dict[str, str]) -> bool:
+    async def _get_paypal_access_token() -> str | None:
         """
-        PayPal webhook verification.
-        DISABLED: Always returns False until real PayPal verify-webhook-signature
-        API call is implemented. Accepting unverified webhooks allows forged payments.
-        TODO: Implement POST to https://api.paypal.com/v1/notifications/verify-webhook-signature
+        Obtain a PayPal OAuth2 access token using client credentials.
+        Returns None if credentials are missing or the request fails.
         """
-        # SECURITY: PayPal webhook verification is NOT implemented.
-        # Rejecting all PayPal webhooks until proper signature verification is added.
+        client_id = os.environ.get("PAYPAL_CLIENT_ID", "")
+        client_secret = os.environ.get("PAYPAL_CLIENT_SECRET", "")
+        if not client_id or not client_secret:
+            return None
+        base = (
+            "https://api-m.sandbox.paypal.com"
+            if os.environ.get("PAYPAL_SANDBOX", "1") == "1"
+            else "https://api-m.paypal.com"
+        )
+        try:
+            async with httpx.AsyncClient(timeout=10.0) as client:
+                resp = await client.post(
+                    f"{base}/v1/oauth2/token",
+                    data={"grant_type": "client_credentials"},
+                    auth=(client_id, client_secret),
+                )
+                resp.raise_for_status()
+                return resp.json().get("access_token")
+        except Exception:
+            _log.exception("PayPal access token fetch failed")
+            return None
+
+    @staticmethod
+    async def verify_paypal(body_bytes: bytes, headers: dict[str, str]) -> bool:
+        """
+        Verify a PayPal webhook event using the official
+        POST /v1/notifications/verify-webhook-signature API.
+
+        Returns True only if PayPal confirms the signature is valid.
+        Rejects (returns False) on: missing config, HTTP errors, network
+        failures, or any verification_status other than 'SUCCESS'.
+
+        Required env vars:
+          PAYPAL_WEBHOOK_ID      — the webhook ID from PayPal dashboard
+          PAYPAL_CLIENT_ID       — REST API app client ID
+          PAYPAL_CLIENT_SECRET   — REST API app client secret
+          PAYPAL_SANDBOX         — "1" for sandbox (default), "0" for live
+        """
         webhook_id = os.environ.get("PAYPAL_WEBHOOK_ID", "")
         if not webhook_id:
-            return False  # No webhook ID configured — reject
-        # TODO: Implement real PayPal webhook signature verification here.
-        # See: https://developer.paypal.com/docs/api/webhooks/v1/#verify-webhook-signature_post
-        return False  # Reject until verification is implemented
+            _log.warning("PayPal webhook rejected: PAYPAL_WEBHOOK_ID not configured")
+            return False
+
+        access_token = await PaymentRails._get_paypal_access_token()
+        if not access_token:
+            _log.error("PayPal webhook rejected: could not obtain access token")
+            return False
+
+        # PayPal requires the raw body as a parsed JSON object in the payload
+        import json as _json
+        try:
+            body_obj = _json.loads(body_bytes)
+        except Exception:
+            _log.warning("PayPal webhook rejected: body is not valid JSON")
+            return False
+
+        base = (
+            "https://api-m.sandbox.paypal.com"
+            if os.environ.get("PAYPAL_SANDBOX", "1") == "1"
+            else "https://api-m.paypal.com"
+        )
+
+        payload = {
+            "transmission_id":   headers.get("paypal-transmission-id", ""),
+            "transmission_time": headers.get("paypal-transmission-time", ""),
+            "cert_url":          headers.get("paypal-cert-url", ""),
+            "auth_algo":         headers.get("paypal-auth-algo", ""),
+            "transmission_sig":  headers.get("paypal-transmission-sig", ""),
+            "webhook_id":        webhook_id,
+            "webhook_event":     body_obj,
+        }
+
+        # All required fields must be present
+        missing = [k for k, v in payload.items() if not v and k != "webhook_event"]
+        if missing:
+            _log.warning("PayPal webhook rejected: missing headers %s", missing)
+            return False
+
+        try:
+            async with httpx.AsyncClient(timeout=10.0) as client:
+                resp = await client.post(
+                    f"{base}/v1/notifications/verify-webhook-signature",
+                    json=payload,
+                    headers={"Authorization": f"Bearer {access_token}"},
+                )
+                resp.raise_for_status()
+                status = resp.json().get("verification_status", "")
+                if status != "SUCCESS":
+                    _log.warning("PayPal webhook rejected: verification_status=%s", status)
+                    return False
+                return True
+        except httpx.HTTPStatusError as exc:
+            _log.error("PayPal verify API HTTP error: %s", exc.response.status_code)
+            return False
+        except Exception:
+            _log.exception("PayPal verify API request failed")
+            return False
 
     @staticmethod
     def parse_paypal(body: dict[str, Any]) -> dict[str, Any] | None:

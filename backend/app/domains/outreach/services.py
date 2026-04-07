@@ -2,7 +2,7 @@
 from __future__ import annotations
 
 import logging
-from datetime import datetime
+from datetime import datetime, timezone
 from typing import TYPE_CHECKING, Any
 from uuid import uuid4
 
@@ -23,7 +23,7 @@ class OutreachService:
     async def enqueue(self, payload: dict[str, Any]) -> dict[str, Any]:
         """Queue an outreach email. Called by workers.py after lead ingestion."""
         job_id = str(uuid4())
-        now = datetime.utcnow().isoformat()
+        now = datetime.now(timezone.utc).isoformat()
         job: dict[str, Any] = {
             "id": job_id,
             "email": payload.get("email", ""),
@@ -101,7 +101,7 @@ class OutreachService:
         if not job:
             return None
         job["status"] = "sent"
-        job["sent_at"] = datetime.utcnow().isoformat()
+        job["sent_at"] = datetime.now(timezone.utc).isoformat()
         await self._mem.set(f"outreach:job:{job_id}", job)
         return job
 

@@ -7,9 +7,11 @@ Absorbs endpoints from:
 """
 from __future__ import annotations
 
+import time
+from collections import deque
 from typing import Annotated, Any
 
-from fastapi import APIRouter, Depends, HTTPException, Request, Response
+from fastapi import APIRouter, Body, Depends, HTTPException, Query, Request, Response
 
 from app.domains.infra.deps import get_infra, require_jwt
 from app.domains.infra.models import HealthResponse, SiweLoginRequest
@@ -17,7 +19,13 @@ from app.domains.infra.services import InfraServices
 
 router = APIRouter(tags=["infra"])
 
+# Identity store key pattern: identity:link:{sub} → {contact_id, contact_email, ...}
+_IDENTITY_KEY = "identity:link:{sub}"
+
 InfraDep = Annotated[InfraServices, Depends(get_infra)]
+
+# In-process ring buffer for SVG build + monetization telemetry (not durable across restarts).
+_SVG_BUILD_TELEMETRY: deque[dict[str, Any]] = deque(maxlen=500)
 
 
 # ------------------------------------------------------------------
@@ -32,6 +40,30 @@ async def health() -> HealthResponse:
 @router.get("/status")
 async def status() -> HealthResponse:
     return HealthResponse()
+
+
+# ------------------------------------------------------------------
+# Telemetry (SVG build orchestration, monetization hooks)
+# ------------------------------------------------------------------
+
+@router.post("/telemetry")
+async def post_api_telemetry(event: dict[str, Any] = Body(...)) -> dict[str, Any]:
+    """Accept client/orchestrator events. Supports ``event`` or ``type`` = svg_build_completed."""
+    etype = event.get("event") or event.get("type") or event.get("event_type")
+    if etype == "svg_build_completed":
+        _SVG_BUILD_TELEMETRY.append({**event, "received_at": time.time()})
+    return {"ok": True, "accepted": True, "type": etype}
+
+
+@router.get("/telemetry/svg-build")
+async def get_svg_build_telemetry_recent(
+    limit: int = Query(10, ge=1, le=100),
+) -> dict[str, Any]:
+    """Recent ``svg_build_completed`` payloads (newest first). In-process buffer only; resets on restart."""
+    items = list(_SVG_BUILD_TELEMETRY)
+    tail = items[-limit:]
+    tail.reverse()
+    return {"ok": True, "items": tail, "count": len(tail)}
 
 
 # ------------------------------------------------------------------
@@ -105,8 +137,148 @@ async def siwe_logout() -> dict[str, Any]:
 
 @router.get("/auth/me")
 async def auth_me(claims: dict = Depends(require_jwt)) -> dict[str, Any]:
-    """Return the authenticated identity from the JWT. Used by login.html to check existing sessions."""
-    return {"sub": claims.get("sub"), "address": claims.get("sub"), "authority": claims.get("authority")}
+    """Return the authenticated identity from the JWT, including linked CRM contact if any."""
+    from app.core.deps import get_memory as _get_mem
+    sub = claims.get("sub", "")
+    mem = _get_mem()
+    link = await mem.get(_IDENTITY_KEY.format(sub=sub)) or {}
+    return {
+        "sub": sub,
+        "address": sub,
+        "authority": claims.get("authority"),
+        "contact_id": link.get("contact_id"),
+        "contact_email": link.get("contact_email"),
+        "contact_company": link.get("contact_company"),
+        "linked": bool(link.get("contact_id")),
+    }
+
+
+@router.post("/identity/link-contact")
+async def link_contact(
+    payload: dict[str, Any],
+    claims: dict = Depends(require_jwt),
+) -> dict[str, Any]:
+    """Link the authenticated user to a CRM contact by contact_id.
+    This enables avatar and sub-services to inherit the contact's token context.
+    """
+    from app.core.deps import get_memory as _get_mem
+    from app.domains.crm.services import CrmService
+    from datetime import datetime, timezone
+
+    contact_id = str(payload.get("contact_id", "")).strip()
+    if not contact_id:
+        raise HTTPException(400, detail="contact_id required")
+
+    mem = _get_mem()
+    crm = CrmService(memory=mem)
+    contact = await crm.get_lead(contact_id)
+    if not contact:
+        raise HTTPException(404, detail="Contact not found")
+
+    sub = claims.get("sub", "")
+    link = {
+        "sub": sub,
+        "contact_id": contact_id,
+        "contact_email": contact.get("email", ""),
+        "contact_company": contact.get("company", ""),
+        "contact_industry": contact.get("industry", ""),
+        "contact_stage": contact.get("stage", "new"),
+        "linked_at": datetime.now(timezone.utc).isoformat(),
+        # Token context for avatar + sub-services
+        "avatar_context": {
+            "name": contact.get("name") or contact.get("email", ""),
+            "company": contact.get("company", ""),
+            "industry": contact.get("industry", ""),
+            "score": contact.get("score", 0.0),
+        },
+    }
+    await mem.set(_IDENTITY_KEY.format(sub=sub), link)
+
+    # Also tag the CRM contact with the linked sub
+    contact.setdefault("linked_subs", [])
+    if sub not in contact["linked_subs"]:
+        contact["linked_subs"].append(sub)
+    await mem.set(f"crm:lead:{contact_id}", contact)
+
+    return {"ok": True, "linked": True, "contact_id": contact_id, "avatar_context": link["avatar_context"]}
+
+
+@router.get("/identity/me")
+async def identity_me(
+    claims: dict = Depends(require_jwt),
+) -> dict[str, Any]:
+    """Full identity context: JWT claims + linked contact + avatar/sub-service token context."""
+    from app.core.deps import get_memory as _get_mem
+    mem = _get_mem()
+    sub = claims.get("sub", "")
+    link = await mem.get(_IDENTITY_KEY.format(sub=sub)) or {}
+    return {
+        "sub": sub,
+        "authority": claims.get("authority"),
+        "linked": bool(link.get("contact_id")),
+        "contact_id": link.get("contact_id"),
+        "contact_email": link.get("contact_email"),
+        "contact_company": link.get("contact_company"),
+        "contact_industry": link.get("contact_industry"),
+        "contact_stage": link.get("contact_stage"),
+        "linked_at": link.get("linked_at"),
+        "avatar_context": link.get("avatar_context", {}),
+    }
+
+
+@router.post("/identity/auto-link")
+async def auto_link_by_email(
+    payload: dict[str, Any],
+    claims: dict = Depends(require_jwt),
+) -> dict[str, Any]:
+    """Auto-link authenticated user to a CRM contact matching by email address."""
+    from app.core.deps import get_memory as _get_mem
+    from app.domains.crm.services import CrmService
+    from datetime import datetime, timezone
+
+    email = str(payload.get("email", "")).strip().lower()
+    if not email:
+        raise HTTPException(400, detail="email required")
+
+    mem = _get_mem()
+    crm = CrmService(memory=mem)
+    contact_id = await mem.get(f"crm:email:{email}")
+    if not contact_id:
+        # No existing contact — auto-ingest as new contact
+        result = await crm.ingest_lead({
+            "email": email,
+            "name": payload.get("name", ""),
+            "company": payload.get("company", ""),
+            "source": "auth_auto_link",
+            "osint_profile": {},
+        })
+        contact_id = result["id"]
+
+    contact = await crm.get_lead(contact_id) or {}
+    sub = claims.get("sub", "")
+    link = {
+        "sub": sub,
+        "contact_id": contact_id,
+        "contact_email": contact.get("email", email),
+        "contact_company": contact.get("company", ""),
+        "contact_industry": contact.get("industry", ""),
+        "contact_stage": contact.get("stage", "new"),
+        "linked_at": datetime.now(timezone.utc).isoformat(),
+        "avatar_context": {
+            "name": contact.get("name") or email,
+            "company": contact.get("company", ""),
+            "industry": contact.get("industry", ""),
+            "score": contact.get("score", 0.0),
+        },
+    }
+    await mem.set(_IDENTITY_KEY.format(sub=sub), link)
+
+    contact.setdefault("linked_subs", [])
+    if sub not in contact["linked_subs"]:
+        contact["linked_subs"].append(sub)
+    await mem.set(f"crm:lead:{contact_id}", contact)
+
+    return {"ok": True, "contact_id": contact_id, "created": result.get("duplicate") is False if 'result' in dir() else False}
 
 
 @router.post("/auth/dev-login")
@@ -126,18 +298,20 @@ async def dev_login(payload: dict[str, Any], response: Response) -> dict[str, An
     from app.services.siwe_auth import create_jwt
     token = create_jwt(address, authority="dev")
 
-    # Set as HttpOnly cookie
+    is_secure = os.environ.get("ENV", "").lower() == "production"
     response.set_cookie(
         key="access_token",
         value=token,
         httponly=True,
-        secure=True,
-        samesite="strict",
+        secure=is_secure,
+        samesite="lax",
         path="/",
         max_age=24 * 60 * 60,
     )
 
-    return {"ok": True, "address": address, "message": "Dev login successful. Token set as HttpOnly cookie."}
+    # Also return token in body so the frontend can store it in localStorage
+    # for Authorization: Bearer header auth (used by dashboard pages)
+    return {"ok": True, "address": address, "token": token, "message": "Dev login successful."}
 
 
 # ------------------------------------------------------------------
@@ -308,9 +482,9 @@ async def live_map(svc: InfraDep) -> dict[str, Any]:
 
 @router.get("/live/report")
 async def live_report(svc: InfraDep) -> dict[str, Any]:
-    from datetime import datetime
+    from datetime import datetime, timezone
     data = await svc.live_map()
-    data["report_at"] = datetime.utcnow().isoformat() + "Z"
+    data["report_at"] = datetime.now(timezone.utc).isoformat() + "Z"
     data["live_display"] = True
     return data
 

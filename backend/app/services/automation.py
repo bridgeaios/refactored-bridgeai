@@ -1,6 +1,9 @@
 import asyncio
+import logging
 import os
 import random
+
+_log = logging.getLogger("automation")
 
 
 def _env_int(name: str, default: int) -> int:
@@ -47,15 +50,16 @@ class AutomationLoops:
     def start(self) -> None:
         if not self.enabled:
             return
+        from app.core.safe_spawn import safe_spawn
         tasks = [
-            asyncio.create_task(self._loop_auto_add(), name="bridge:auto_add"),
-            asyncio.create_task(self._loop_auto_allocate(), name="bridge:auto_allocate"),
-            asyncio.create_task(self._loop_auto_complete(), name="bridge:auto_complete"),
-            asyncio.create_task(self._loop_auto_dex(), name="bridge:auto_dex"),
-            asyncio.create_task(self._loop_sync_board(), name="bridge:sync_board"),
+            safe_spawn(self._loop_auto_add(), name="bridge:auto_add"),
+            safe_spawn(self._loop_auto_allocate(), name="bridge:auto_allocate"),
+            safe_spawn(self._loop_auto_complete(), name="bridge:auto_complete"),
+            safe_spawn(self._loop_auto_dex(), name="bridge:auto_dex"),
+            safe_spawn(self._loop_sync_board(), name="bridge:sync_board"),
         ]
         if self.replication_engine:
-            tasks.append(asyncio.create_task(self._loop_replication(), name="bridge:replication"))
+            tasks.append(safe_spawn(self._loop_replication(), name="bridge:replication"))
         self._tasks = tasks
 
     async def stop(self) -> None:
@@ -68,7 +72,7 @@ class AutomationLoops:
             except asyncio.CancelledError:
                 pass
             except Exception:
-                pass
+                _log.exception("[automation] loop error")
 
     async def _sleep(self, sec: int) -> None:
         try:
@@ -95,7 +99,7 @@ class AutomationLoops:
                 self.twins.auto_add_task(self.marketplace)
                 self.sdg.track("tasks_created", 1)
             except Exception:
-                pass
+                _log.exception("[automation] loop error")
 
     async def _loop_auto_allocate(self):
         while not self._stop.is_set():
@@ -111,7 +115,7 @@ class AutomationLoops:
                 t = random.choice(open_tasks)
                 self.twins.allocate_task(int(t.get("id")), twin_id, self.marketplace)
             except Exception:
-                pass
+                _log.exception("[automation] loop error")
 
     async def _loop_auto_complete(self):
         while not self._stop.is_set():
@@ -131,7 +135,7 @@ class AutomationLoops:
                     except Exception:
                         pass
             except Exception:
-                pass
+                _log.exception("[automation] loop error")
 
     async def _loop_auto_dex(self):
         assets = ["BTC", "ETH", "BRDG", "SOL"]
@@ -145,7 +149,7 @@ class AutomationLoops:
                     self.sdg.track("trades_executed", 1)
                     self.revenue.collect(0.05)
             except Exception:
-                pass
+                _log.exception("[automation] loop error")
 
     async def _loop_sync_board(self):
         while not self._stop.is_set():
@@ -162,7 +166,7 @@ class AutomationLoops:
                 }
                 await self.mission.update_board(counts)
             except Exception:
-                pass
+                _log.exception("[automation] loop error")
 
     async def _loop_replication(self):
         """Replication engine: task demand > capacity or performance > threshold → create twin / add task."""
@@ -172,5 +176,5 @@ class AutomationLoops:
                 if self.replication_engine:
                     await self.replication_engine.evaluate()
             except Exception:
-                pass
+                _log.exception("[automation] loop error")
 

@@ -17,7 +17,20 @@ def mock_mem():
     m.set = AsyncMock(return_value=True)
     m.append = AsyncMock(return_value=True)
     m.get_recent = AsyncMock(return_value=[])
+    # Treasury accesses _engine directly for idempotency
+    _engine = MagicMock()
+    _engine.claim_idempotency = AsyncMock(return_value=True)
+    m._engine = _engine
     return m
+
+
+@pytest.fixture(autouse=True)
+def unlock_treasury():
+    """Unlock treasury gate for unit tests — gate starts locked until control plane runs."""
+    from app.core.control_plane import TREASURY_GATE
+    TREASURY_GATE.unlock()
+    yield
+    TREASURY_GATE.lock("Test teardown")
 
 
 @pytest.fixture

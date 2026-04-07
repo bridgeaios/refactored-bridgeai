@@ -6,7 +6,7 @@ and decentralized governance voting.
 """
 import uuid
 from dataclasses import dataclass, field
-from datetime import datetime
+from datetime import datetime, timezone
 from enum import Enum
 
 
@@ -63,7 +63,7 @@ class MutationProposal:
     expected_benefit: float
     status: MutationStatus = MutationStatus.PROPOSED
     proposer_id: str = ""
-    created_at: datetime = field(default_factory=datetime.utcnow)
+    created_at: datetime = field(default_factory=lambda: datetime.now(timezone.utc))
     test_results: dict | None = None
     approval_votes: float = 0.0
     rejection_votes: float = 0.0
@@ -99,7 +99,7 @@ class Vote:
     voter_id: str
     option: VoteOption
     weight: float
-    timestamp: datetime = field(default_factory=datetime.utcnow)
+    timestamp: datetime = field(default_factory=lambda: datetime.now(timezone.utc))
     reason: str = ""
 
 
@@ -175,7 +175,7 @@ class EvolutionGovernance:
             agent_id=agent_id,
             state={"status": "snapshot"},
             parameters={"version": len(self._agent_snapshots[agent_id]) + 1},
-            timestamp=datetime.utcnow(),
+            timestamp=datetime.now(timezone.utc),
         )
         self._agent_snapshots[agent_id].append(snapshot)
 
@@ -227,7 +227,7 @@ class EvolutionGovernance:
             reason=reason,
             severity="high" if severity > GovernanceConfig.QUARANTINE_SEVERITY_THRESHOLD else "medium",
             violations=violations,
-            quarantined_at=datetime.utcnow(),
+            quarantined_at=datetime.now(timezone.utc),
             release_conditions=[
                 "Pass safety review",
                 "Complete rehabilitation period",
@@ -247,7 +247,7 @@ class EvolutionGovernance:
         record = self._quarantine.get(agent_id)
         if not record or record.released_at:
             return False
-        record.released_at = datetime.utcnow()
+        record.released_at = datetime.now(timezone.utc)
         self._agent_status[agent_id] = AgentStatus.ACTIVE
         return True
 

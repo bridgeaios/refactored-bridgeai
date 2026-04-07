@@ -12,7 +12,7 @@ from __future__ import annotations
 
 import io
 import os
-from datetime import datetime
+from datetime import datetime, timezone
 from typing import Any
 
 # reportlab imports — package is installed in requirements.txt
@@ -427,7 +427,7 @@ def generate_invoice_pdf(invoice: dict[str, Any]) -> bytes:
 
     # Footer
     story.append(Paragraph(
-        f"{COMPANY_NAME} · {COMPANY_EMAIL} · Generated {datetime.utcnow().strftime('%Y-%m-%d')}",
+        f"{COMPANY_NAME} · {COMPANY_EMAIL} · Generated {datetime.now(timezone.utc).strftime('%Y-%m-%d')}",
         st["footer"],
     ))
 

@@ -18,22 +18,24 @@ Endpoints (all require JWT):
 from __future__ import annotations
 
 import time
-from typing import Any
+from typing import Annotated, Any
 
 from fastapi import APIRouter, Depends
 
+from app.core.deps import get_memory
 from app.domains.infra.deps import require_jwt
+from app.services.memory_store import MemoryStore
 
 router = APIRouter(prefix="/observe", tags=["observability"])
+
+MemDep = Annotated[MemoryStore, Depends(get_memory)]
 
 
 # ── Health ────────────────────────────────────────────────────────────────────
 
 @router.get("/health")
-async def health_check(_: dict = Depends(require_jwt)) -> dict[str, Any]:
-    from app.core.deps import get_memory
-    from app.core.constraints import check_constraints, constraint_status
-    mem = get_memory()
+async def health_check(mem: MemDep, _: dict = Depends(require_jwt)) -> dict[str, Any]:
+    from app.core.constraints import constraint_status
     constraints = await constraint_status(mem)
     return {
         "status": "ok",
@@ -54,20 +56,16 @@ async def clock_info(_: dict = Depends(require_jwt)) -> dict[str, Any]:
 # ── Cost Accounting ────────────────────────────────────────────────────────────
 
 @router.get("/costs")
-async def cost_summary_endpoint(_: dict = Depends(require_jwt)) -> dict[str, Any]:
+async def cost_summary_endpoint(mem: MemDep, _: dict = Depends(require_jwt)) -> dict[str, Any]:
     """Gap 14: Per-channel cost totals for the current cycle."""
-    from app.core.deps import get_memory
     from app.core.cost import cost_summary
-    mem = get_memory()
     return await cost_summary(mem)
 
 
 @router.get("/costs/recent")
-async def cost_recent_endpoint(limit: int = 50, _: dict = Depends(require_jwt)) -> dict[str, Any]:
+async def cost_recent_endpoint(mem: MemDep, limit: int = 50, _: dict = Depends(require_jwt)) -> dict[str, Any]:
     """Gap 14: Most recent cost entries (default last 50)."""
-    from app.core.deps import get_memory
     from app.core.cost import cost_recent
-    mem = get_memory()
     entries = await cost_recent(mem, limit=min(limit, 200))
     return {"entries": entries, "count": len(entries)}
 
@@ -75,11 +73,13 @@ async def cost_recent_endpoint(limit: int = 50, _: dict = Depends(require_jwt)) 
 # ── Agent Lifecycle ────────────────────────────────────────────────────────────
 
 @router.get("/agents")
-async def agent_registry_endpoint(include_retired: bool = False, _: dict = Depends(require_jwt)) -> dict[str, Any]:
+async def agent_registry_endpoint(
+    mem: MemDep,
+    include_retired: bool = False,
+    _: dict = Depends(require_jwt),
+) -> dict[str, Any]:
     """Gap 19: Live agent registry with status (active/idle/retired)."""
-    from app.core.deps import get_memory
     from app.core.lifecycle import agent_registry, agent_count
-    mem = get_memory()
     agents = await agent_registry(mem, include_retired=include_retired)
     counts = await agent_count(mem)
     return {"agents": agents, "counts": counts, "ts": time.time()}
@@ -88,21 +88,17 @@ async def agent_registry_endpoint(include_retired: bool = False, _: dict = Depen
 # ── Dead-Letter Queue ──────────────────────────────────────────────────────────
 
 @router.get("/dlq")
-async def dlq_list_endpoint(_: dict = Depends(require_jwt)) -> dict[str, Any]:
+async def dlq_list_endpoint(mem: MemDep, _: dict = Depends(require_jwt)) -> dict[str, Any]:
     """Gap 12: Dead-letter queue — failed operations that exceeded MAX_RETRIES."""
-    from app.core.deps import get_memory
     from app.core.idempotency import dlq_list
-    mem = get_memory()
     entries = await dlq_list(mem)
     return {"entries": entries, "count": len(entries)}
 
 
 @router.post("/dlq/{key}/retry")
-async def dlq_retry_endpoint(key: str, _: dict = Depends(require_jwt)) -> dict[str, Any]:
+async def dlq_retry_endpoint(key: str, mem: MemDep, _: dict = Depends(require_jwt)) -> dict[str, Any]:
     """Gap 12: Re-queue a DLQ entry for retry."""
-    from app.core.deps import get_memory
     from app.core.idempotency import dlq_retry
-    mem = get_memory()
     ok = await dlq_retry(mem, key)
     return {"ok": ok, "key": key}
 
@@ -110,11 +106,9 @@ async def dlq_retry_endpoint(key: str, _: dict = Depends(require_jwt)) -> dict[s
 # ── Audit Trail ────────────────────────────────────────────────────────────────
 
 @router.get("/audit")
-async def audit_log_endpoint(limit: int = 100, _: dict = Depends(require_jwt)) -> dict[str, Any]:
+async def audit_log_endpoint(mem: MemDep, limit: int = 100, _: dict = Depends(require_jwt)) -> dict[str, Any]:
     """Gap 25: Recent audit trail entries."""
-    from app.core.deps import get_memory
     from app.core.compliance import audit_recent, compliance_status
-    mem = get_memory()
     entries = await audit_recent(mem, limit=min(limit, 500))
     status = await compliance_status(mem)
     return {"entries": entries, "compliance": status, "ts": time.time()}
@@ -169,21 +163,18 @@ async def network_topology(_: dict = Depends(require_jwt)) -> dict[str, Any]:
 # ── Incentive Alignment ────────────────────────────────────────────────────────
 
 @router.get("/incentives")
-async def incentive_model(_: dict = Depends(require_jwt)) -> dict[str, Any]:
+async def incentive_model(mem: MemDep, _: dict = Depends(require_jwt)) -> dict[str, Any]:
     """
     Gap 23: Incentive alignment model snapshot.
 
     Returns the current incentive structure — how value flows from actions
     to rewards, and the penalty/reward balance at each layer.
     """
-    from app.core.deps import get_memory
     from app.core.cost import cost_summary
     from app.core.clock import cycle_info
-    mem = get_memory()
     costs = await cost_summary(mem)
     clock = cycle_info()
 
-    # Treasury split model
     treasury_split = {
         "ubi":     {"pct": 40, "description": "Universal Basic Income — all registered nodes"},
         "reserve": {"pct": 30, "description": "Treasury reserve — system stability buffer"},
@@ -191,7 +182,6 @@ async def incentive_model(_: dict = Depends(require_jwt)) -> dict[str, Any]:
         "founder": {"pct": 10, "description": "Founder allocation — product development"},
     }
 
-    # Emit channel value weights
     channel_weights = {
         "J": {"label": "Job",      "base_value": 1.0, "cost_floor": 0.1,  "incentive": "throughput"},
         "X": {"label": "Agent",    "base_value": 1.0, "cost_floor": 0.05, "incentive": "discovery"},
@@ -200,22 +190,21 @@ async def incentive_model(_: dict = Depends(require_jwt)) -> dict[str, Any]:
     }
 
     return {
-        "treasury_split":   treasury_split,
-        "channel_weights":  channel_weights,
-        "cost_headroom":    costs.get("headroom", {}),
-        "cycle":            clock.get("cycle"),
-        "window":           clock.get("window"),
-        "settling":         clock.get("settling"),
-        "ts":               time.time(),
+        "treasury_split":  treasury_split,
+        "channel_weights": channel_weights,
+        "cost_headroom":   costs.get("headroom", {}),
+        "cycle":           clock.get("cycle"),
+        "window":          clock.get("window"),
+        "settling":        clock.get("settling"),
+        "ts":              time.time(),
     }
 
 
 # ── Full Summary ───────────────────────────────────────────────────────────────
 
 @router.get("/summary")
-async def full_summary(_: dict = Depends(require_jwt)) -> dict[str, Any]:
+async def full_summary(mem: MemDep, _: dict = Depends(require_jwt)) -> dict[str, Any]:
     """Gap 24: Single-call API boundary — all system metrics in one response."""
-    from app.core.deps import get_memory
     from app.core.clock import cycle_info
     from app.core.cost import cost_summary
     from app.core.constraints import constraint_status
@@ -223,10 +212,6 @@ async def full_summary(_: dict = Depends(require_jwt)) -> dict[str, Any]:
     from app.core.idempotency import dlq_list
     from app.core.compliance import compliance_status
 
-    mem = get_memory()
-
-    # Gather all in parallel would require asyncio.gather —
-    # using sequential for simplicity (all are fast mem reads)
     return {
         "clock":       cycle_info(),
         "costs":       await cost_summary(mem),

@@ -45,6 +45,7 @@ def _as_list(val) -> list:
     return []
 _CONSENT_PREFIX = "consent:"
 _PII_PREFIX     = "pii:tag:"
+_PII_COUNTER    = "pii:count"
 _RETAIN_PREFIX  = "retain:"
 
 # Maximum audit index size (FIFO eviction beyond this)
@@ -207,6 +208,7 @@ async def tag_pii(
         "retention_days": retention_days,
     }
     await mem.set(_PII_PREFIX + record_id, json.dumps(tag))
+    await mem.incr(_PII_COUNTER)
     await audit_log(
         mem, AuditEvent.PII_TAGGED, actor="system",
         subject=record_id,
@@ -233,7 +235,7 @@ async def compliance_status(mem) -> dict:
     index: list[str] = _as_list(raw)
     return {
         "audit_entries": len(index),
-        "pii_tag_count": 0,   # TODO: iterate _PII_PREFIX keys when mem supports scan
+        "pii_tag_count": int(await mem.get(_PII_COUNTER) or 0),
         "consent_model": list(_VALID_PURPOSES),
         "retention_days_default": DEFAULT_RETENTION_DAYS,
     }

@@ -51,6 +51,16 @@ async def vote(
     )
 
 
+@router.get("/reputation/top")
+async def reputation_top(
+    svc: GovernanceDep,
+    limit: int = 20,
+) -> dict[str, Any]:
+    """Return top agents ranked by reputation score."""
+    agents = svc._rep.top(limit=limit)
+    return {"ok": True, "agents": agents, "count": len(agents)}
+
+
 @router.get("/reputation/{agent_id}")
 async def get_reputation(
     agent_id: str,

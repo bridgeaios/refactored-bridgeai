@@ -171,6 +171,96 @@ class Neo4jConnection:
             "total_collaborations": collabs[0].get("count", 0) if collabs else 0,
         }
 
+    # ------------------------------------------------------------------
+    # Financial Audit Trail
+    # ------------------------------------------------------------------
+
+    def record_transaction(self, entry: dict) -> bool:
+        """
+        Write a Transaction node for every treasury collect().
+        Links to a Project node via GENERATED relationship.
+        Relationships chain: (Project)-[:GENERATED]->(Transaction)-[:ALLOCATED_TO]->(Bucket)
+        """
+        query = """
+        MERGE (p:Project {name: $source_project})
+        CREATE (t:Transaction {
+            tx_id:          $tx_id,
+            ts:             $ts,
+            ts_epoch:       $ts_epoch,
+            method:         $method,
+            type:           $type,
+            amount_original: $amount_original,
+            currency:       $currency,
+            amount_brdg:    $amount_brdg,
+            source_project: $source_project
+        })
+        MERGE (p)-[:GENERATED {ts: $ts}]->(t)
+        WITH t
+        UNWIND keys($split) AS bucket
+        MERGE (b:Bucket {name: bucket})
+        CREATE (t)-[:ALLOCATED_TO {amount_brdg: $split[bucket]}]->(b)
+        RETURN t.tx_id AS tx_id
+        """
+        return self.execute_write(query, {
+            "tx_id":           entry["id"],
+            "ts":              entry["ts"],
+            "ts_epoch":        entry.get("ts_epoch", 0.0),
+            "method":          entry["method"],
+            "type":            entry.get("type", "revenue"),
+            "amount_original": entry["amount_original"],
+            "currency":        entry["currency"],
+            "amount_brdg":     entry["amount_brdg"],
+            "source_project":  entry["source_project"],
+            "split":           entry.get("split", {}),
+        })
+
+    def record_payment_event(self, payment_id: str, provider: str, amount: float,
+                             currency: str, status: str, user_id: str | None = None,
+                             plan: str | None = None) -> bool:
+        """
+        Write a Payment node for inbound webhook events (Paystack, PayPal, etc.).
+        Optionally links to a User node if user_id is provided.
+        """
+        query = """
+        MERGE (prov:Provider {name: $provider})
+        CREATE (pay:Payment {
+            payment_id: $payment_id,
+            provider:   $provider,
+            amount:     $amount,
+            currency:   $currency,
+            status:     $status,
+            plan:       $plan,
+            ts:         datetime()
+        })
+        MERGE (prov)-[:PROCESSED]->(pay)
+        WITH pay
+        FOREACH (_ IN CASE WHEN $user_id IS NOT NULL THEN [1] ELSE [] END |
+            MERGE (u:User {user_id: $user_id})
+            MERGE (u)-[:MADE]->(pay)
+        )
+        RETURN pay.payment_id AS payment_id
+        """
+        return self.execute_write(query, {
+            "payment_id": payment_id,
+            "provider":   provider,
+            "amount":     amount,
+            "currency":   currency,
+            "status":     status,
+            "plan":       plan or "",
+            "user_id":    user_id,
+        })
+
+    def get_payment_audit(self, limit: int = 50) -> list[dict]:
+        """Return most recent Transaction nodes for audit view."""
+        query = """
+        MATCH (t:Transaction)
+        RETURN t.tx_id AS tx_id, t.ts AS ts, t.source_project AS project,
+               t.method AS method, t.amount_brdg AS amount_brdg, t.currency AS currency
+        ORDER BY t.ts_epoch DESC
+        LIMIT $limit
+        """
+        return self.execute_query(query, {"limit": limit})
+
 
 _neo4j_connection: Neo4jConnection | None = None
 

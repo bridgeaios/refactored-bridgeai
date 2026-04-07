@@ -11,13 +11,15 @@ from __future__ import annotations
 
 from app.domains.economy.services import EconomyServices
 
-_singleton: EconomyServices | None = None
+from app.core.deps import get_memory
+from app.services.memory_store import MemoryStore
+from fastapi import Depends
 
 
-def get_economy() -> EconomyServices:
-    """Return the singleton EconomyServices instance."""
-    global _singleton
-    if _singleton is None:
-        from app.core.deps import get_memory
-        _singleton = EconomyServices(memory=get_memory())
-    return _singleton
+def get_economy(mem: MemoryStore = Depends(get_memory)) -> EconomyServices:
+    """Return an EconomyServices instance backed by the injected MemoryStore.
+
+    Using Depends(get_memory) means test overrides of get_memory propagate here
+    automatically — no singleton caching needed.
+    """
+    return EconomyServices(memory=mem)

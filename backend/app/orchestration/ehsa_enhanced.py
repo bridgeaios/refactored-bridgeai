@@ -242,10 +242,18 @@ class EnhancedEHSA(CortexIntegratedEHSA):
         )
 
         if next_goal:
+            matching_patterns = [
+                p for p in patterns
+                if p.pattern.startswith(current_sequence)
+            ]
+            best_rate = max((p.success_rate for p in matching_patterns), default=0.5)
+            # Blend success rate with support (more patterns = more confident)
+            support_bonus = min(0.1 * len(matching_patterns), 0.2)
+            confidence = round(min(best_rate + support_bonus, 1.0), 3)
             return {
                 "suggested_goal": next_goal,
                 "after_last_execution": last_trace.goal,
-                "confidence": 0.7,  # TODO: Calculate actual confidence
+                "confidence": confidence,
             }
 
         return None

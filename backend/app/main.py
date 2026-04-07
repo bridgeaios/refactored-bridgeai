@@ -7,6 +7,7 @@ from pathlib import Path
 from typing import Any
 
 from fastapi import (
+    Depends,
     FastAPI,
     HTTPException,
     Request,
@@ -39,6 +40,12 @@ def _load_twin_env():
         pass
 
 _load_twin_env()
+
+# 𝓛₉ SECRETS — enforce key integrity at boot before any import touches credentials
+from app.core.deps import get_memory as get_memory_dep
+from app.core.secrets_guard import enforce as _enforce_secrets
+_enforce_secrets()
+
 from fastapi.middleware.cors import CORSMiddleware
 
 from app.cortex import (
@@ -120,8 +127,13 @@ async def lifespan(app: FastAPI) -> AsyncIterator[None]:
         # Wire revenue → treasury unified flow
         from app.runtime import revenue_service
         from app.runtime import treasury_service as _ts
+        import logging as _logging
+        _tlog = _logging.getLogger("treasury")
         async def _rev_to_treasury(amount: float, source: str, method: str) -> None:
-            await _ts.collect(amount=amount, currency="BRDG", source_project=source, method=method, type_="revenue")
+            try:
+                await _ts.collect(amount=amount, currency="BRDG", source_project=source, method=method, type_="revenue")
+            except Exception as _e:
+                _tlog.exception("Treasury collect failed: %s", _e)
         revenue_service.set_treasury_callback(_rev_to_treasury)
         # Self-register Bridge API
         await projects_service.register({
@@ -137,10 +149,17 @@ async def lifespan(app: FastAPI) -> AsyncIterator[None]:
         })
     except Exception:
         pass
-    heartbeat_task = asyncio.create_task(manager.heartbeat())
+    from app.core.safe_spawn import safe_spawn
+    from app.core.control_plane import control_loop
+    from app.runtime import memory as _mem
+    # Start WebSocket hub (Redis pub/sub if available, else in-memory)
+    await manager.startup()
+    control_task = safe_spawn(control_loop(_mem._engine), name="control_plane", retries=0)
+    heartbeat_task = safe_spawn(manager.heartbeat(), name="heartbeat", retries=3, retry_delay=5.0)
     from app.services.contract_listener import run_listener
-    listener_task = asyncio.create_task(run_listener(memory))
+    listener_task = safe_spawn(run_listener(memory), name="contract_listener", retries=2, retry_delay=10.0)
     # Autonomous lead-gen worker loop — polls task queue and executes scrape jobs
+    worker_task = None
     try:
         import sys as _sys
         from pathlib import Path as _p
@@ -148,14 +167,19 @@ async def lifespan(app: FastAPI) -> AsyncIterator[None]:
         if _backend_root not in _sys.path:
             _sys.path.insert(0, _backend_root)
         from workers import worker_loop as _worker_loop
-        worker_task = asyncio.create_task(_worker_loop())
+        worker_task = safe_spawn(_worker_loop(), name="worker_loop", retries=5, retry_delay=5.0)
     except Exception as _we:
         import logging as _log
         _log.getLogger(__name__).warning("worker_loop not started: %s", _we)
-        worker_task = None
     automation.start()
     yield
     await automation.stop()
+    await manager.shutdown()
+    control_task.cancel()
+    try:
+        await control_task
+    except asyncio.CancelledError:
+        pass
     if worker_task:
         worker_task.cancel()
         try:
@@ -229,7 +253,11 @@ _CANONICAL_OPENAPI_PATH = Path(__file__).resolve().parents[2] / "openapi.json"
 
 
 def _load_canonical_openapi() -> dict[str, Any]:
-    return json.loads(_CANONICAL_OPENAPI_PATH.read_text(encoding="utf-8"))  # type: ignore[no-any-return]
+    if _CANONICAL_OPENAPI_PATH.exists():
+        return json.loads(_CANONICAL_OPENAPI_PATH.read_text(encoding="utf-8"))  # type: ignore[no-any-return]
+    # Fall back to FastAPI auto-generated schema
+    from fastapi.openapi.utils import get_openapi
+    return get_openapi(title=app.title, version=app.version, routes=app.routes)
 
 
 def _canonical_frontend_url() -> str:
@@ -253,7 +281,18 @@ import os as _os
 
 _prod_origins = [o.strip() for o in _os.environ.get("BRIDGE_CORS_ORIGINS", "").split(",") if o.strip()]
 origins = [
-    # Production domains — explicit only
+    # Production domains — explicit only, no wildcards
+    "https://bridge-ai-os.com",
+    "https://www.bridge-ai-os.com",
+    "https://gateway.ai-os.co.za",
+    "https://ai-os.co.za",
+    "https://www.ai-os.co.za",
+    "https://go.ai-os.co.za",
+    # Vercel deployment — frontend CDN (custom subdomain + vercel.app preview)
+    "https://app.ai-os.co.za",
+    "https://bridgelivewall.vercel.app",
+    # Additional production origins from env (for preview deploys + new domains without a code deploy)
+    # Set BRIDGE_CORS_ORIGINS=https://your-preview-xyz.vercel.app on the VPS for preview URLs
     *_prod_origins,
     # Dev/test — explicit ports only (no wildcard regex)
     "http://localhost:3000",
@@ -429,12 +468,42 @@ async def deploy_50_applications(request: Request) -> dict[str, Any]:
     """
     Autonomous Deployment: Build and run all 50 applications using skills.
     Each app gets a dedicated task in the marketplace for autonomous execution.
-    Includes progress tracking and error handling.
+    Requires an active paid subscription (tier: pro or enterprise).
     """
     import logging
     logger = logging.getLogger(__name__)
 
-    _require_auth(request)
+    claims = _require_auth(request)
+
+    # ── Pricing gate ──────────────────────────────────────────────────
+    # Check subscription tier from JWT claims or treasury subscription record.
+    # Tiers: free → starter → pro → enterprise
+    # 50-app autonomous deploy requires 'pro' or 'enterprise'.
+    user_id = (claims or {}).get("sub", "") if isinstance(claims, dict) else ""
+    ALLOWED_TIERS = {"pro", "enterprise", "dev"}
+    # JWT may carry tier claim directly; fall back to SubscriptionService lookup
+    tier = (claims or {}).get("tier", "free") if isinstance(claims, dict) else "free"
+    if tier not in ALLOWED_TIERS:
+        try:
+            from app.services.subscriptions import SubscriptionService
+            from app.runtime import memory as _rt_mem
+            sub = await SubscriptionService(_rt_mem._engine).get_subscription(user_id)
+            tier = sub.get("tier", "free")
+        except Exception:
+            pass
+    if tier not in ALLOWED_TIERS:
+        from fastapi.responses import JSONResponse
+        return JSONResponse(
+            status_code=402,
+            content={
+                "error": "subscription_required",
+                "message": "Autonomous 50-app deployment requires a Pro or Enterprise subscription.",
+                "upgrade_url": "https://bridge-ai-os.com/join",
+                "current_tier": tier,
+                "required_tier": "pro",
+            },
+        )
+
     svc = get_ingestion_service()
 
     apps_data = [
@@ -838,17 +907,43 @@ async def admin_set_keys(request: Request, body: dict) -> dict[str, Any]:
 
 @app.get("/health")
 async def health_root():
-    """Root-level health check for monitoring and node console."""
+    """Root-level health check — includes control plane + treasury gate status."""
     import os
+    from app.core.control_plane import TREASURY_GATE
+    from app.core.safe_spawn import live_tasks as _live_tasks
     try:
         port = int(os.getenv("PORT") or "8000")
     except Exception:
         port = 8000
-    return {"status": "ok", "service": "bridge-live-wall", "port": port}
+    return {
+        "status": "ok",
+        "service": "bridge-live-wall",
+        "port": port,
+        "treasury_gate": TREASURY_GATE.status(),
+        "live_tasks": _live_tasks(),
+    }
+
+
+@app.get("/.well-known/appspecific/com.chrome.devtools.json", include_in_schema=False)
+async def chrome_devtools_well_known():
+    from fastapi.responses import Response
+    return Response(status_code=204)
+
+
+@app.get("/favicon.ico", include_in_schema=False)
+async def favicon():
+    svg = (
+        '<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 32 32">'
+        '<rect width="32" height="32" rx="6" fill="#0f172a"/>'
+        '<text x="16" y="22" font-size="18" text-anchor="middle" fill="#38bdf8">B</text>'
+        "</svg>"
+    )
+    from fastapi.responses import Response
+    return Response(content=svg, media_type="image/svg+xml")
 
 
 @app.get("/")
-async def root(request: Request):
+async def root(request: Request, _mem=Depends(get_memory_dep)):
     """Serve the control plane dashboard. JSON for explicit API clients (?format=json)."""
     # Always serve HTML to browsers; add ?format=json to get the API metadata
     if request.query_params.get("format") != "json":
@@ -860,7 +955,7 @@ async def root(request: Request):
             if candidate.exists():
                 return FileResponse(str(candidate), media_type="text/html")
     # API metadata (fallback or ?format=json)
-    state_version = await get_state_version(memory)
+    state_version = await get_state_version(_mem)
     registry = get_registry_snapshot()
     twin = CognitiveTwinService()
     profile = twin.get_profile()
@@ -896,12 +991,71 @@ async def root(request: Request):
 
 
 @app.get("/dashboard")
+@app.get("/controlplane")
 async def dashboard_html():
     """Control plane dashboard."""
     cp = _FRONTEND_HTML / "controlplane.html"
     if cp.exists():
         return FileResponse(str(cp), media_type="text/html")
     raise HTTPException(404, detail="Dashboard not found")
+
+
+@app.get("/pricing")
+@app.get("/pricing.html")
+async def pricing_html():
+    f = _FRONTEND_HTML / "pricing.html"
+    if f.exists():
+        return FileResponse(str(f), media_type="text/html")
+    raise HTTPException(404, detail="Pricing page not found")
+
+
+@app.get("/leads")
+async def leads_html():
+    f = _FRONTEND_HTML / "leads.html"
+    if f.exists():
+        return FileResponse(str(f), media_type="text/html")
+    raise HTTPException(404, detail="Leads page not found")
+
+
+@app.get("/crm")
+async def crm_html():
+    f = _FRONTEND_HTML / "crm.html"
+    if f.exists():
+        return FileResponse(str(f), media_type="text/html")
+    raise HTTPException(404, detail="CRM page not found")
+
+
+@app.get("/invoicing")
+async def invoicing_html():
+    f = _FRONTEND_HTML / "invoicing.html"
+    if f.exists():
+        return FileResponse(str(f), media_type="text/html")
+    raise HTTPException(404, detail="Invoicing page not found")
+
+
+@app.get("/contacts")
+async def contacts_html():
+    f = _FRONTEND_HTML / "contacts.html"
+    if f.exists():
+        return FileResponse(str(f), media_type="text/html")
+    raise HTTPException(404, detail="Contacts page not found")
+
+
+@app.get("/login")
+@app.get("/login.html")
+async def login_html():
+    f = _FRONTEND_HTML / "login.html"
+    if f.exists():
+        return FileResponse(str(f), media_type="text/html")
+    raise HTTPException(404, detail="Login page not found")
+
+
+@app.get("/observe")
+async def observe_html():
+    f = _FRONTEND_HTML / "index.html"
+    if f.exists():
+        return FileResponse(str(f), media_type="text/html")
+    raise HTTPException(404, detail="Observe page not found")
 
 
 @app.get("/admin")
@@ -911,15 +1065,6 @@ async def admin_html():
     if f.exists():
         return FileResponse(str(f), media_type="text/html")
     raise HTTPException(404, detail="Admin panel not found")
-
-
-@app.get("/login")
-async def login_html():
-    """Login page."""
-    f = _FRONTEND_HTML / "login.html"
-    if f.exists():
-        return FileResponse(str(f), media_type="text/html")
-    raise HTTPException(404, detail="Login page not found")
 
 
 @app.get("/capabilities")
@@ -986,6 +1131,23 @@ async def get_telemetry():
 
 @app.websocket("/ws/{channel}")
 async def websocket_endpoint(websocket: WebSocket, channel: str) -> None:
+    # BUG-006 fix: authenticate before joining broadcast group
+    token = (
+        websocket.query_params.get("token")
+        or websocket.headers.get("authorization", "").removeprefix("Bearer ").strip()
+    )
+    if token:
+        try:
+            from app.services.siwe_auth import verify_jwt
+            verify_jwt(token)
+        except Exception:
+            await websocket.close(code=4001)
+            return
+    # Allow unauthenticated connections only on public channels
+    elif channel not in ("public", "broadcast", "system"):
+        await websocket.close(code=4001)
+        return
+
     await manager.connect(channel, websocket)
     try:
         while True:

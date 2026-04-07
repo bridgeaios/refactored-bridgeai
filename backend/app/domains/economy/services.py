@@ -215,6 +215,32 @@ class EconomyServices:
             type_=event["type"],
             meta={"customer": event["customer"], "reference": event["reference"], **event.get("meta", {})},
         )
+        # Activate subscription tier if payment is for a known plan
+        await self._activate_subscription_from_event(event)
+        # Audit trail: write Payment node to Neo4j knowledge graph
+        import asyncio
+        from app.services.neo4j_connection import get_neo4j_connection
+        asyncio.get_event_loop().run_in_executor(
+            None,
+            lambda: get_neo4j_connection().record_payment_event(
+                payment_id=event["reference"],
+                provider="paystack",
+                amount=event["amount"],
+                currency=event["currency"],
+                status=event["type"],
+                user_id=event.get("customer"),
+                plan=event.get("plan"),
+            )
+        )
+        # Discord: payment received
+        import asyncio as _aio
+        from app.services.discord_notify import notify as _discord
+        _aio.create_task(_discord("payment_received", {
+            "provider":  "Paystack",
+            "amount":    f"{event['amount']} {event['currency']}",
+            "reference": event.get("reference", ""),
+            "customer":  event.get("customer", ""),
+        }))
         return {"ok": True, "collected": result.get("entry", {}).get("amount_brdg", 0), "type": event["type"], "amount": event["amount"], "currency": event["currency"], "reference": event.get("reference", "")}
 
     async def webhook_paypal(self, body: bytes, headers: dict) -> dict[str, Any]:
@@ -238,6 +264,20 @@ class EconomyServices:
             type_=event["type"],
             meta={"customer": event["customer"], "reference": event["reference"], **event.get("meta", {})},
         )
+        import asyncio
+        from app.services.neo4j_connection import get_neo4j_connection
+        asyncio.get_event_loop().run_in_executor(
+            None,
+            lambda: get_neo4j_connection().record_payment_event(
+                payment_id=event["reference"],
+                provider="paypal",
+                amount=event["amount"],
+                currency=event["currency"],
+                status=event["type"],
+                user_id=event.get("customer"),
+                plan=event.get("plan"),
+            )
+        )
         return {"ok": True, "collected": result.get("entry", {}).get("amount_brdg", 0)}
 
     async def webhook_crypto(self, body: bytes) -> dict[str, Any]:
@@ -260,6 +300,42 @@ class EconomyServices:
             meta={"wallet": event["customer"], "tx_hash": event["reference"], **event.get("meta", {})},
         )
         return {"ok": True, "collected": result.get("entry", {}).get("amount_brdg", 0)}
+
+    async def _activate_subscription_from_event(self, event: dict[str, Any]) -> None:
+        """Map a payment event plan name → subscription tier and activate it."""
+        plan = (event.get("plan") or event.get("source_project") or "").lower()
+        # Map plan slug → tier. Customise these slugs to match your Paystack plan codes.
+        PLAN_TIER_MAP = {
+            "starter": "starter", "plan-starter": "starter",
+            "pro": "pro", "plan-pro": "pro", "professional": "pro",
+            "enterprise": "enterprise", "plan-enterprise": "enterprise",
+        }
+        tier = next((t for k, t in PLAN_TIER_MAP.items() if k in plan), None)
+        customer = event.get("customer", "")
+        if not tier or not customer:
+            return
+        try:
+            from app.services.subscriptions import SubscriptionService
+            svc = SubscriptionService(self._memory)
+            await svc.create_subscription(
+                user_id=customer,
+                tier=tier,
+                payment_ref=event.get("reference"),
+                duration_days=30,
+            )
+            import asyncio as _aio
+            from app.services.discord_notify import notify as _discord
+            _aio.create_task(_discord("subscription_activated", {
+                "user":      customer,
+                "tier":      tier,
+                "plan":      plan,
+                "reference": event.get("reference", ""),
+            }))
+        except Exception as exc:
+            import logging
+            logging.getLogger(__name__).warning(
+                "Subscription activation failed for %s → %s: %s", customer, tier, exc
+            )
 
     async def webhook_generic(self, rail: str, body: bytes, source_project: str | None = None) -> dict[str, Any]:
         import json as _json

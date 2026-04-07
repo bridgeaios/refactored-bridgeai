@@ -1,14 +1,12 @@
 """FastAPI Depends() factories for the network domain."""
 from __future__ import annotations
 
+from fastapi import Depends
+
+from app.core.deps import get_memory
 from app.domains.network.services import NetworkServices
+from app.services.memory_store import MemoryStore
 
-_singleton: NetworkServices | None = None
 
-
-def get_network() -> NetworkServices:
-    global _singleton
-    if _singleton is None:
-        from app.core.deps import get_memory
-        _singleton = NetworkServices(memory=get_memory())
-    return _singleton
+def get_network(mem: MemoryStore = Depends(get_memory)) -> NetworkServices:
+    return NetworkServices(memory=mem)

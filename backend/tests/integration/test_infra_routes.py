@@ -9,6 +9,7 @@ from fastapi import FastAPI
 from httpx import ASGITransport, AsyncClient
 
 from app.domains.infra.deps import get_infra
+from app.domains.infra.router import _SVG_BUILD_TELEMETRY
 from app.domains.infra.router import router as infra_router
 from app.domains.infra.services import InfraServices
 
@@ -96,3 +97,26 @@ async def test_youtube_search_503_when_unavailable(client, mock_infra):
     async with AsyncClient(transport=ASGITransport(app=app), base_url="http://test") as ac:
         resp = await ac.get("/skills/youtube-search?q=python")
     assert resp.status_code == 503
+
+
+@pytest.mark.asyncio
+async def test_telemetry_post_and_svg_build_history(client):
+    _SVG_BUILD_TELEMETRY.clear()
+    body = {
+        "event": "svg_build_completed",
+        "merkle_root": "abc123",
+        "files": 3,
+        "timestamp": "2026-04-06T00:00:00Z",
+    }
+    post = await client.post("/telemetry", json=body)
+    assert post.status_code == 200
+    assert post.json()["accepted"] is True
+
+    hist = await client.get("/telemetry/svg-build?limit=5")
+    assert hist.status_code == 200
+    data = hist.json()
+    assert data["ok"] is True
+    assert data["count"] == 1
+    assert data["items"][0]["merkle_root"] == "abc123"
+    assert data["items"][0]["event"] == "svg_build_completed"
+    assert "received_at" in data["items"][0]

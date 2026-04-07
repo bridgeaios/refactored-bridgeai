@@ -2,7 +2,7 @@
 from __future__ import annotations
 
 import logging
-from datetime import datetime
+from datetime import datetime, timezone
 from typing import TYPE_CHECKING, Any
 from uuid import uuid4
 
@@ -58,6 +58,44 @@ class CrmService:
         self._mem = memory
 
     # ------------------------------------------------------------------
+    # Outreach email templates per pipeline stage
+    # ------------------------------------------------------------------
+
+    # Maps each CRM stage to: (email subject template, body template)
+    _STAGE_EMAILS: dict[str, tuple[str, str]] = {
+        "qualified": (
+            "You've been shortlisted for the Bridge AI OS pilot",
+            "Hi {name},\n\nWe reviewed your profile and you're a great fit for our AI platform pilot.\n\n"
+            "We'd love to schedule a quick call to show you what's possible.\n\n"
+            "Reply to this email or book directly: https://bridge-ai-os.com/join\n\nBridge AI OS Team",
+        ),
+        "proposal": (
+            "Your Bridge AI OS proposal is ready",
+            "Hi {name},\n\nYour custom proposal for {company} is ready to view.\n\n"
+            "We've tailored a deployment plan based on your industry and requirements.\n\n"
+            "Review proposal: https://bridge-ai-os.com/dashboard\n\nBridge AI OS Team",
+        ),
+        "negotiation": (
+            "Let's finalise your Bridge AI OS agreement",
+            "Hi {name},\n\nWe're excited to move forward with {company}.\n\n"
+            "Our team is ready to finalise terms. What time works for a brief call?\n\n"
+            "Schedule: https://bridge-ai-os.com/join\n\nBridge AI OS Team",
+        ),
+        "won": (
+            "Welcome to Bridge AI OS — you're in!",
+            "Hi {name},\n\nCongratulations! {company} is now an active Bridge AI OS client.\n\n"
+            "Your dashboard is live: https://bridge-ai-os.com/dashboard\n\n"
+            "Your onboarding specialist will reach out within 24 hours.\n\nBridge AI OS Team",
+        ),
+        "lost": (
+            "Keeping the door open — Bridge AI OS",
+            "Hi {name},\n\nWe understand the timing may not be right.\n\n"
+            "If anything changes, we'd love to reconnect. Our platform continues to evolve rapidly.\n\n"
+            "https://bridge-ai-os.com\n\nBridge AI OS Team",
+        ),
+    }
+
+    # ------------------------------------------------------------------
     # Lead CRUD
     # ------------------------------------------------------------------
 
@@ -80,7 +118,7 @@ class CrmService:
 
         score = _score_lead(osint)
         stage = _auto_stage(score)
-        now = datetime.utcnow().isoformat()
+        now = datetime.now(timezone.utc).isoformat()
         lead_id = str(uuid4())
 
         lead: dict[str, Any] = {
@@ -145,21 +183,52 @@ class CrmService:
         lead = await self._mem.get(f"crm:lead:{lead_id}")
         if not lead:
             return None
+        prev_stage = lead.get("stage", "new")
         lead["stage"] = stage
-        lead["updated_at"] = datetime.utcnow().isoformat()
+        lead["updated_at"] = datetime.now(timezone.utc).isoformat()
         if note:
             lead.setdefault("activities", []).append(
                 {"type": "stage_change", "text": f"→ {stage}: {note}",
                  "created_at": lead["updated_at"]}
             )
         await self._mem.set(f"crm:lead:{lead_id}", lead)
+
+        # Queue outreach email when stage advances to a key milestone
+        if stage != prev_stage and stage in self._STAGE_EMAILS:
+            await self._queue_stage_email(lead, stage)
+
         return lead
+
+    async def _queue_stage_email(self, lead: dict[str, Any], stage: str) -> None:
+        """Enqueue a personalised outreach email for the new pipeline stage."""
+        template = self._STAGE_EMAILS.get(stage)
+        if not template:
+            return
+        subject_tmpl, body_tmpl = template
+        name    = (lead.get("first_name") or lead.get("name") or "there").strip()
+        company = (lead.get("company") or "your company").strip()
+        email   = lead.get("email", "")
+        if not email:
+            return
+        try:
+            from app.services.outreach import enqueue_outreach
+            await enqueue_outreach(self._mem, {
+                "to":      email,
+                "name":    name,
+                "subject": subject_tmpl,
+                "body":    body_tmpl.format(name=name, company=company),
+                "source":  f"crm_stage_{stage}",
+                "lead_id": lead.get("id"),
+            })
+            log.info("Outreach queued for lead %s → stage '%s'", lead.get("id"), stage)
+        except Exception as exc:
+            log.warning("Outreach queue failed for lead %s: %s", lead.get("id"), exc)
 
     async def add_note(self, lead_id: str, text: str) -> dict[str, Any] | None:
         lead = await self._mem.get(f"crm:lead:{lead_id}")
         if not lead:
             return None
-        now = datetime.utcnow().isoformat()
+        now = datetime.now(timezone.utc).isoformat()
         lead.setdefault("activities", []).append(
             {"type": "note", "text": text, "created_at": now}
         )
@@ -233,7 +302,7 @@ class CrmService:
         lead = await self._mem.get(f"crm:lead:{lead_id}")
         if not lead:
             return None
-        now = datetime.utcnow().isoformat()
+        now = datetime.now(timezone.utc).isoformat()
         deal_id = str(uuid4())
         deal = {
             "id": deal_id, "lead_id": lead_id, "title": title,
@@ -255,7 +324,7 @@ class CrmService:
         if not deal:
             return None
         deal["stage"] = "won"
-        deal["closed_at"] = datetime.utcnow().isoformat()
+        deal["closed_at"] = datetime.now(timezone.utc).isoformat()
         if invoice_id:
             deal["invoice_id"] = invoice_id
         await self._mem.set(f"crm:deal:{deal_id}", deal)

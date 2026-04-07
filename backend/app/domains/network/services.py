@@ -82,11 +82,11 @@ class NetworkServices:
 
     async def create_agent(self, name: str, agent_type: str = "leadgen") -> dict[str, Any]:
         from uuid import uuid4
-        from datetime import datetime
+        from datetime import datetime, timezone
         agent_id = str(uuid4())
         name = name or f"agent-{agent_id[:8]}"
         agent = {"id": agent_id, "name": name, "type": agent_type, "status": "active",
-                 "created_at": datetime.utcnow().isoformat()}
+                 "created_at": datetime.now(timezone.utc).isoformat()}
         await self._memory.set(f"agent:{agent_id}", agent)
         ids: list = await self._memory.get("agent:index") or []
         ids.append(agent_id)
@@ -103,10 +103,10 @@ class NetworkServices:
 
     async def create_task(self, agent_id: str, task_payload: dict) -> dict[str, Any]:
         from uuid import uuid4
-        from datetime import datetime
+        from datetime import datetime, timezone
         task_id = str(uuid4())
         task = {"id": task_id, "agent_id": agent_id, "payload": task_payload,
-                "status": "pending", "created_at": datetime.utcnow().isoformat()}
+                "status": "pending", "created_at": datetime.now(timezone.utc).isoformat()}
         await self._memory.set(f"task:{task_id}", task)
         task_ids: list = await self._memory.get(f"agent:{agent_id}:tasks") or []
         task_ids.append(task_id)
