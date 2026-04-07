@@ -19,7 +19,7 @@ services:
       - bridge-unified
     depends_on:
       backend:
-        condition: service_healthy
+        condition: service_started
       frontend:
         condition: service_started
 
@@ -62,9 +62,9 @@ services:
       - ENV=production
     depends_on:
       postgres:
-        condition: service_healthy
+        condition: service_started
       redis:
-        condition: service_healthy
+        condition: service_started
       neo4j:
         condition: service_started
     healthcheck:
@@ -90,7 +90,7 @@ services:
       - VITE_CLERK_PUBLISHABLE_KEY=${CLERK_PUBLISHABLE_KEY}
     depends_on:
       backend:
-        condition: service_healthy
+        condition: service_started
     healthcheck:
       test: ["CMD", "node", "-e", "require('http').get('http://localhost:3000/',r=>{process.exit(r.statusCode<500?0:1)}).on('error',()=>process.exit(1))"]
       interval: 30s
@@ -121,12 +121,6 @@ services:
       - .env.unified
     volumes:
       - postgres_data:/var/lib/postgresql/data
-    healthcheck:
-      test: ["CMD-SHELL", "pg_isready -U ${POSTGRES_USER:-bridge} -d ${POSTGRES_DB:-bridge_ai}"]
-      interval: 10s
-      timeout: 5s
-      retries: 5
-      start_period: 10s
     networks:
       - bridge-unified
 
@@ -170,43 +164,11 @@ services:
     networks:
       - bridge-unified
 
-  # ─── Prometheus ──────────────────────────────────────────────────
-  prometheus:
-    image: prom/prometheus:latest
-    restart: unless-stopped
-    expose:
-      - "9090"
-    volumes:
-      - ./monitoring/prometheus.yml:/etc/prometheus/prometheus.yml:ro
-      - prometheus_data:/prometheus
-    command:
-      - '--config.file=/etc/prometheus/prometheus.yml'
-      - '--storage.tsdb.path=/prometheus'
-      - '--storage.tsdb.retention.time=30d'
-    depends_on:
-      backend:
-        condition: service_healthy
-    networks:
-      - bridge-unified
+  # ─── Prometheus ─ disabled until monitoring/ dir exists on VPS ─────
+  # prometheus: (disabled — ./monitoring/prometheus.yml not present)
 
-  # ─── Grafana ─────────────────────────────────────────────────────
-  grafana:
-    image: grafana/grafana:latest
-    restart: unless-stopped
-    ports:
-      - "127.0.0.1:9003:3000"
-    environment:
-      - GF_SECURITY_ADMIN_PASSWORD=${GRAFANA_ADMIN_PASSWORD}
-      - GF_USERS_ALLOW_SIGN_UP=false
-      - GF_SERVER_ROOT_URL=https://monitor.bridge-ai-os.com
-    volumes:
-      - grafana_data:/var/lib/grafana
-      - ./monitoring/provisioning:/etc/grafana/provisioning
-      - ./monitoring/dashboards:/etc/grafana/dashboards
-    depends_on:
-      - prometheus
-    networks:
-      - bridge-unified
+  # ─── Grafana ─ disabled until prometheus is up ───────────────────
+  # grafana: (disabled — depends on prometheus)
 
   # ─── Redis Exporter ────────────────────────────────���──────────────
   redis_exporter:
@@ -218,7 +180,7 @@ services:
       - REDIS_ADDR=redis://redis:6379
     depends_on:
       redis:
-        condition: service_healthy
+        condition: service_started
     networks:
       - bridge-unified
 
@@ -232,7 +194,7 @@ services:
       - DATA_SOURCE_NAME=postgresql://${DB_USER:-bridgeai}:${DB_PASSWORD}@postgres:5432/${DB_NAME:-bridgeai_unified}?sslmode=disable
     depends_on:
       postgres:
-        condition: service_healthy
+        condition: service_started
     networks:
       - bridge-unified
 
@@ -244,8 +206,6 @@ volumes:
   redis_data:
   neo4j_data:
   neo4j_logs:
-  prometheus_data:
-  grafana_data:
 
 # ─── Network ───────────────────────────────────────────────────────
 networks:
