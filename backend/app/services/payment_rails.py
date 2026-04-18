@@ -1,7 +1,7 @@
 """
 Payment Rails — unified verification and parsing for all payment processors.
 
-Supported: Paystack, PayPal, internal BRDG, crypto.
+Supported: Paystack, PayPal, PayFast, internal BRDG, crypto.
 Any project's webhook hits /api/payments/webhook/{rail} and flows into TreasuryService.collect().
 
 Security: each rail verifies the webhook signature before processing.
@@ -275,6 +275,69 @@ class PaymentRails:
             "reference": body.get("tx_hash", body.get("ref", "")),
             "plan": "",
             "meta": body.get("meta", {}),
+        }
+
+    # ------------------------------------------------------------------
+    # PayFast (South Africa — ITN / Instant Transaction Notification)
+    # ------------------------------------------------------------------
+
+    @classmethod
+    def verify_payfast(cls, form: dict[str, str]) -> bool:
+        """
+        Verify PayFast ITN signature + merchant_id.
+
+        PayFast posts form-encoded ITN bodies; signature is MD5 of the
+        form-encoded params (insertion order, excluding 'signature'),
+        plus '&passphrase=<url-encoded>' when a passphrase is configured.
+
+        Dev-bypass when PAYFAST_MERCHANT_ID is unset or placeholder
+        (mirrors verify_paystack behaviour for local smoke tests).
+        """
+        from urllib.parse import quote_plus
+
+        merchant_id = os.environ.get("PAYFAST_MERCHANT_ID", "")
+        if not merchant_id or cls._is_placeholder(merchant_id):
+            return True
+
+        if form.get("merchant_id", "") != merchant_id:
+            _log.warning("PayFast ITN rejected: merchant_id mismatch")
+            return False
+
+        supplied = form.get("signature", "")
+        if not supplied:
+            return False
+
+        parts = [f"{k}={quote_plus(str(v))}" for k, v in form.items() if k != "signature"]
+        sig_string = "&".join(parts)
+
+        passphrase = os.environ.get("PAYFAST_PASSPHRASE", "")
+        if passphrase and not cls._is_placeholder(passphrase):
+            sig_string += f"&passphrase={quote_plus(passphrase)}"
+
+        expected = hashlib.md5(sig_string.encode("utf-8")).hexdigest()
+        return hmac.compare_digest(expected, supplied.lower())
+
+    @staticmethod
+    def parse_payfast(form: dict[str, str]) -> dict[str, Any] | None:
+        """Parse PayFast ITN. Only COMPLETE payments become PaymentEvents."""
+        if form.get("payment_status") != "COMPLETE":
+            return None
+        try:
+            amount = float(form.get("amount_gross", "0"))
+        except (TypeError, ValueError):
+            return None
+        return {
+            "rail": "payfast",
+            "type": "payment",
+            "amount": amount,
+            "currency": "ZAR",
+            "customer": form.get("email_address", ""),
+            "reference": form.get("pf_payment_id", "") or form.get("m_payment_id", ""),
+            "plan": form.get("custom_str1", ""),
+            "meta": {
+                "m_payment_id": form.get("m_payment_id", ""),
+                "item_name": form.get("item_name", ""),
+            },
         }
 
     # ------------------------------------------------------------------

@@ -320,6 +320,13 @@ async def webhook_crypto(request: Request, svc: EconomyDep) -> dict[str, Any]:
     return await svc.webhook_crypto(body)
 
 
+@router.post("/payments/webhook/payfast")
+async def webhook_payfast(request: Request, svc: EconomyDep) -> dict[str, Any]:
+    form = await request.form()
+    form_dict = {k: str(v) for k, v in form.items()}
+    return await svc.webhook_payfast(form_dict)
+
+
 @router.post("/payments/webhook/{rail}")
 async def webhook_generic(rail: str, request: Request, svc: EconomyDep) -> dict[str, Any]:
     body = await request.body()

@@ -182,6 +182,7 @@ class EconomyServices:
             {"id": "internal", "label": "Internal (BRDG)", "status": "active", "currencies": ["BRDG"]},
             {"id": "paystack", "label": "Paystack", "status": "active" if os.environ.get("PAYSTACK_SECRET_KEY") else "no-key", "currencies": ["ZAR", "NGN", "USD", "GHS"]},
             {"id": "paypal", "label": "PayPal", "status": "active" if os.environ.get("PAYPAL_CLIENT_ID") else "no-key", "currencies": ["USD", "EUR", "GBP"]},
+            {"id": "payfast", "label": "PayFast", "status": "active" if os.environ.get("PAYFAST_MERCHANT_ID") else "no-key", "currencies": ["ZAR"]},
             {"id": "crypto", "label": "Crypto (BRDG/ETH/SOL)", "status": "active", "currencies": ["BRDG", "ETH", "BTC", "SOL"]},
             {"id": "subscription", "label": "Subscription revenue", "status": "active", "currencies": ["USD", "ZAR", "BRDG"]},
             {"id": "sensor", "label": "Sensor / passive income", "status": "active", "currencies": ["BRDG"]},
@@ -299,6 +300,39 @@ class EconomyServices:
             type_=event["type"],
             meta={"wallet": event["customer"], "tx_hash": event["reference"], **event.get("meta", {})},
         )
+        return {"ok": True, "collected": result.get("entry", {}).get("amount_brdg", 0)}
+
+    async def webhook_payfast(self, form: dict[str, str]) -> dict[str, Any]:
+        from app.services.payment_rails import PaymentRails
+        if not PaymentRails.verify_payfast(form):
+            raise ValidationError("invalid PayFast signature")
+        event = PaymentRails.parse_payfast(form)
+        if not event:
+            return {"ok": True, "skipped": True, "reason": "payment_status != COMPLETE"}
+        result = await self._treasury.collect(
+            amount=event["amount"],
+            currency=event["currency"],
+            source_project="payfast",
+            method="payfast",
+            type_=event["type"],
+            meta={
+                "email": event["customer"],
+                "reference": event["reference"],
+                "plan": event["plan"],
+                **event.get("meta", {}),
+            },
+        )
+        if event.get("amount", 0) > 0:
+            try:
+                from app.domains.billing.deps import get_billing
+                billing = get_billing()
+                await billing.reconcile_by_amount(
+                    amount=event["amount"],
+                    currency=event["currency"],
+                    payment_method="payfast",
+                )
+            except Exception:
+                pass  # non-critical — treasury already collected
         return {"ok": True, "collected": result.get("entry", {}).get("amount_brdg", 0)}
 
     async def _activate_subscription_from_event(self, event: dict[str, Any]) -> None:
