@@ -317,7 +317,8 @@ async def webhook_paypal(request: Request, svc: EconomyDep) -> dict[str, Any]:
 @router.post("/payments/webhook/crypto")
 async def webhook_crypto(request: Request, svc: EconomyDep) -> dict[str, Any]:
     body = await request.body()
-    return await svc.webhook_crypto(body)
+    signature = request.headers.get("x-crypto-signature", "")
+    return await svc.webhook_crypto(body, signature)
 
 
 @router.post("/payments/webhook/{rail}")
