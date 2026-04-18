@@ -261,6 +261,26 @@ class PaymentRails:
     # Crypto (generic on-chain event → revenue)
     # ------------------------------------------------------------------
 
+    @classmethod
+    def verify_crypto(cls, body_bytes: bytes, signature: str) -> bool:
+        """
+        Verify crypto webhook HMAC-SHA256 signature.
+        Uses CRYPTO_WEBHOOK_SECRET — shared between contract_listener and this endpoint.
+        Accepts without verification in dev when no real key is configured
+        (mirrors verify_paystack behaviour so local contract_listener smoke tests still pass).
+        """
+        secret = os.environ.get("CRYPTO_WEBHOOK_SECRET", "")
+        if not secret or cls._is_placeholder(secret):
+            return True
+        expected = hmac.new(
+            secret.encode("utf-8"), body_bytes, hashlib.sha256
+        ).hexdigest()
+        # Accept either raw hex or "sha256=<hex>" (GitHub-style prefix).
+        supplied = signature or ""
+        if supplied.startswith("sha256="):
+            supplied = supplied[len("sha256="):]
+        return hmac.compare_digest(expected, supplied)
+
     @staticmethod
     def parse_crypto(body: dict[str, Any]) -> dict[str, Any] | None:
         """Parse on-chain payment notification from contract_listener or manual webhook."""

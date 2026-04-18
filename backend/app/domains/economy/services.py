@@ -280,10 +280,12 @@ class EconomyServices:
         )
         return {"ok": True, "collected": result.get("entry", {}).get("amount_brdg", 0)}
 
-    async def webhook_crypto(self, body: bytes) -> dict[str, Any]:
+    async def webhook_crypto(self, body: bytes, signature: str = "") -> dict[str, Any]:
         import json as _json
 
         from app.services.payment_rails import PaymentRails
+        if not PaymentRails.verify_crypto(body, signature):
+            raise ValidationError("invalid signature")
         try:
             payload = _json.loads(body)
         except Exception as exc:
