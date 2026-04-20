@@ -29,29 +29,75 @@ class PaymentRails:
     # Paystack (Africa-first; primary SA rail)
     # ------------------------------------------------------------------
 
-    # Placeholder substrings that indicate the key is not a real production key
-    _PLACEHOLDERS = ("your-", "sk_test", "test_", "change-me", "placeholder", "xxx", "dummy", "replace_", "replace-", "todo", "fill_")
+    # Placeholder substrings that indicate the key is not a real production key.
+    # Any substring match triggers the dev-bypass path, which now fails CLOSED
+    # unless PAYMENT_ALLOW_UNSIGNED=1 is set AND ENVIRONMENT != production.
+    _PLACEHOLDERS = (
+        "your-", "your_", "sk_test", "test_", "change-me", "changeme",
+        "placeholder", "xxx", "dummy", "replace_", "replace-", "replaceme",
+        "todo", "fill_", "_here", "example", "<fill", "<your",
+    )
 
     @classmethod
     def _is_placeholder(cls, val: str) -> bool:
-        v = val.lower()
+        v = (val or "").lower()
         return any(p in v for p in cls._PLACEHOLDERS)
+
+    @classmethod
+    def _strict_mode_disabled(cls) -> bool:
+        """
+        Break-glass rollback. PAYMENT_STRICT_MODE=0 disables verification
+        enforcement in any environment (including production). Use only during
+        an active incident — it logs every accepted webhook as an ERROR so the
+        breach window is visible in monitoring.
+
+        Distinct from PAYMENT_ALLOW_UNSIGNED: strict-mode-off is the declared
+        rollback lever and carries no prod guard; allow-unsigned is the dev
+        ergonomic and is prod-blocked. Default: "1" (strict).
+        """
+        return (os.environ.get("PAYMENT_STRICT_MODE") or "1").strip() == "0"
+
+    @classmethod
+    def _dev_bypass_allowed(cls) -> bool:
+        """
+        Return True only when dev-mode unsigned-webhook acceptance is explicitly
+        enabled AND we are not running in production. Hard-fails if somebody
+        tries to ship `PAYMENT_ALLOW_UNSIGNED=1` into a prod environment.
+        """
+        env = (os.environ.get("ENVIRONMENT") or os.environ.get("ENV") or os.environ.get("NODE_ENV") or "").lower()
+        allow = (os.environ.get("PAYMENT_ALLOW_UNSIGNED") or "").strip() == "1"
+        if allow and env in ("production", "prod", "live"):
+            _log.error(
+                "PAYMENT_ALLOW_UNSIGNED=1 is set in ENVIRONMENT=%s — refusing to bypass. "
+                "Remove the flag or fix the environment label.", env,
+            )
+            return False
+        return allow
 
     @classmethod
     def verify_paystack(cls, body_bytes: bytes, signature: str) -> bool:
         """
         Verify Paystack webhook HMAC-SHA512 signature.
         Uses PAYSTACK_WEBHOOK_SECRET (preferred) or PAYSTACK_SECRET_KEY fallback.
-        Accepts without verification in dev when no real key is configured.
+
+        Fails CLOSED when:
+          - no secret configured, OR
+          - secret matches a known placeholder pattern,
+        unless PAYMENT_ALLOW_UNSIGNED=1 is set in a non-production env.
         """
-        # Paystack sends a separate webhook signing secret
+        if cls._strict_mode_disabled():
+            _log.error("Paystack webhook accepted WITHOUT verification (PAYMENT_STRICT_MODE=0 break-glass)")
+            return True
         secret = (
             os.environ.get("PAYSTACK_WEBHOOK_SECRET")
             or os.environ.get("PAYSTACK_SECRET_KEY", "")
         )
-        # Accept in dev/test if key absent or is a placeholder
         if not secret or cls._is_placeholder(secret):
-            return True
+            if cls._dev_bypass_allowed():
+                _log.warning("Paystack webhook accepted WITHOUT verification (PAYMENT_ALLOW_UNSIGNED dev bypass)")
+                return True
+            _log.error("Paystack webhook rejected: no real PAYSTACK_WEBHOOK_SECRET configured")
+            return False
         expected = hmac.new(
             secret.encode("utf-8"), body_bytes, hashlib.sha512
         ).hexdigest()
@@ -290,14 +336,21 @@ class PaymentRails:
         form-encoded params (insertion order, excluding 'signature'),
         plus '&passphrase=<url-encoded>' when a passphrase is configured.
 
-        Dev-bypass when PAYFAST_MERCHANT_ID is unset or placeholder
-        (mirrors verify_paystack behaviour for local smoke tests).
+        Fails CLOSED when PAYFAST_MERCHANT_ID is unset or placeholder,
+        unless PAYMENT_ALLOW_UNSIGNED=1 is set in a non-production env.
         """
         from urllib.parse import quote_plus
 
+        if cls._strict_mode_disabled():
+            _log.error("PayFast ITN accepted WITHOUT verification (PAYMENT_STRICT_MODE=0 break-glass)")
+            return True
         merchant_id = os.environ.get("PAYFAST_MERCHANT_ID", "")
         if not merchant_id or cls._is_placeholder(merchant_id):
-            return True
+            if cls._dev_bypass_allowed():
+                _log.warning("PayFast ITN accepted WITHOUT verification (PAYMENT_ALLOW_UNSIGNED dev bypass)")
+                return True
+            _log.error("PayFast ITN rejected: no real PAYFAST_MERCHANT_ID configured")
+            return False
 
         if form.get("merchant_id", "") != merchant_id:
             _log.warning("PayFast ITN rejected: merchant_id mismatch")
