@@ -195,7 +195,7 @@ class EconomyServices:
     # Payment webhooks
     # ------------------------------------------------------------------
 
-    async def webhook_paystack(self, body: bytes, signature: str) -> dict[str, Any]:
+    async def webhook_paystack(self, body: bytes, signature: str, idem_override: str | None = None) -> dict[str, Any]:
         import json as _json
 
         from app.services.payment_rails import PaymentRails
@@ -208,6 +208,7 @@ class EconomyServices:
         event = PaymentRails.parse_paystack(payload)
         if not event:
             return {"ok": True, "skipped": True, "reason": "non-payment event"}
+        idem_key = idem_override or (f"paystack:{event['reference']}" if event.get("reference") else None)
         result = await self._treasury.collect(
             amount=event["amount"],
             currency=event["currency"],
@@ -215,7 +216,10 @@ class EconomyServices:
             method="paystack",
             type_=event["type"],
             meta={"customer": event["customer"], "reference": event["reference"], **event.get("meta", {})},
+            idem_key=idem_key,
         )
+        if not result.get("ok") and result.get("reason") == "duplicate":
+            return {"ok": True, "duplicate": True, "idem_key": result.get("idem_key"), "type": event["type"]}
         # Activate subscription tier if payment is for a known plan
         await self._activate_subscription_from_event(event)
         # Audit trail: write Payment node to Neo4j knowledge graph
@@ -244,11 +248,11 @@ class EconomyServices:
         }))
         return {"ok": True, "collected": result.get("entry", {}).get("amount_brdg", 0), "type": event["type"], "amount": event["amount"], "currency": event["currency"], "reference": event.get("reference", "")}
 
-    async def webhook_paypal(self, body: bytes, headers: dict) -> dict[str, Any]:
+    async def webhook_paypal(self, body: bytes, headers: dict, idem_override: str | None = None) -> dict[str, Any]:
         import json as _json
 
         from app.services.payment_rails import PaymentRails
-        if not PaymentRails.verify_paypal(body, headers):
+        if not await PaymentRails.verify_paypal(body, headers):
             raise AuthError("invalid PayPal signature")
         try:
             payload = _json.loads(body)
@@ -257,6 +261,7 @@ class EconomyServices:
         event = PaymentRails.parse_paypal(payload)
         if not event or event["amount"] <= 0:
             return {"ok": True, "skipped": True, "reason": "non-payment or zero-amount event"}
+        idem_key = idem_override or (f"paypal:{event['reference']}" if event.get("reference") else None)
         result = await self._treasury.collect(
             amount=event["amount"],
             currency=event["currency"],
@@ -264,7 +269,10 @@ class EconomyServices:
             method="paypal",
             type_=event["type"],
             meta={"customer": event["customer"], "reference": event["reference"], **event.get("meta", {})},
+            idem_key=idem_key,
         )
+        if not result.get("ok") and result.get("reason") == "duplicate":
+            return {"ok": True, "duplicate": True, "idem_key": result.get("idem_key")}
         import asyncio
         from app.services.neo4j_connection import get_neo4j_connection
         asyncio.get_event_loop().run_in_executor(
@@ -281,7 +289,7 @@ class EconomyServices:
         )
         return {"ok": True, "collected": result.get("entry", {}).get("amount_brdg", 0)}
 
-    async def webhook_crypto(self, body: bytes) -> dict[str, Any]:
+    async def webhook_crypto(self, body: bytes, idem_override: str | None = None) -> dict[str, Any]:
         import json as _json
 
         from app.services.payment_rails import PaymentRails
@@ -292,6 +300,7 @@ class EconomyServices:
         event = PaymentRails.parse_crypto(payload)
         if not event:
             return {"ok": True, "skipped": True, "reason": "unrecognized crypto event"}
+        idem_key = idem_override or (f"crypto:{event['reference']}" if event.get("reference") else None)
         result = await self._treasury.collect(
             amount=event["amount"],
             currency=event["currency"],
@@ -299,16 +308,20 @@ class EconomyServices:
             method="crypto",
             type_=event["type"],
             meta={"wallet": event["customer"], "tx_hash": event["reference"], **event.get("meta", {})},
+            idem_key=idem_key,
         )
+        if not result.get("ok") and result.get("reason") == "duplicate":
+            return {"ok": True, "duplicate": True, "idem_key": result.get("idem_key")}
         return {"ok": True, "collected": result.get("entry", {}).get("amount_brdg", 0)}
 
-    async def webhook_payfast(self, form: dict[str, str]) -> dict[str, Any]:
+    async def webhook_payfast(self, form: dict[str, str], idem_override: str | None = None) -> dict[str, Any]:
         from app.services.payment_rails import PaymentRails
         if not PaymentRails.verify_payfast(form):
             raise ValidationError("invalid PayFast signature")
         event = PaymentRails.parse_payfast(form)
         if not event:
             return {"ok": True, "skipped": True, "reason": "payment_status != COMPLETE"}
+        idem_key = idem_override or (f"payfast:{event['reference']}" if event.get("reference") else None)
         result = await self._treasury.collect(
             amount=event["amount"],
             currency=event["currency"],
@@ -321,7 +334,10 @@ class EconomyServices:
                 "plan": event["plan"],
                 **event.get("meta", {}),
             },
+            idem_key=idem_key,
         )
+        if not result.get("ok") and result.get("reason") == "duplicate":
+            return {"ok": True, "duplicate": True, "idem_key": result.get("idem_key")}
         if event.get("amount", 0) > 0:
             try:
                 from app.domains.billing.deps import get_billing
@@ -371,7 +387,7 @@ class EconomyServices:
                 "Subscription activation failed for %s → %s: %s", customer, tier, exc
             )
 
-    async def webhook_generic(self, rail: str, body: bytes, source_project: str | None = None) -> dict[str, Any]:
+    async def webhook_generic(self, rail: str, body: bytes, source_project: str | None = None, idem_override: str | None = None) -> dict[str, Any]:
         import json as _json
 
         from app.services.payment_rails import PaymentRails
@@ -382,6 +398,7 @@ class EconomyServices:
         event = PaymentRails.normalize(payload, rail)
         if not event:
             raise ValidationError("amount required")
+        idem_key = idem_override or (f"{rail}:{event['reference']}" if event.get("reference") else None)
         result = await self._treasury.collect(
             amount=event["amount"],
             currency=event["currency"],
@@ -389,5 +406,8 @@ class EconomyServices:
             method=rail,
             type_=event["type"],
             meta={"customer": event["customer"], "reference": event["reference"], **event.get("meta", {})},
+            idem_key=idem_key,
         )
+        if not result.get("ok") and result.get("reason") == "duplicate":
+            return {"ok": True, "duplicate": True, "idem_key": result.get("idem_key")}
         return {"ok": True, "collected": result.get("entry", {}).get("amount_brdg", 0)}

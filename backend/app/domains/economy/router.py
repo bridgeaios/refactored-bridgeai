@@ -287,11 +287,18 @@ async def list_rails(svc: EconomyDep) -> dict[str, Any]:
 # Payment webhooks
 # ------------------------------------------------------------------
 
+def _idem_header(request: Request) -> str | None:
+    """RFC draft-ietf-httpapi-idempotency-key — client-supplied override."""
+    v = request.headers.get("idempotency-key") or request.headers.get("Idempotency-Key")
+    v = (v or "").strip()
+    return v or None
+
+
 @router.post("/payments/webhook/paystack")
 async def webhook_paystack(request: Request, svc: EconomyDep) -> dict[str, Any]:
     body = await request.body()
     signature = request.headers.get("x-paystack-signature", "")
-    result = await svc.webhook_paystack(body, signature)
+    result = await svc.webhook_paystack(body, signature, idem_override=_idem_header(request))
     # Auto-reconcile matching invoice if a payment came in
     if result.get("ok") and result.get("type") == "payment":
         try:
@@ -311,27 +318,27 @@ async def webhook_paystack(request: Request, svc: EconomyDep) -> dict[str, Any]:
 async def webhook_paypal(request: Request, svc: EconomyDep) -> dict[str, Any]:
     body = await request.body()
     headers = dict(request.headers)
-    return await svc.webhook_paypal(body, headers)
+    return await svc.webhook_paypal(body, headers, idem_override=_idem_header(request))
 
 
 @router.post("/payments/webhook/crypto")
 async def webhook_crypto(request: Request, svc: EconomyDep) -> dict[str, Any]:
     body = await request.body()
-    return await svc.webhook_crypto(body)
+    return await svc.webhook_crypto(body, idem_override=_idem_header(request))
 
 
 @router.post("/payments/webhook/payfast")
 async def webhook_payfast(request: Request, svc: EconomyDep) -> dict[str, Any]:
     form = await request.form()
     form_dict = {k: str(v) for k, v in form.items()}
-    return await svc.webhook_payfast(form_dict)
+    return await svc.webhook_payfast(form_dict, idem_override=_idem_header(request))
 
 
 @router.post("/payments/webhook/{rail}")
 async def webhook_generic(rail: str, request: Request, svc: EconomyDep) -> dict[str, Any]:
     body = await request.body()
     source_project = request.headers.get("X-Source-Project") or None
-    return await svc.webhook_generic(rail, body, source_project=source_project)
+    return await svc.webhook_generic(rail, body, source_project=source_project, idem_override=_idem_header(request))
 
 
 # ------------------------------------------------------------------
